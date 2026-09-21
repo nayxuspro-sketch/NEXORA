@@ -1,5 +1,6 @@
 from django.db import models
-from apps.common.models import TimeStampedModel
+from django.utils import timezone
+from apps.common.models import TimeStampedModel, TenantModel
 
 
 class Company(TimeStampedModel):
@@ -24,3 +25,29 @@ class Company(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+
+class StoreLicense(TenantModel):
+    store = models.ForeignKey('inventory.Store', on_delete=models.CASCADE, related_name='licenses')
+    license_key = models.CharField(max_length=255, unique=True)
+    plan_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('STANDARD', 'Standard Caisse & Stock (1 Poste)'),
+            ('PRO', 'Professionnel Multi-Caisses (3 Postes)'),
+            ('ENTERPRISE', 'Entreprise Illimitée & BI Analytics'),
+        ],
+        default='PRO'
+    )
+    max_registers = models.PositiveIntegerField(default=3)
+    issued_to_name = models.CharField(max_length=255)
+    valid_from = models.DateField(default=timezone.now)
+    expires_at = models.DateField()
+    signature_hash = models.CharField(max_length=255)
+    is_revoked = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.store.name} - {self.license_key}"

@@ -29,7 +29,12 @@ import {
   PauseCircle,
   PlayCircle,
   MapPin,
-  Phone
+  Phone,
+  Award,
+  FileCheck,
+  Download,
+  AlertOctagon,
+  Copy
 } from 'lucide-react';
 
 interface GroupItem {
@@ -42,6 +47,24 @@ interface GroupItem {
     app_label: string;
   }>;
   users_count: number;
+}
+
+interface LicenseItem {
+  id: string;
+  store: string;
+  store_name: string;
+  store_code: string;
+  license_key: string;
+  plan_type: string;
+  max_registers: number;
+  issued_to_name: string;
+  valid_from: string;
+  expires_at: string;
+  signature_hash: string;
+  is_revoked: boolean;
+  is_valid: boolean;
+  remaining_days: number;
+  created_at: string;
 }
 
 interface StoreItem {
@@ -73,7 +96,7 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = React.useState<'users' | 'groups' | 'stores'>('users');
+  const [activeTab, setActiveTab] = React.useState<'users' | 'groups' | 'stores' | 'licenses'>('users');
   const [searchQuery, setSearchQuery] = React.useState('');
 
   // Modals state
@@ -84,6 +107,15 @@ export default function SettingsPage() {
   // Store states
   const [isStoreModalOpen, setIsStoreModalOpen] = React.useState(false);
   const [editingStore, setEditingStore] = React.useState<StoreItem | null>(null);
+  // License state
+  const [isLicenseModalOpen, setIsLicenseModalOpen] = React.useState(false);
+  const [licenseForm, setLicenseForm] = React.useState({
+    store: '',
+    plan_type: 'PRO',
+    duration_months: 12,
+    max_registers: 3,
+    issued_to_name: '',
+  });
   const [storeForm, setStoreForm] = React.useState({
     name: '',
     code: '',
@@ -130,6 +162,97 @@ export default function SettingsPage() {
     queryKey: ['system-permissions'],
     queryFn: () => apiRequest<any>('/settings/permissions/'),
   });
+
+  // 5. Fetch Store Licenses
+  const { data: licensesData, isLoading: isLoadingLicenses } = useQuery<{ results: LicenseItem[] }>({
+    queryKey: ['settings-licenses'],
+    queryFn: () => apiRequest<{ results: LicenseItem[] }>('/store-licenses/'),
+  });
+
+  // Mutation: Generate License
+  const generateLicenseMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      // Calculate expires_at date based on months
+      const d = new Date();
+      d.setMonth(d.getMonth() + parseInt(payload.duration_months.toString(), 10));
+      const expires_at = d.toISOString().split('T')[0];
+
+      return apiRequest('/store-licenses/', {
+        method: 'POST',
+        body: JSON.stringify({
+          store: payload.store,
+          plan_type: payload.plan_type,
+          max_registers: parseInt(payload.max_registers.toString(), 10),
+          issued_to_name: payload.issued_to_name,
+          expires_at: expires_at,
+        }),
+      });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['settings-licenses'] });
+      toast({
+        type: 'success',
+        title: 'Licence d’Exploitation Générée',
+        message: `Clé d'activation créée avec succès pour le magasin.`,
+      });
+      setIsLicenseModalOpen(false);
+    },
+    onError: (err: any) => {
+      toast({
+        type: 'error',
+        title: 'Erreur Génération Licence',
+        message: err.message || 'Impossible de générer la licence.',
+      });
+    },
+  });
+
+  // Mutation: Revoke / Reactivate License
+  const toggleLicenseRevocationMutation = useMutation({
+    mutationFn: async ({ licId, is_revoked }: { licId: string; is_revoked: boolean }) => {
+      return apiRequest(`/store-licenses/${licId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_revoked }),
+      });
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['settings-licenses'] });
+      toast({
+        type: 'success',
+        title: vars.is_revoked ? 'Licence Révoquée' : 'Licence Réactivée',
+        message: vars.is_revoked
+          ? 'La licence d’exploitation a été invalidée pour ce magasin.'
+          : 'La licence d’exploitation a été rétablie.',
+      });
+    },
+  });
+
+  const downloadLicensePdf = async (licenseId: string, storeCode: string) => {
+    try {
+      const response = await fetch(`/api/v1/store-licenses/${licenseId}/certificate-pdf/`);
+      if (!response.ok) throw new Error('Erreur lors du téléchargement');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Certificat_Licence_${storeCode}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        type: 'success',
+        title: 'Certificat Officiel Téléchargé',
+        message: 'Le certificat de licence haute définition a été généré.',
+      });
+    } catch (err: any) {
+      toast({
+        type: 'error',
+        title: 'Erreur Téléchargement PDF',
+        message: err.message || 'Impossible de télécharger le certificat.',
+      });
+    }
+  };
 
   // 4. Fetch Stores (Magasins)
   const { data: storesData, isLoading: isLoadingStores } = useQuery<{ results: StoreItem[] }>({
@@ -476,6 +599,112 @@ export default function SettingsPage() {
     },
   ];
 
+  // Columns for Licenses table
+  const licenseColumns = [
+    {
+      header: 'Magasin & Clé d’Activation',
+      cell: (row: LicenseItem) => (
+        <div>
+          <span className="font-bold text-foreground block text-sm flex items-center gap-1.5">
+            <Award className="h-4 w-4 text-primary" /> {row.store_name}
+          </span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <code className="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+              {row.license_key}
+            </code>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(row.license_key);
+                toast({ type: 'success', title: 'Clé Copiée', message: 'Clé de licence copiée dans le presse-papier.' });
+              }}
+              title="Copier la clé"
+              className="text-muted-foreground hover:text-foreground p-0.5"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: 'Formule & Postes',
+      cell: (row: LicenseItem) => (
+        <div className="text-xs space-y-0.5">
+          <Badge variant="outline" className="font-semibold bg-muted/40">
+            {row.plan_type === 'ENTERPRISE' ? 'Entreprise Illimitée' : (row.plan_type === 'PRO' ? 'Pro Multi-Caisses' : 'Standard 1 Poste')}
+          </Badge>
+          <p className="text-[11px] text-muted-foreground">
+            Max : <span className="font-bold text-foreground">{row.max_registers} caisse(s)</span>
+          </p>
+        </div>
+      ),
+    },
+    {
+      header: 'Validité & Échéance',
+      cell: (row: LicenseItem) => (
+        <div className="text-xs">
+          <span className="font-semibold text-foreground block">
+            Jusqu’au {formatDate(row.expires_at)}
+          </span>
+          <span className={`text-[10px] font-bold ${row.remaining_days < 30 ? 'text-rose-500' : 'text-emerald-500'}`}>
+            {row.remaining_days} jour(s) restant(s)
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'État Licence',
+      cell: (row: LicenseItem) => (
+        <Badge
+          variant={row.is_valid ? 'success' : 'destructive'}
+          className="text-[10px] font-bold"
+        >
+          {row.is_revoked ? 'Révoquée' : (row.is_valid ? 'Active & Homologuée' : 'Expirée')}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Actions & Certificat',
+      cell: (row: LicenseItem) => (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadLicensePdf(row.id, row.store_code)}
+            className="h-7 text-xs px-2.5 font-medium border-primary/30 text-primary hover:bg-primary/10"
+            title="Télécharger le certificat officiel PDF à remettre au magasin"
+          >
+            <Download className="h-3.5 w-3.5 mr-1" /> Certificat PDF
+          </Button>
+
+          {row.is_revoked ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toggleLicenseRevocationMutation.mutate({ licId: row.id, is_revoked: false })}
+              className="h-7 text-xs px-2 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
+            >
+              Réactiver
+            </Button>
+          ) : (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (confirm(`Voulez-vous vraiment révoquer la licence du magasin "${row.store_name}" ? Le magasin ne pourra plus opérer.`)) {
+                  toggleLicenseRevocationMutation.mutate({ licId: row.id, is_revoked: true });
+                }
+              }}
+              className="h-7 text-xs px-2 bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              Révoquer
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   // Columns for Stores table
   const storeColumns = [
     {
@@ -642,6 +871,15 @@ export default function SettingsPage() {
     );
   });
 
+  const filteredLicenses = (licensesData?.results || []).filter((l) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      l.store_name.toLowerCase().includes(q) ||
+      l.license_key.toLowerCase().includes(q) ||
+      l.store_code.toLowerCase().includes(q)
+    );
+  });
+
   const filteredStores = (storesData?.results || []).filter((s) => {
     const q = searchQuery.toLowerCase();
     return (
@@ -690,6 +928,24 @@ export default function SettingsPage() {
                 <StoreIcon className="h-4 w-4 mr-1.5" /> Nouveau Magasin / Dépôt
               </Button>
             )}
+            {activeTab === 'licenses' && (
+              <Button
+                onClick={() => {
+                  setLicenseForm({
+                    store: storesData?.results?.[0]?.id || '',
+                    plan_type: 'PRO',
+                    duration_months: 12,
+                    max_registers: 3,
+                    issued_to_name: storesData?.results?.[0]?.name || '',
+                  });
+                  setIsLicenseModalOpen(true);
+                }}
+                size="sm"
+                className="font-semibold shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <Award className="h-4 w-4 mr-1.5" /> Générer Licence Magasin
+              </Button>
+            )}
           </div>
         </div>
 
@@ -728,13 +984,24 @@ export default function SettingsPage() {
           >
             <StoreIcon className="h-4 w-4" /> Magasins & Dépôts ({storesData?.results?.length || 0})
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('licenses')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-all ${
+              activeTab === 'licenses'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Award className="h-4 w-4" /> Licences d’Exploitation ({licensesData?.results?.length || 0})
+          </button>
         </div>
 
         {/* Filter bar */}
         <div className="flex items-center gap-3 bg-card p-3 rounded-xl border">
           <div className="max-w-md w-full">
             <Input
-              placeholder={activeTab === 'users' ? 'Rechercher un collaborateur par nom, email...' : (activeTab === 'groups' ? 'Rechercher un groupe ou profil...' : 'Rechercher un magasin par nom, code, ville...')}
+              placeholder={activeTab === 'users' ? 'Rechercher un collaborateur par nom, email...' : (activeTab === 'groups' ? 'Rechercher un groupe ou profil...' : (activeTab === 'stores' ? 'Rechercher un magasin...' : 'Rechercher une licence par magasin, clé...'))}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               icon={<Search className="h-4 w-4" />}
@@ -772,6 +1039,17 @@ export default function SettingsPage() {
               columns={storeColumns}
               data={filteredStores}
               isLoading={isLoadingStores}
+            />
+          </div>
+        )}
+
+        {/* TAB 4: STORE LICENSES MANAGEMENT */}
+        {activeTab === 'licenses' && (
+          <div className="space-y-4">
+            <DataTable
+              columns={licenseColumns}
+              data={filteredLicenses}
+              isLoading={isLoadingLicenses}
             />
           </div>
         )}
@@ -1068,6 +1346,140 @@ export default function SettingsPage() {
               </Button>
               <Button type="submit" isLoading={groupMutation.isPending}>
                 <CheckCircle2 className="h-4 w-4 mr-1.5" /> Enregistrer le Profil et les Droits
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+
+        {/* MODAL 4: GÉNÉRER UNE LICENCE D'UTILISATION POUR UN MAGASIN */}
+        <Modal
+          isOpen={isLicenseModalOpen}
+          onClose={() => setIsLicenseModalOpen(false)}
+          title="Générer une Licence d’Utilisation Magasin"
+          maxWidth="md"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              generateLicenseMutation.mutate(licenseForm);
+            }}
+            className="space-y-4 pt-1"
+          >
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
+              <div className="flex items-center gap-1.5 font-bold text-emerald-400 mb-1">
+                <Award className="h-4 w-4" /> Certification de Droit d’Exploitation
+              </div>
+              Génération d’une clé cryptographique HMAC-SHA256 inaltérable liée au magasin bénéficiaire, avec délivrance du certificat officiel PDF.
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Sélectionner le Magasin Acquéreur *
+              </label>
+              <select
+                required
+                className="w-full h-10 px-3 rounded-lg border border-input bg-background text-xs font-bold text-foreground"
+                value={licenseForm.store}
+                onChange={(e) => {
+                  const selStore = storesData?.results?.find((s) => s.id === e.target.value);
+                  setLicenseForm({
+                    ...licenseForm,
+                    store: e.target.value,
+                    issued_to_name: selStore ? selStore.name : '',
+                  });
+                }}
+              >
+                <option value="">-- Choisir un magasin enregistré --</option>
+                {(storesData?.results || []).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} (#{s.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Édition / Formule Logicielle *
+                </label>
+                <select
+                  className="w-full h-10 px-3 rounded-lg border border-input bg-background text-xs font-medium"
+                  value={licenseForm.plan_type}
+                  onChange={(e) => {
+                    const plan = e.target.value;
+                    let maxReg = 3;
+                    if (plan === 'STANDARD') maxReg = 1;
+                    if (plan === 'ENTERPRISE') maxReg = 10;
+                    setLicenseForm({ ...licenseForm, plan_type: plan, max_registers: maxReg });
+                  }}
+                >
+                  <option value="STANDARD">Standard (1 Caisse)</option>
+                  <option value="PRO">Professionnel (3 Caisses)</option>
+                  <option value="ENTERPRISE">Entreprise Illimitée (10+ Caisses)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Durée de Validité *
+                </label>
+                <select
+                  className="w-full h-10 px-3 rounded-lg border border-input bg-background text-xs font-medium"
+                  value={licenseForm.duration_months}
+                  onChange={(e) => setLicenseForm({ ...licenseForm, duration_months: parseInt(e.target.value, 10) })}
+                >
+                  <option value="1">1 Mois (Essai)</option>
+                  <option value="6">6 Mois (Semestriel)</option>
+                  <option value="12">12 Mois (Annuel - Recommandé)</option>
+                  <option value="24">24 Mois (Pluriannuel)</option>
+                  <option value="60">60 Mois (Quinquennal)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Nombre Maximal de Caisses / Postes *
+                </label>
+                <Input
+                  type="number"
+                  min="1"
+                  required
+                  value={licenseForm.max_registers}
+                  onChange={(e) => setLicenseForm({ ...licenseForm, max_registers: parseInt(e.target.value, 10) || 1 })}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Nom Inscrit sur le Certificat *
+                </label>
+                <Input
+                  required
+                  value={licenseForm.issued_to_name}
+                  onChange={(e) => setLicenseForm({ ...licenseForm, issued_to_name: e.target.value })}
+                  placeholder="Nom officiel du magasin ou gérant"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsLicenseModalOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="submit"
+                isLoading={generateLicenseMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              >
+                <Award className="h-4 w-4 mr-1.5" /> Émettre la Licence Officielle
               </Button>
             </div>
           </form>

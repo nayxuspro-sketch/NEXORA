@@ -11,6 +11,10 @@ from apps.accounts.settings_views import (
     SystemPermissionsListView
 )
 from apps.companies.views import CompanyViewSet
+from apps.companies.licenses import (
+    StoreLicenseViewSet,
+    StoreLicenseCertificatePdfExportView
+)
 from apps.catalog.views import CategoryViewSet, UnitViewSet, ProductViewSet
 from apps.catalog.pdf_export import ProductCatalogPdfExportView
 from apps.partners.views import PartnerViewSet
@@ -52,6 +56,7 @@ router.register(r'partners', PartnerViewSet, basename='partner')
 
 # Inventory & Stores
 router.register(r'stores', StoreViewSet, basename='store')
+router.register(r'store-licenses', StoreLicenseViewSet, basename='store-license')
 router.register(r'stock-levels', StockLevelViewSet, basename='stock-level')
 router.register(r'stock-movements', StockMovementViewSet, basename='stock-movement')
 router.register(r'inventories', InventoryViewSet, basename='inventory')
@@ -114,6 +119,9 @@ urlpatterns = [
 
     # Permissions list
     path('settings/permissions/', SystemPermissionsListView.as_view(), name='system_permissions_list'),
+
+    # License PDF certificate
+    path('store-licenses/<uuid:license_id>/certificate-pdf/', StoreLicenseCertificatePdfExportView.as_view(), name='store_license_pdf'),
 
     # ViewSets Router
     path('', include(router.urls)),
