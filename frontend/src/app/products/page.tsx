@@ -20,6 +20,21 @@ export default function ProductsPage() {
   const [search, setSearch] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
+
+  // Edit form state
+  const [editFormData, setEditFormData] = React.useState({
+    name: '',
+    sku: '',
+    barcode: '',
+    cost_price: '0.00',
+    selling_price: '0.00',
+    tax_rate: '18.00',
+    alert_threshold: '5.00',
+    description: '',
+    is_active: true,
+  });
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -108,6 +123,71 @@ export default function ProductsPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof editFormData }) => {
+      return await apiRequest(`/products/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        type: 'success',
+        title: 'Produit modifié',
+        message: 'Les modifications de l\'article ont été enregistrées avec succès.',
+      });
+      setIsEditModalOpen(false);
+      setEditingProduct(null);
+      queryClient.invalidateQueries({ queryKey: ['products-list'] });
+    },
+    onError: (err: any) => {
+      toast({
+        type: 'error',
+        title: 'Erreur',
+        message: err.message || 'Impossible de modifier le produit.',
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest(`/products/${id}/`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      toast({
+        type: 'success',
+        title: 'Produit supprimé',
+        message: 'L\'article a été retiré du catalogue.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['products-list'] });
+    },
+    onError: (err: any) => {
+      toast({
+        type: 'error',
+        title: 'Erreur',
+        message: err.message || 'Impossible de supprimer le produit.',
+      });
+    },
+  });
+
+  const handleOpenEdit = (product: Product) => {
+    setEditingProduct(product);
+    setEditFormData({
+      name: product.name,
+      sku: product.sku,
+      barcode: product.barcode || '',
+      cost_price: product.cost_price || '0.00',
+      selling_price: product.selling_price || '0.00',
+      tax_rate: (product as any).tax_rate || '18.00',
+      alert_threshold: product.alert_threshold || '5.00',
+      description: product.description || '',
+      is_active: product.is_active ?? true,
+    });
+    setIsEditModalOpen(true);
+  };
+
   const columns = [
     {
       header: 'Produit / Article',
@@ -151,6 +231,35 @@ export default function ProductsPage() {
         <Badge variant={row.is_active ? 'success' : 'destructive'}>
           {row.is_active ? 'Actif' : 'Inactif'}
         </Badge>
+      ),
+    },
+    {
+      header: 'Actions',
+      cell: (row: Product) => (
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-2 text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-all"
+            onClick={() => handleOpenEdit(row)}
+            title="Modifier ce produit"
+          >
+            <Edit className="h-3.5 w-3.5 mr-1" /> Modifier
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-rose-500 hover:bg-rose-500/10 transition-all"
+            onClick={() => {
+              if (confirm(`Confirmez-vous la suppression de "${row.name}" ?`)) {
+                deleteMutation.mutate(row.id);
+              }
+            }}
+            title="Supprimer ce produit"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       ),
     },
   ];
@@ -287,6 +396,141 @@ export default function ProductsPage() {
               </Button>
               <Button type="submit" isLoading={createMutation.isPending}>
                 Enregistrer le Produit
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Edit Modal */}
+        <Modal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingProduct(null);
+          }}
+          title={`Modifier l'article : ${editingProduct?.name || ''}`}
+          maxWidth="lg"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!editingProduct) return;
+              updateMutation.mutate({ id: editingProduct.id, data: editFormData });
+            }}
+            className="space-y-4 pt-2"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Nom du produit *
+                </label>
+                <Input
+                  required
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  placeholder="Ex: Écran 27 Pouces 4K"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Référence SKU *
+                </label>
+                <Input
+                  required
+                  value={editFormData.sku}
+                  onChange={(e) => setEditFormData({ ...editFormData, sku: e.target.value })}
+                  placeholder="Ex: DISP-4K-27"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Prix de revient HT (FCFA)
+                </label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={editFormData.cost_price}
+                  onChange={(e) => setEditFormData({ ...editFormData, cost_price: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Prix de vente TTC (FCFA) *
+                </label>
+                <Input
+                  type="number"
+                  step="1"
+                  required
+                  value={editFormData.selling_price}
+                  onChange={(e) => setEditFormData({ ...editFormData, selling_price: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Seuil d'alerte stock
+                </label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={editFormData.alert_threshold}
+                  onChange={(e) => setEditFormData({ ...editFormData, alert_threshold: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Code-barres / EAN
+                </label>
+                <Input
+                  value={editFormData.barcode}
+                  onChange={(e) => setEditFormData({ ...editFormData, barcode: e.target.value })}
+                  placeholder="Ex: 3700123456789"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Statut de l'article
+                </label>
+                <select
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                  value={editFormData.is_active ? 'true' : 'false'}
+                  onChange={(e) => setEditFormData({ ...editFormData, is_active: e.target.value === 'true' })}
+                >
+                  <option value="true">Actif (disponible à la vente)</option>
+                  <option value="false">Inactif (archivé / désactivé)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Description & Caractéristiques
+              </label>
+              <Input
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                placeholder="Détails techniques, garantie, options..."
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingProduct(null);
+                }}
+              >
+                Annuler
+              </Button>
+              <Button type="submit" isLoading={updateMutation.isPending}>
+                Enregistrer les Modifications
               </Button>
             </div>
           </form>
