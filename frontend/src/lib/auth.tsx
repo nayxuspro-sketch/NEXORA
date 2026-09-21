@@ -22,39 +22,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Authentification stricte de session :
+  // A chaque lancement ou nouvelle ouverture du navigateur, sessionStorage est vide,
+  // ce qui force immédiatement l'affichage de la page de connexion (/login).
   useEffect(() => {
-    const savedToken = typeof window !== 'undefined' ? localStorage.getItem('nexora_access_token') : null;
-    const savedUser = typeof window !== 'undefined' ? localStorage.getItem('nexora_user') : null;
+    if (typeof window === 'undefined') return;
 
-    if (savedToken && savedUser) {
-      setToken(savedToken);
+    // Récupération exclusive en session active
+    const activeToken = sessionStorage.getItem('nexora_session_token') || sessionStorage.getItem('nexora_access_token');
+    const activeUser = sessionStorage.getItem('nexora_session_user') || sessionStorage.getItem('nexora_user');
+
+    if (activeToken && activeUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(activeUser);
+        setToken(activeToken);
+        setUser(parsedUser);
+        setIsLoading(false);
+        return;
       } catch (e) {
-        console.error(e);
+        console.error('Erreur lecture session:', e);
       }
-      setIsLoading(false);
-    } else {
-      // Si aucun utilisateur n'est connecté et qu'on n'est pas déjà sur /login, rediriger vers /login
-      setToken(null);
-      setUser(null);
-      setIsLoading(false);
-      if (pathname !== '/login') {
-        router.push('/login');
-      }
+    }
+
+    // Si aucune session active n'est trouvée (nouveau lancement de l'application),
+    // réinitialisation complète et redirection obligatoire vers /login
+    setToken(null);
+    setUser(null);
+    setIsLoading(false);
+
+    if (pathname !== '/login') {
+      router.push('/login');
     }
   }, [pathname, router]);
 
   const login = (newToken: string, newUser: User) => {
-    localStorage.setItem('nexora_access_token', newToken);
-    localStorage.setItem('nexora_user', JSON.stringify(newUser));
+    if (typeof window !== 'undefined') {
+      // Stocker en sessionStorage (dure uniquement le temps de la session du navigateur)
+      sessionStorage.setItem('nexora_session_token', newToken);
+      sessionStorage.setItem('nexora_session_user', JSON.stringify(newUser));
+      // Mirroring pour rétrocompatibilité
+      sessionStorage.setItem('nexora_access_token', newToken);
+      sessionStorage.setItem('nexora_user', JSON.stringify(newUser));
+      // Nettoyer d'éventuels résidus permanents pour éviter tout contournement
+      localStorage.removeItem('nexora_access_token');
+      localStorage.removeItem('nexora_user');
+    }
     setToken(newToken);
     setUser(newUser);
   };
 
   const logout = () => {
-    localStorage.removeItem('nexora_access_token');
-    localStorage.removeItem('nexora_user');
+    if (typeof window !== 'undefined') {
+      sessionStorage.clear();
+      localStorage.removeItem('nexora_access_token');
+      localStorage.removeItem('nexora_user');
+    }
     setToken(null);
     setUser(null);
     router.push('/login');

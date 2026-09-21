@@ -21,7 +21,9 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('nexora_access_token') : null;
+  const token = typeof window !== 'undefined'
+    ? (sessionStorage.getItem('nexora_session_token') || sessionStorage.getItem('nexora_access_token') || localStorage.getItem('nexora_access_token'))
+    : null;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
