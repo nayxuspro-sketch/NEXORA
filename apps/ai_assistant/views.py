@@ -21,7 +21,11 @@ class AutomationRuleViewSet(TenantModelViewSet):
         """
         Manually trigger evaluation of active automation rules for the tenant.
         """
-        results = AutomationEngine.evaluate_rules_for_company(request.user.company, user=request.user)
+        company = getattr(request.user, 'company', None)
+        if not company:
+            from apps.companies.models import Company
+            company = Company.objects.first()
+        results = AutomationEngine.evaluate_rules_for_company(company, user=request.user)
         return Response({
             'status': 'success',
             'message': f"{len(results)} règle(s) évaluée(s).",
@@ -51,10 +55,15 @@ class AIChatAssistantView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        company = getattr(request.user, 'company', None)
+        if not company:
+            from apps.companies.models import Company
+            company = Company.objects.first()
+
         response_payload = AIAssistantService.process_query(
             query=question,
             user=request.user,
-            company=request.user.company
+            company=company
         )
 
         return Response(response_payload)

@@ -137,6 +137,7 @@ export interface CashRegister {
 }
 
 export interface DashboardReport {
+  weekly_chart?: Array<{ label: string; date: string; value: number }>;
   period_days: number;
   sales: {
     total_amount: string;

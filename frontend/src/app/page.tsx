@@ -68,15 +68,20 @@ export default function DashboardPage() {
     },
   });
 
-  const chartData = [
-    { label: 'Lun', value: 2450000 },
-    { label: 'Mar', value: 3800000 },
-    { label: 'Mer', value: 2900000 },
-    { label: 'Jeu', value: 4500000 },
-    { label: 'Ven', value: 5800000 },
-    { label: 'Sam', value: 7200000 },
-    { label: 'Dim', value: 3200000 },
-  ];
+  const chartData = report?.weekly_chart && report.weekly_chart.length > 0
+    ? report.weekly_chart.map((c) => ({
+        label: `${c.label} ${c.date || ''}`.trim(),
+        value: c.value,
+      }))
+    : [
+        { label: 'J-6', value: 0 },
+        { label: 'J-5', value: 0 },
+        { label: 'J-4', value: 0 },
+        { label: 'J-3', value: 0 },
+        { label: 'J-2', value: 0 },
+        { label: 'Hier', value: 0 },
+        { label: "Aujourd'hui", value: 0 },
+      ];
 
   return (
     <DashboardLayout>
@@ -122,24 +127,26 @@ export default function DashboardPage() {
           <KpiCard
             title="Chiffre d'Affaires"
             value={formatCurrency(report?.sales?.total_amount || '0')}
-            change="+14.2% ce mois"
+            change={`${report?.sales?.count || 0} transaction(s)`}
             changeType="positive"
             icon={<TrendingUp className="h-4 w-4 text-primary" />}
-            description={`${report?.sales?.count || 0} ventes enregistrées`}
+            description={`TVA collectée : ${formatCurrency(report?.sales?.tax_collected || '0')}`}
           />
           <KpiCard
             title="Marge Brute Réalisée"
             value={formatCurrency(report?.profitability?.gross_estimate || '0')}
-            change="+8.6%"
+            change={parseFloat(report?.sales?.total_amount || '0') > 0 ? `${Math.round((parseFloat(report?.profitability?.gross_estimate || '0') / parseFloat(report?.sales?.total_amount || '1')) * 100)}% de marge` : '0%'}
             changeType="positive"
             icon={<Wallet className="h-4 w-4 text-emerald-600" />}
-            description="Après coûts d'achat"
+            description="Revenus nets moins coût de revient"
           />
           <KpiCard
             title="Articles en Stock"
-            value={Number(report?.inventory?.total_units_stocked || 0).toLocaleString('fr-FR')}
+            value={`${Number(report?.inventory?.total_units_stocked || 0).toLocaleString('fr-FR')} pcs`}
+            change="Disponibilité immédiate"
+            changeType="positive"
             icon={<Layers className="h-4 w-4 text-slate-600" />}
-            description="Unités valorisées en dépôt"
+            description="Unités physiques en dépôt"
           />
           <KpiCard
             title="Alertes Rupture"
@@ -147,7 +154,7 @@ export default function DashboardPage() {
             change={Number(report?.inventory?.low_stock_alerts_count || 0) > 0 ? "Réapprovisionner" : "Stock sain"}
             changeType={Number(report?.inventory?.low_stock_alerts_count || 0) > 0 ? "negative" : "positive"}
             icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
-            description="Articles sous le seuil d'alerte"
+            description="Articles sous le seuil critique"
           />
         </div>
 

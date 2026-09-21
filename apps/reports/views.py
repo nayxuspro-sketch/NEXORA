@@ -43,7 +43,10 @@ class DashboardSummaryReportView(APIView):
         ]
     )
     def get(self, request):
-        company = request.user.company
+        company = getattr(request.user, 'company', None)
+        if not company:
+            from apps.companies.models import Company
+            company = Company.objects.first()
 
         # Period filter (default 30 days)
         days = int(request.query_params.get('days', 30))
@@ -81,12 +84,41 @@ class DashboardSummaryReportView(APIView):
                 'alert_threshold': str(level.product.alert_threshold)
             })
 
-        # Net estimated margin
+        # Net estimated margin based on sales cost of goods sold (COGS)
         total_sales = sales_aggregate['total_sales'] or Decimal('0.00')
-        total_purchases = purchases_aggregate['total_purchases'] or Decimal('0.00')
-        gross_margin = total_sales - total_purchases
+        
+        # Calculate real cost of goods sold from sales lines
+        from apps.sales.models import SaleItem
+        cogs = Decimal('0.00')
+        for sline in SaleItem.objects.filter(sale__in=sales_qs).select_related('product'):
+            cost_p = sline.product.cost_price if sline.product else Decimal('0.00')
+            cogs += sline.quantity * cost_p
+
+        gross_margin = total_sales - cogs
+
+        # Weekly sales chart (last 7 days dynamically computed)
+        weekly_chart = []
+        days_fr = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+        today_date = timezone.now().date()
+        for i in range(6, -1, -1):
+            day_target = today_date - timedelta(days=i)
+            day_total = Sale.objects.filter(
+                company=company,
+                status=SaleStatus.COMPLETED,
+                created_at__date=day_target
+            ).aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
+            
+            # French weekday abbreviation
+            weekday_idx = int(day_target.strftime('%w'))
+            day_label = days_fr[weekday_idx]
+            weekly_chart.append({
+                'label': day_label,
+                'date': day_target.strftime('%d/%m'),
+                'value': int(day_total)
+            })
 
         return Response({
+            'weekly_chart': weekly_chart,
             'period_days': days,
             'sales': {
                 'total_amount': str(total_sales),
@@ -95,7 +127,7 @@ class DashboardSummaryReportView(APIView):
                 'discounts_granted': str(sales_aggregate['total_discount'] or Decimal('0.00')),
             },
             'purchases': {
-                'total_amount': str(total_purchases),
+                'total_amount': str(purchases_aggregate['total_purchases'] or Decimal('0.00')),
                 'count': purchases_aggregate['purchases_count'] or 0,
             },
             'profitability': {
@@ -117,7 +149,10 @@ class InventoryValuationReportView(APIView):
 
     @extend_schema(responses={200: InventoryValuationReportSerializer})
     def get(self, request):
-        company = request.user.company
+        company = getattr(request.user, 'company', None)
+        if not company:
+            from apps.companies.models import Company
+            company = Company.objects.first()
         levels = StockLevel.objects.filter(company=company).select_related('product', 'store')
 
         total_cost_valuation = Decimal('0.00')

@@ -19,7 +19,10 @@ class SmartSuggestionsView(APIView):
     permission_classes = [IsAuthenticatedAndInTenant]
 
     def get(self, request):
-        company = request.user.company
+        company = getattr(request.user, 'company', None)
+        if not company:
+            from apps.companies.models import Company
+            company = Company.objects.first()
         product_id = request.query_params.get('product_id')
 
         # 1. Cross-selling suggestions
