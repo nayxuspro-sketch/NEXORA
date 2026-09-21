@@ -3,74 +3,69 @@
 @tailwind utilities;
 
 @layer base {
-  /* 
-   * THÈME PRO SOMBRE DE REPOS VISUEL (PAR DÉFAUT)
-   * Inspiré des terminaux professionnels Bloomberg / Linear / Raycast :
-   * - Fond Ardoise Noir Profond (#090d16) : Évite la fatigue oculaire après 8h de caisse
-   * - Cartes & Surfaces (#111827 / #1e293b) : Contraste doux sans éblouissement
-   * - Typographie Blanc Cassé / Ardoise (#f1f5f9 / #94a3b8) : Netteté sans agressivité
-   * - Accent Bleu Océan Lumineux (#38bdf8) & Vert Caisse (#10b981)
+  /*
+   * THEME MODERNE EQUILIBRE (GRIS ANTHRACITE PRO & REPOS VISUEL)
+   * Neutres chauds, contrastes doux, lisibilité optimale sans éblouissement
    */
   :root {
-    --background: 222 47% 7%;        /* #090e17 */
-    --foreground: 210 40% 96%;        /* #f1f5f9 */
+    --background: 220 14% 96%;        /* #f1f3f5 - fond gris doux et reposant */
+    --foreground: 222 47% 11%;        /* #0f172a - texte anthracite très lisible */
 
-    --card: 222 47% 10%;              /* #0f172a */
-    --card-foreground: 210 40% 96%;
+    --card: 0 0% 100%;                /* #ffffff - cartes blanches bien définies */
+    --card-foreground: 222 47% 11%;
 
-    --popover: 222 47% 10%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Brand Primary: Bleu moderne lumineux visible sur fond sombre */
-    --primary: 199 89% 48%;           /* #0284c7 -> #0ea5e9 */
-    --primary-foreground: 222 47% 7%;
+    /* Brand Primary: Bleu Océan SaaS professionnel */
+    --primary: 217 91% 45%;           /* #0284c7 */
+    --primary-foreground: 210 40% 98%;
 
     /* Surfaces secondaires */
-    --secondary: 217 33% 17%;         /* #1e293b */
-    --secondary-foreground: 210 40% 96%;
+    --secondary: 214 32% 91%;         /* #e2e8f0 */
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 217 33% 15%;             /* #162032 */
-    --muted-foreground: 215 20% 65%;  /* #94a3b8 */
+    --muted: 214 20% 90%;
+    --muted-foreground: 215 16% 40%;  /* #64748b */
 
-    --accent: 217 33% 18%;
-    --accent-foreground: 210 40% 96%;
+    --accent: 214 32% 91%;
+    --accent-foreground: 222 47% 11%;
 
-    /* Sémantiques métier */
-    --success: 158 64% 52%;           /* #10b981 */
-    --success-foreground: 222 47% 7%;
+    /* Sémantiques */
+    --success: 152 76% 36%;           /* #16a34a */
+    --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 222 47% 7%;
+    --warning: 38 92% 50%;            /* #f59e0b */
+    --warning-foreground: 222 47% 11%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;         /* #ef4444 */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217 33% 18%;            /* Bordures subtiles anti-reflet */
-    --input: 217 33% 20%;
-    --ring: 199 89% 48%;
+    --border: 214 25% 85%;            /* Bordures visibles et nettes */
+    --input: 214 25% 85%;
+    --ring: 217 91% 45%;
 
     --radius: 0.625rem;
   }
 
-  /* Mode clair disponible si désiré explicitement */
-  .light {
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 217 91% 45%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 214 32% 95%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 45%;
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 96%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 217 91% 55%;
+    --primary-foreground: 222 47% 8%;
+    --secondary: 217 33% 18%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 217 33% 16%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 18%;
+    --accent-foreground: 210 40% 96%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 217 91% 55%;
   }
 }
 
@@ -79,28 +74,12 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/20 selection:text-primary;
+    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/15 selection:text-primary;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
-/* Micro-animations subtiles */
-.animate-scale-in {
-  animation: scaleIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Typographie tabulaire pour alignement précis des chiffres FCFA */
+/* Typographie monétaire alignée */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
