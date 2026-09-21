@@ -23,16 +23,32 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/v1/auth/token/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password: password.trim() }),
-      });
+      // Tenter l'appel via le proxy Next.js /api/v1/, ou en direct sur 127.0.0.1:8008 si le proxy échoue
+      let res;
+      try {
+        res = await fetch('/api/v1/auth/token/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), password: password.trim() }),
+        });
+      } catch {
+        res = await fetch('http://127.0.0.1:8008/api/v1/auth/token/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), password: password.trim() }),
+        });
+      }
 
-      const data = await res.json();
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Le serveur Backend Django (port 8008) n'est pas accessible. Assurez-vous que python manage.py runserver tourne.");
+      }
 
       if (!res.ok || !data.access) {
-        throw new Error(data.details?.detail || data.message || 'Identifiants incorrects. Veuillez réessayer.');
+        throw new Error(data.details?.detail || data.message || data.detail || 'Identifiants incorrects. Veuillez réessayer.');
       }
 
       login(data.access, data.user);
