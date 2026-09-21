@@ -48,7 +48,75 @@ export default function InventoryPage() {
   const [selectedInventory, setSelectedInventory] = React.useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
   const [isAddLineModalOpen, setIsAddLineModalOpen] = React.useState(false);
+  // Dictionnaire de traduction en français pour les flux de stock
+  const formatMovementTypeFr = (type: string, display?: string) => {
+    if (display) return display;
+    const dict: Record<string, string> = {
+      PURCHASE: 'Achat / Réception',
+      SALE: 'Vente',
+      RETURN_CUSTOMER: 'Retour client',
+      RETURN_SUPPLIER: 'Retour fournisseur',
+      TRANSFER_IN: 'Transfert entrant (+)',
+      TRANSFER_OUT: 'Transfert sortant (-)',
+      ADJUSTMENT_IN: 'Ajustement positif (+)',
+      ADJUSTMENT_OUT: 'Ajustement négatif (-)',
+      LOSS: 'Perte constatée',
+      DAMAGE: 'Casse / Dépréciation',
+      INITIAL: 'Stock initial',
+    };
+    return dict[type] || type;
+  };
+
   // PDF Export Modal State
+  // Movements PDF Export Modal State
+  const [isMovementsPdfModalOpen, setIsMovementsPdfModalOpen] = React.useState(false);
+  const [movementsPdfPeriod, setMovementsPdfPeriod] = React.useState({
+    start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+    store_id: '',
+    movement_type: '',
+  });
+  const [isExportingMovementsPdf, setIsExportingMovementsPdf] = React.useState(false);
+
+  const handleExportMovementsPdf = async () => {
+    try {
+      setIsExportingMovementsPdf(true);
+      const queryParams = new URLSearchParams({
+        start_date: movementsPdfPeriod.start_date,
+        end_date: movementsPdfPeriod.end_date,
+        ...(movementsPdfPeriod.store_id ? { store_id: movementsPdfPeriod.store_id } : {}),
+        ...(movementsPdfPeriod.movement_type ? { movement_type: movementsPdfPeriod.movement_type } : {}),
+      });
+      const response = await fetch(`/api/v1/inventory/export-movements-pdf/?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Erreur lors de la génération du PDF des mouvements');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Grand_Livre_Mouvements_${movementsPdfPeriod.start_date}_${movementsPdfPeriod.end_date}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        type: 'success',
+        title: 'Export PDF réussi',
+        message: 'Le grand livre des mouvements a été téléchargé avec succès.',
+      });
+      setIsMovementsPdfModalOpen(false);
+    } catch (err: any) {
+      toast({
+        type: 'error',
+        title: 'Erreur Export PDF',
+        message: err.message || 'Impossible de générer le rapport des mouvements.',
+      });
+    } finally {
+      setIsExportingMovementsPdf(false);
+    }
+  };
   const [isPdfModalOpen, setIsPdfModalOpen] = React.useState(false);
   const [pdfPeriod, setPdfPeriod] = React.useState({
     start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -764,13 +832,23 @@ export default function InventoryPage() {
         {/* TAB 3: MOVEMENTS AUDIT LOG */}
         {tab === 'movements' && (
           <div className="space-y-4">
-            <Input
-              placeholder="Rechercher par référence, produit, motif..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              icon={<Search className="h-4 w-4" />}
-              className="max-w-md bg-card"
-            />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <Input
+                placeholder="Rechercher par référence, produit, motif..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                icon={<Search className="h-4 w-4" />}
+                className="max-w-md bg-card"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsMovementsPdfModalOpen(true)}
+                className="self-start sm:self-auto text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-all border-primary/30"
+              >
+                <FileText className="h-4 w-4 mr-1.5 text-primary" /> Exporter en PDF (par période)
+              </Button>
+            </div>
             <DataTable
               columns={[
                 {
@@ -783,10 +861,11 @@ export default function InventoryPage() {
                   header: 'Type de Flux',
                   cell: (row: StockMovement) => {
                     const isPositive = parseFloat(row.quantity) > 0;
+                    const frenchLabel = formatMovementTypeFr(row.movement_type, row.movement_type_display);
                     return (
-                      <Badge variant={isPositive ? 'success' : 'destructive'} className="text-[10px]">
+                      <Badge variant={isPositive ? 'success' : 'destructive'} className="text-[10px] font-semibold">
                         {isPositive ? <ArrowDownLeft className="h-3 w-3 mr-1 inline" /> : <ArrowUpRight className="h-3 w-3 mr-1 inline" />}
-                        {row.movement_type}
+                        {frenchLabel}
                       </Badge>
                     );
                   },
@@ -1292,6 +1371,109 @@ export default function InventoryPage() {
               </div>
             </div>
           )}
+        </Modal>
+
+        {/* MODAL: EXPORT PDF DES MOUVEMENTS DE STOCK PAR PÉRIODE */}
+        <Modal
+          isOpen={isMovementsPdfModalOpen}
+          onClose={() => setIsMovementsPdfModalOpen(false)}
+          title="Exporter le Grand Livre des Mouvements en PDF"
+          maxWidth="md"
+        >
+          <div className="space-y-4 pt-2">
+            <p className="text-xs text-muted-foreground">
+              Téléchargez l'historique complet et inaltérable des mouvements de stock avec dates, types de flux en français, variations, stocks avant/après et traçabilité des opérateurs.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Date de Début *
+                </label>
+                <Input
+                  type="date"
+                  required
+                  value={movementsPdfPeriod.start_date}
+                  onChange={(e) => setMovementsPdfPeriod({ ...movementsPdfPeriod, start_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Date de Fin *
+                </label>
+                <Input
+                  type="date"
+                  required
+                  value={movementsPdfPeriod.end_date}
+                  onChange={(e) => setMovementsPdfPeriod({ ...movementsPdfPeriod, end_date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Magasin / Dépôt
+                </label>
+                <select
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                  value={movementsPdfPeriod.store_id}
+                  onChange={(e) => setMovementsPdfPeriod({ ...movementsPdfPeriod, store_id: e.target.value })}
+                >
+                  <option value="">Tous les dépôts</option>
+                  {storesData?.results?.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Filtrer par Type de Flux
+                </label>
+                <select
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                  value={movementsPdfPeriod.movement_type}
+                  onChange={(e) => setMovementsPdfPeriod({ ...movementsPdfPeriod, movement_type: e.target.value })}
+                >
+                  <option value="">Tous les flux confondus</option>
+                  <option value="SALE">Ventes</option>
+                  <option value="PURCHASE">Achats / Réceptions</option>
+                  <option value="ADJUSTMENT_IN">Ajustements positifs (+)</option>
+                  <option value="ADJUSTMENT_OUT">Ajustements négatifs (-)</option>
+                  <option value="DAMAGE">Casse / Dépréciation</option>
+                  <option value="LOSS">Pertes / Vols</option>
+                  <option value="TRANSFER_IN">Transferts entrants</option>
+                  <option value="TRANSFER_OUT">Transferts sortants</option>
+                  <option value="INITIAL">Stock initial</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-muted/40 border border-border text-xs text-muted-foreground flex items-center justify-between">
+              <span>Format du document :</span>
+              <span className="font-bold text-foreground">Grand Livre A4 Paysage (Landscape)</span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsMovementsPdfModalOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                onClick={handleExportMovementsPdf}
+                isLoading={isExportingMovementsPdf}
+              >
+                <Download className="h-4 w-4 mr-1.5" /> Télécharger le Grand Livre PDF
+              </Button>
+            </div>
+          </div>
         </Modal>
 
         {/* MODAL: EXPORT PDF DES NIVEAUX DE STOCK PAR PÉRIODE */}

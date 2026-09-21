@@ -25,12 +25,13 @@ class StockMovementSerializer(serializers.ModelSerializer):
     product_sku = serializers.CharField(source='product.sku', read_only=True)
     store_name = serializers.CharField(source='store.name', read_only=True)
     user_email = serializers.CharField(source='user.email', read_only=True)
+    movement_type_display = serializers.CharField(source='get_movement_type_display', read_only=True)
 
     class Meta:
         model = StockMovement
         fields = [
             'id', 'company', 'store', 'store_name', 'product', 'product_name', 'product_sku',
-            'movement_type', 'quantity', 'quantity_before', 'quantity_after',
+            'movement_type', 'movement_type_display', 'quantity', 'quantity_before', 'quantity_after',
             'unit_cost', 'reference', 'reason', 'user_email', 'created_at'
         ]
         read_only_fields = [

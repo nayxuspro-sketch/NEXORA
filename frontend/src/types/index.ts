@@ -84,6 +84,7 @@ export interface StockMovement {
   product_name: string;
   product_sku: string;
   movement_type: string;
+  movement_type_display?: string;
   quantity: string;
   quantity_before: string;
   quantity_after: string;

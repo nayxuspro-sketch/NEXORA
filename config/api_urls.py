@@ -10,7 +10,7 @@ from apps.catalog.views import CategoryViewSet, UnitViewSet, ProductViewSet
 from apps.partners.views import PartnerViewSet
 from apps.inventory.views import StoreViewSet, StockLevelViewSet, StockMovementViewSet, InventoryViewSet
 from apps.inventory.analytics import StockIntelligenceAnalyticsView
-from apps.inventory.pdf_export import StockLevelPdfExportView
+from apps.inventory.pdf_export import StockLevelPdfExportView, StockMovementPdfExportView
 from apps.pos.views import CashRegisterViewSet, RegisterSessionViewSet
 from apps.pos.suggestions import SmartSuggestionsView
 from apps.sales.views import SaleViewSet, PaymentViewSet, SaleReturnViewSet
@@ -81,6 +81,7 @@ urlpatterns = [
     # Stock Intelligence & Anticipation
     path('inventory/intelligence/', StockIntelligenceAnalyticsView.as_view(), name='stock_intelligence'),
     path('inventory/export-pdf/', StockLevelPdfExportView.as_view(), name='stock_pdf_export'),
+    path('inventory/export-movements-pdf/', StockMovementPdfExportView.as_view(), name='stock_movements_pdf_export'),
 
     # Smart POS Suggestions
     path('pos/suggestions/', SmartSuggestionsView.as_view(), name='pos_suggestions'),
