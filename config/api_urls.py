@@ -18,6 +18,7 @@ from apps.inventory.pdf_export import (
 )
 from apps.pos.views import CashRegisterViewSet, RegisterSessionViewSet
 from apps.pos.suggestions import SmartSuggestionsView
+from apps.pos.pdf_z_report import CashRegisterZReportPdfExportView
 from apps.sales.views import SaleViewSet, PaymentViewSet, SaleReturnViewSet
 from apps.sales.pdf_seller_report import SellerSalesReportPdfView
 from apps.purchases.views import PurchaseViewSet, PurchaseReturnViewSet
@@ -93,8 +94,9 @@ urlpatterns = [
     path('inventory/export-movements-pdf/', StockMovementPdfExportView.as_view(), name='stock_movements_pdf_export'),
     path('inventory/export-inventories-pdf/', InventoryDiscrepanciesPdfExportView.as_view(), name='stock_inventories_pdf_export'),
 
-    # Smart POS Suggestions
+    # Smart POS Suggestions & Z-Report
     path('pos/suggestions/', SmartSuggestionsView.as_view(), name='pos_suggestions'),
+    path('pos/export-z-report/', CashRegisterZReportPdfExportView.as_view(), name='pos_export_z_report'),
     path('sales/export-seller-pdf/', SellerSalesReportPdfView.as_view(), name='sales_seller_pdf_export'),
 
     # Reports & BI

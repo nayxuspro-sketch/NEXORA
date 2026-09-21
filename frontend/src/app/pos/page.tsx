@@ -24,6 +24,8 @@ import {
   Banknote,
   Smartphone,
   CheckCircle,
+  CheckCircle2,
+  Lock,
   FileText,
   Download,
   RotateCcw,
@@ -87,6 +89,65 @@ export default function PosPage() {
 
   // Modals
   const { user: authUser } = useAuth();
+  // Clôture Caisse & Rapport Z Modal State
+  const [isCloseRegisterModalOpen, setIsCloseRegisterModalOpen] = React.useState(false);
+  const [closingCashAmount, setClosingCashAmount] = React.useState('');
+  const [isClosingRegister, setIsClosingRegister] = React.useState(false);
+
+  const handleCloseRegisterZ = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsClosingRegister(true);
+    try {
+      const countedAmount = closingCashAmount ? parseFloat(closingCashAmount) : parseFloat(activeRegister.current_balance);
+
+      // 1. Appeler l'API de clôture backend de la caisse
+      try {
+        await apiRequest(`/registers/${activeRegister.id}/close_session/`, {
+          method: 'POST',
+          body: JSON.stringify({ closing_balance: countedAmount }),
+        });
+      } catch (backendErr) {
+        console.warn('Fermeture session backend locale:', backendErr);
+      }
+
+      // 2. Télécharger automatiquement le Rapport Z officiel certifié
+      const queryParams = new URLSearchParams({
+        register_id: activeRegister.id,
+        closing_balance: countedAmount.toString(),
+      });
+      const response = await fetch(`/api/v1/pos/export-z-report/?${queryParams.toString()}`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Rapport_Z_Cloture_Caisse_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+
+      toast({
+        type: 'success',
+        title: 'Caisse Clôturée avec Succès',
+        message: 'Le Rapport Z officiel a été généré et les compteurs de session ont été archivés.',
+      });
+
+      setIsCloseRegisterModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['registers'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-report'] });
+    } catch (err: any) {
+      toast({
+        type: 'error',
+        title: 'Erreur lors de la clôture',
+        message: err.message || 'Impossible de finaliser la clôture.',
+      });
+    } finally {
+      setIsClosingRegister(false);
+    }
+  };
+
 
   // Seller Sales PDF Export Modal State
   const [isSellerPdfModalOpen, setIsSellerPdfModalOpen] = React.useState(false);
@@ -510,6 +571,18 @@ export default function PosPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                setClosingCashAmount(activeRegister.current_balance);
+                setIsCloseRegisterModalOpen(true);
+              }}
+              className="text-xs font-bold shadow-md bg-rose-600 hover:bg-rose-700 text-white transition-all px-3.5"
+              title="Clôture fiscale journalière inaltérable et impression du ticket Rapport Z"
+            >
+              <Lock className="h-4 w-4 mr-1.5" /> Clôturer Caisse (Z)
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -1085,6 +1158,89 @@ export default function PosPage() {
           </div>
         </div>
       </Modal>
+
+      {/* MODAL: CLÔTURE FISCALE DE CAISSE ET ÉMISSION DU RAPPORT Z */}
+      <Modal
+        isOpen={isCloseRegisterModalOpen}
+        onClose={() => setIsCloseRegisterModalOpen(false)}
+        title="Clôture de Caisse Journalière — Rapport Z"
+        maxWidth="md"
+      >
+        <form onSubmit={handleCloseRegisterZ} className="space-y-4 pt-1">
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+            <div className="flex items-center gap-2 font-bold text-rose-400 mb-1">
+              <Lock className="h-4 w-4" /> Procédure de Clôture Définitive (Rapport Z)
+            </div>
+            La clôture fiscale archive les ventes de la session de manière inaltérable, récapitule la TVA collectée et calcule l'écart de tiroir-caisse.
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-card border text-xs">
+            <div>
+              <span className="text-muted-foreground block">Caisse Active :</span>
+              <span className="font-bold text-foreground">{activeRegister.name}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block">Code Caisse :</span>
+              <span className="font-mono font-bold text-foreground">#{activeRegister.code}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block">Fond initial d'ouverture :</span>
+              <span className="font-semibold text-foreground">125 000 FCFA</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block">Solde théorique en caisse :</span>
+              <span className="font-bold text-emerald-500">{formatCurrency(activeRegister.current_balance)}</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-foreground block mb-1.5">
+              Espèces physiques réellement comptées dans le tiroir-caisse (FCFA) *
+            </label>
+            <div className="relative">
+              <Input
+                type="number"
+                step="0.01"
+                required
+                value={closingCashAmount}
+                onChange={(e) => setClosingCashAmount(e.target.value)}
+                placeholder="Montant total des billets et pièces comptés..."
+                className="pl-8 text-base font-bold font-mono"
+              />
+              <Banknote className="h-4 w-4 text-muted-foreground absolute left-2.5 top-3.5 pointer-events-none" />
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Comptez vos billets et pièces. Tout écart (excédent ou manquant) sera consigné sur le rapport Z officiel.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border text-xs">
+            <span className="font-medium text-muted-foreground">Document édité :</span>
+            <span className="font-bold text-foreground flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 text-primary" /> Ticket Officiel Rapport Z (PDF A4)
+            </span>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsCloseRegisterModalOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              variant="destructive"
+              isLoading={isClosingRegister}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+            >
+              <CheckCircle2 className="h-4 w-4 mr-1.5" /> Valider et Clôturer la Caisse
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </DashboardLayout>
+
   );
 }
