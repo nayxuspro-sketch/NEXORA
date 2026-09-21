@@ -822,7 +822,7 @@ export default function PosPage() {
             <div className="space-y-3 p-4 rounded-xl bg-muted/40 border">
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  Espèces Remises par le Client (€)
+                  Espèces Remises par le Client (FCFA)
                 </label>
                 <Input
                   type="number"

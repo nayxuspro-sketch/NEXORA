@@ -237,22 +237,22 @@ export default function ProductsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  Prix de revient HT (€)
+                  Prix de revient HT (FCFA)
                 </label>
                 <Input
                   type="number"
-                  step="0.01"
+                  step="1"
                   value={formData.cost_price}
                   onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
                 />
               </div>
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  Prix de vente TTC (€)
+                  Prix de vente TTC (FCFA)
                 </label>
                 <Input
                   type="number"
-                  step="0.01"
+                  step="1"
                   value={formData.selling_price}
                   onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
                 />

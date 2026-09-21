@@ -248,7 +248,7 @@ export default function ReportsPage() {
           {/* Revenue by category */}
           <div className="lg:col-span-2">
             <SimpleBarChart
-              title={`Chiffre d'Affaires par Famille de Produits (€) — ${days}j`}
+              title={`Chiffre d'Affaires par Famille de Produits (FCFA) — ${days}j`}
               data={categoryBarData}
               height={220}
             />
