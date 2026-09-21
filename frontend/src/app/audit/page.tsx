@@ -21,7 +21,9 @@ import {
   User,
   Activity,
   Calendar,
-  Lock
+  Lock,
+  FileText,
+  Download
 } from 'lucide-react';
 
 interface AuditLogItem {
@@ -41,6 +43,44 @@ export default function AuditPage() {
   const [actionFilter, setActionFilter] = React.useState('');
   const [selectedLog, setSelectedLog] = React.useState<AuditLogItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
+  // PDF Export Modal State
+  const [isPdfModalOpen, setIsPdfModalOpen] = React.useState(false);
+  const [pdfPeriod, setPdfPeriod] = React.useState({
+    start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+    action: '',
+  });
+  const [isExportingPdf, setIsExportingPdf] = React.useState(false);
+
+  const handleExportPdf = async () => {
+    try {
+      setIsExportingPdf(true);
+      const queryParams = new URLSearchParams({
+        start_date: pdfPeriod.start_date,
+        end_date: pdfPeriod.end_date,
+        ...(pdfPeriod.action ? { action: pdfPeriod.action } : {}),
+      });
+      const response = await fetch(`/api/v1/audit/export-pdf/?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Erreur lors de la génération du rapport PDF d\'audit');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Journal_Audit_${pdfPeriod.start_date}_${pdfPeriod.end_date}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      setIsPdfModalOpen(false);
+    } catch (err: any) {
+      console.error('Erreur export audit PDF:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   // Auto-refresh interval (every 10 seconds)
   const { data: auditData, isLoading, refetch, isFetching } = useQuery<PaginatedResponse<AuditLogItem>>({
@@ -185,6 +225,14 @@ export default function AuditPage() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setIsPdfModalOpen(true)}
+              className="text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 transition-all shadow-xs"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1.5 text-primary" /> Exporter en PDF (par période)
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => refetch()}
               disabled={isFetching}
               className="text-xs font-semibold"
@@ -233,6 +281,84 @@ export default function AuditPage() {
             onPageChange: setCurrentPage,
           }}
         />
+
+        {/* MODAL: EXPORT PDF DU JOURNAL D'AUDIT PAR PÉRIODE DÉFINIE */}
+        <Modal
+          isOpen={isPdfModalOpen}
+          onClose={() => setIsPdfModalOpen(false)}
+          title="Exporter le Journal d'Audit & Sécurité en PDF"
+          maxWidth="md"
+        >
+          <div className="space-y-4 pt-2">
+            <p className="text-xs text-muted-foreground">
+              Générez un rapport officiel et inaltérable des journaux d'audit et de conformité pour la période de date de votre choix (A4 Paysage Haute Définition).
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Date de Début Définie *
+                </label>
+                <Input
+                  type="date"
+                  required
+                  value={pdfPeriod.start_date}
+                  onChange={(e) => setPdfPeriod({ ...pdfPeriod, start_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Date de Fin Définie *
+                </label>
+                <Input
+                  type="date"
+                  required
+                  value={pdfPeriod.end_date}
+                  onChange={(e) => setPdfPeriod({ ...pdfPeriod, end_date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Filtrer par Catégorie d'Événement (Optionnel)
+              </label>
+              <select
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-medium"
+                value={pdfPeriod.action}
+                onChange={(e) => setPdfPeriod({ ...pdfPeriod, action: e.target.value })}
+              >
+                <option value="">Tous les événements de traçabilité</option>
+                <option value="LOGIN">Authentifications & Connexions (LOGIN)</option>
+                <option value="SALES">Transactions & Ventes Caisse (SALES)</option>
+                <option value="PRODUCTS">Articles & Catalogue (PRODUCTS)</option>
+                <option value="PARTNERS">Clients & Fournisseurs (PARTNERS)</option>
+              </select>
+            </div>
+
+            <div className="p-3 rounded-xl bg-muted/40 border border-border text-xs text-muted-foreground flex items-center justify-between">
+              <span>Format du document :</span>
+              <span className="font-bold text-foreground">Registre d'Audit A4 Paysage (Landscape)</span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPdfModalOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                onClick={handleExportPdf}
+                isLoading={isExportingPdf}
+              >
+                <Download className="h-4 w-4 mr-1.5" /> Télécharger le Journal PDF
+              </Button>
+            </div>
+          </div>
+        </Modal>
 
         {/* MODAL: DÉTAIL D'UNE ENTRÉE DU JOURNAL D'AUDIT */}
         <Modal

@@ -23,6 +23,7 @@ from apps.sales.pdf_seller_report import SellerSalesReportPdfView
 from apps.purchases.views import PurchaseViewSet, PurchaseReturnViewSet
 from apps.notifications.views import NotificationViewSet
 from apps.audit.views import AuditLogViewSet
+from apps.audit.pdf_export import AuditLogPdfExportView
 from apps.reports.views import DashboardSummaryReportView, InventoryValuationReportView
 from apps.reports.bi_analytics import BusinessIntelligenceAnalyticsView
 from apps.reports.pdf_bi_report import BiReportPdfExportView
@@ -101,6 +102,7 @@ urlpatterns = [
     path('reports/inventory-valuation/', InventoryValuationReportView.as_view(), name='report_inventory_valuation'),
     path('reports/bi-analytics/', BusinessIntelligenceAnalyticsView.as_view(), name='report_bi_analytics'),
     path('reports/export-bi-pdf/', BiReportPdfExportView.as_view(), name='report_bi_pdf_export'),
+    path('audit/export-pdf/', AuditLogPdfExportView.as_view(), name='audit_pdf_export'),
 
     # ViewSets Router
     path('', include(router.urls)),
