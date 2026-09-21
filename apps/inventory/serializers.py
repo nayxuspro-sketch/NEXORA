@@ -3,10 +3,17 @@ from .models import Store, StockLevel, StockMovement, Inventory, InventoryLine
 
 
 class StoreSerializer(serializers.ModelSerializer):
+    manager_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Store
-        fields = ['id', 'company', 'name', 'code', 'address', 'phone', 'manager', 'is_active', 'created_at']
+        fields = ['id', 'company', 'name', 'code', 'address', 'phone', 'manager', 'manager_name', 'is_active', 'created_at']
         read_only_fields = ['id', 'company', 'created_at']
+
+    def get_manager_name(self, obj):
+        if obj.manager:
+            return f"{obj.manager.first_name} {obj.manager.last_name} ({obj.manager.email})"
+        return None
 
 
 class StockLevelSerializer(serializers.ModelSerializer):

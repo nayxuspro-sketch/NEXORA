@@ -24,7 +24,12 @@ import {
   ShieldCheck,
   Building2,
   Search,
-  Layers
+  Layers,
+  Store as StoreIcon,
+  PauseCircle,
+  PlayCircle,
+  MapPin,
+  Phone
 } from 'lucide-react';
 
 interface GroupItem {
@@ -37,6 +42,18 @@ interface GroupItem {
     app_label: string;
   }>;
   users_count: number;
+}
+
+interface StoreItem {
+  id: string;
+  name: string;
+  code: string;
+  address: string;
+  phone: string;
+  manager?: string;
+  manager_name?: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 interface UserItem {
@@ -56,7 +73,7 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = React.useState<'users' | 'groups'>('users');
+  const [activeTab, setActiveTab] = React.useState<'users' | 'groups' | 'stores'>('users');
   const [searchQuery, setSearchQuery] = React.useState('');
 
   // Modals state
@@ -64,6 +81,17 @@ export default function SettingsPage() {
   const [isGroupModalOpen, setIsGroupModalOpen] = React.useState(false);
   const [editingUser, setEditingUser] = React.useState<UserItem | null>(null);
   const [editingGroup, setEditingGroup] = React.useState<GroupItem | null>(null);
+  // Store states
+  const [isStoreModalOpen, setIsStoreModalOpen] = React.useState(false);
+  const [editingStore, setEditingStore] = React.useState<StoreItem | null>(null);
+  const [storeForm, setStoreForm] = React.useState({
+    name: '',
+    code: '',
+    address: '',
+    phone: '',
+    manager: '',
+    is_active: true,
+  });
 
   // Form state: User
   const [userForm, setUserForm] = React.useState({
@@ -101,6 +129,73 @@ export default function SettingsPage() {
   }>({
     queryKey: ['system-permissions'],
     queryFn: () => apiRequest<any>('/settings/permissions/'),
+  });
+
+  // 4. Fetch Stores (Magasins)
+  const { data: storesData, isLoading: isLoadingStores } = useQuery<{ results: StoreItem[] }>({
+    queryKey: ['settings-stores'],
+    queryFn: () => apiRequest<{ results: StoreItem[] }>('/stores/'),
+  });
+
+  // Mutation: Save Store
+  const storeMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      if (editingStore) {
+        return apiRequest(`/stores/${editingStore.id}/`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      } else {
+        return apiRequest('/stores/', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings-stores'] });
+      toast({
+        type: 'success',
+        title: editingStore ? 'Magasin Mis à Jour' : 'Nouveau Magasin Créé',
+        message: 'Les données du magasin ont été enregistrées avec succès.',
+      });
+      setIsStoreModalOpen(false);
+      resetStoreForm();
+    },
+    onError: (err: any) => {
+      toast({
+        type: 'error',
+        title: 'Erreur Enregistrement Magasin',
+        message: err.message || 'Impossible d’enregistrer le magasin.',
+      });
+    },
+  });
+
+  // Mutation: Toggle Store Active Status (Suspendre / Réactiver l'activité)
+  const toggleStoreStatusMutation = useMutation({
+    mutationFn: async ({ storeId, is_active }: { storeId: string; is_active: boolean }) => {
+      return apiRequest(`/stores/${storeId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_active }),
+      });
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['settings-stores'] });
+      toast({
+        type: 'success',
+        title: vars.is_active ? 'Activité du Magasin Réactivée' : 'Activité du Magasin Suspendue',
+        message: vars.is_active
+          ? 'Le magasin est de nouveau opérationnel pour les ventes et mouvements.'
+          : 'Le magasin a été suspendu temporairement (activité gelée).',
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        type: 'error',
+        title: 'Erreur Changement Statut',
+        message: err.message || 'Impossible de modifier le statut.',
+      });
+    },
   });
 
   // Mutation: Save User
@@ -200,6 +295,36 @@ export default function SettingsPage() {
       is_active: true,
       group_ids: [],
     });
+  };
+
+  const resetStoreForm = () => {
+    setEditingStore(null);
+    setStoreForm({
+      name: '',
+      code: '',
+      address: '',
+      phone: '',
+      manager: '',
+      is_active: true,
+    });
+  };
+
+  const openCreateStoreModal = () => {
+    resetStoreForm();
+    setIsStoreModalOpen(true);
+  };
+
+  const openEditStoreModal = (s: StoreItem) => {
+    setEditingStore(s);
+    setStoreForm({
+      name: s.name,
+      code: s.code,
+      address: s.address || '',
+      phone: s.phone || '',
+      manager: s.manager || '',
+      is_active: s.is_active,
+    });
+    setIsStoreModalOpen(true);
   };
 
   const resetGroupForm = () => {
@@ -351,6 +476,106 @@ export default function SettingsPage() {
     },
   ];
 
+  // Columns for Stores table
+  const storeColumns = [
+    {
+      header: 'Identifiant & Magasin',
+      cell: (row: StoreItem) => (
+        <div className="flex items-center gap-2.5">
+          <div className={`h-9 w-9 rounded-xl flex items-center justify-center font-bold text-white shadow-xs ${
+            row.is_active ? 'bg-primary' : 'bg-slate-500'
+          }`}>
+            <StoreIcon className="h-4.5 w-4.5" />
+          </div>
+          <div>
+            <span className="font-bold text-foreground block text-sm">{row.name}</span>
+            <span className="font-mono text-xs text-muted-foreground">Code : #{row.code}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: 'Localisation & Contact',
+      cell: (row: StoreItem) => (
+        <div className="text-xs space-y-0.5">
+          <div className="flex items-center gap-1 text-foreground">
+            <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+            <span className="truncate max-w-[220px]">{row.address || 'Adresse non renseignée'}</span>
+          </div>
+          {row.phone && (
+            <div className="flex items-center gap-1 text-muted-foreground font-mono">
+              <Phone className="h-3 w-3 shrink-0" />
+              <span>{row.phone}</span>
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: 'Responsable Affecté',
+      cell: (row: StoreItem) => (
+        <span className="text-xs font-semibold text-foreground">
+          {row.manager_name || 'Non assigné'}
+        </span>
+      ),
+    },
+    {
+      header: 'Statut d’Activité',
+      cell: (row: StoreItem) => (
+        <Badge
+          variant={row.is_active ? 'success' : 'destructive'}
+          className="text-[11px] font-bold"
+        >
+          {row.is_active ? 'Activité Ouverte' : 'Activité Suspendue'}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Actions & Contrôle d’Activité',
+      cell: (row: StoreItem) => (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openEditStoreModal(row)}
+            className="h-7 text-xs px-2.5 font-medium"
+          >
+            <Edit2 className="h-3.5 w-3.5 mr-1" /> Modifier
+          </Button>
+
+          {/* Bouton Suspendre / Réactiver l'activité */}
+          {row.is_active ? (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (confirm(`Voulez-vous vraiment suspendre l'activité du magasin "${row.name}" ? Aucune vente ou mouvement ne pourra être initié tant qu'il est suspendu.`)) {
+                  toggleStoreStatusMutation.mutate({ storeId: row.id, is_active: false });
+                }
+              }}
+              className="h-7 text-xs px-2.5 font-bold bg-amber-600 hover:bg-amber-700 text-white"
+              title="Geler temporairement l'activité commerciale du magasin"
+            >
+              <PauseCircle className="h-3.5 w-3.5 mr-1" /> Suspendre Activité
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                toggleStoreStatusMutation.mutate({ storeId: row.id, is_active: true });
+              }}
+              className="h-7 text-xs px-2.5 font-bold text-emerald-600 border-emerald-500/40 hover:bg-emerald-500/10"
+              title="Réactiver l'exploitation normale du magasin"
+            >
+              <PlayCircle className="h-3.5 w-3.5 mr-1" /> Réactiver Activité
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   const groupColumns = [
     {
       header: 'Nom du Profil / Groupe',
@@ -417,6 +642,15 @@ export default function SettingsPage() {
     );
   });
 
+  const filteredStores = (storesData?.results || []).filter((s) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      s.name.toLowerCase().includes(q) ||
+      s.code.toLowerCase().includes(q) ||
+      (s.address && s.address.toLowerCase().includes(q))
+    );
+  });
+
   const filteredGroups = (groupsData?.results || []).filter((g) =>
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -441,13 +675,19 @@ export default function SettingsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {activeTab === 'users' ? (
+            {activeTab === 'users' && (
               <Button onClick={openCreateUserModal} size="sm" className="font-semibold shadow-xs">
                 <UserPlus className="h-4 w-4 mr-1.5" /> Nouvel Utilisateur
               </Button>
-            ) : (
+            )}
+            {activeTab === 'groups' && (
               <Button onClick={openCreateGroupModal} size="sm" className="font-semibold shadow-xs">
                 <Plus className="h-4 w-4 mr-1.5" /> Nouveau Profil / Groupe
+              </Button>
+            )}
+            {activeTab === 'stores' && (
+              <Button onClick={openCreateStoreModal} size="sm" className="font-semibold shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+                <StoreIcon className="h-4 w-4 mr-1.5" /> Nouveau Magasin / Dépôt
               </Button>
             )}
           </div>
@@ -477,13 +717,24 @@ export default function SettingsPage() {
           >
             <ShieldCheck className="h-4 w-4" /> Groupes & Profils d’Accès ({groupsData?.results?.length || 0})
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('stores')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-all ${
+              activeTab === 'stores'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <StoreIcon className="h-4 w-4" /> Magasins & Dépôts ({storesData?.results?.length || 0})
+          </button>
         </div>
 
         {/* Filter bar */}
         <div className="flex items-center gap-3 bg-card p-3 rounded-xl border">
           <div className="max-w-md w-full">
             <Input
-              placeholder={activeTab === 'users' ? 'Rechercher un collaborateur par nom, email...' : 'Rechercher un groupe ou profil...'}
+              placeholder={activeTab === 'users' ? 'Rechercher un collaborateur par nom, email...' : (activeTab === 'groups' ? 'Rechercher un groupe ou profil...' : 'Rechercher un magasin par nom, code, ville...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               icon={<Search className="h-4 w-4" />}
@@ -510,6 +761,17 @@ export default function SettingsPage() {
               columns={groupColumns}
               data={filteredGroups}
               isLoading={isLoadingGroups}
+            />
+          </div>
+        )}
+
+        {/* TAB 3: STORES & MANAGEMENT */}
+        {activeTab === 'stores' && (
+          <div className="space-y-4">
+            <DataTable
+              columns={storeColumns}
+              data={filteredStores}
+              isLoading={isLoadingStores}
             />
           </div>
         )}
@@ -810,7 +1072,133 @@ export default function SettingsPage() {
             </div>
           </form>
         </Modal>
+
+        {/* MODAL 3: CRÉER / MODIFIER MAGASIN */}
+        <Modal
+          isOpen={isStoreModalOpen}
+          onClose={() => {
+            setIsStoreModalOpen(false);
+            resetStoreForm();
+          }}
+          title={editingStore ? `Modifier le Magasin : ${editingStore.name}` : 'Créer un Nouveau Magasin / Dépôt'}
+          maxWidth="md"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              storeMutation.mutate({
+                name: storeForm.name,
+                code: storeForm.code,
+                address: storeForm.address,
+                phone: storeForm.phone,
+                manager: storeForm.manager || null,
+                is_active: storeForm.is_active,
+              });
+            }}
+            className="space-y-4 pt-1"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Nom du Magasin / Dépôt *
+                </label>
+                <Input
+                  required
+                  value={storeForm.name}
+                  onChange={(e) => setStoreForm({ ...storeForm, name: e.target.value })}
+                  placeholder="Ex: Dépôt Bobo-Dioulasso"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Code Magasin Unique *
+                </label>
+                <Input
+                  required
+                  value={storeForm.code}
+                  onChange={(e) => setStoreForm({ ...storeForm, code: e.target.value.toUpperCase() })}
+                  placeholder="Ex: MAG-BOBO-02"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Adresse Complète / Localisation
+              </label>
+              <Input
+                value={storeForm.address}
+                onChange={(e) => setStoreForm({ ...storeForm, address: e.target.value })}
+                placeholder="Ex: Secteur 4, Rue du Commerce, Bobo-Dioulasso"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Téléphone Contact
+                </label>
+                <Input
+                  value={storeForm.phone}
+                  onChange={(e) => setStoreForm({ ...storeForm, phone: e.target.value })}
+                  placeholder="+226 20 98 00 00"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Responsable / Gérant du Magasin
+                </label>
+                <select
+                  className="w-full h-10 px-3 rounded-lg border border-input bg-background text-xs font-medium"
+                  value={storeForm.manager}
+                  onChange={(e) => setStoreForm({ ...storeForm, manager: e.target.value })}
+                >
+                  <option value="">-- Aucun responsable assigné --</option>
+                  {(usersData?.results || []).map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.first_name} {u.last_name} ({u.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl border bg-muted/20">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-medium">
+                <input
+                  type="checkbox"
+                  checked={storeForm.is_active}
+                  onChange={(e) => setStoreForm({ ...storeForm, is_active: e.target.checked })}
+                  className="rounded border-input text-primary h-4 w-4"
+                />
+                <div>
+                  <span className="font-bold text-foreground block">Activité Opérationnelle Ouverte</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Si décoché, l'activité commerciale du magasin est immédiatement suspendue (aucun encaissement ni transfert).
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsStoreModalOpen(false);
+                  resetStoreForm();
+                }}
+              >
+                Annuler
+              </Button>
+              <Button type="submit" isLoading={storeMutation.isPending}>
+                <CheckCircle2 className="h-4 w-4 mr-1.5" /> Enregistrer le Magasin
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </DashboardLayout>
+
   );
 }
