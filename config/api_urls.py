@@ -18,6 +18,7 @@ from apps.inventory.pdf_export import (
 from apps.pos.views import CashRegisterViewSet, RegisterSessionViewSet
 from apps.pos.suggestions import SmartSuggestionsView
 from apps.sales.views import SaleViewSet, PaymentViewSet, SaleReturnViewSet
+from apps.sales.pdf_seller_report import SellerSalesReportPdfView
 from apps.purchases.views import PurchaseViewSet, PurchaseReturnViewSet
 from apps.notifications.views import NotificationViewSet
 from apps.audit.views import AuditLogViewSet
@@ -90,6 +91,7 @@ urlpatterns = [
 
     # Smart POS Suggestions
     path('pos/suggestions/', SmartSuggestionsView.as_view(), name='pos_suggestions'),
+    path('sales/export-seller-pdf/', SellerSalesReportPdfView.as_view(), name='sales_seller_pdf_export'),
 
     # Reports & BI
     path('reports/dashboard/', DashboardSummaryReportView.as_view(), name='report_dashboard'),

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { BarcodeScannerModal } from '@/components/ui/barcode-scanner-modal';
 import { useToast } from '@/components/ui/toast';
+import { useAuth } from '@/lib/auth';
 import { formatCurrency } from '@/lib/utils';
 import { apiRequest } from '@/lib/api';
 import { Product, CashRegister, Partner, PaginatedResponse } from '@/types';
@@ -23,6 +24,8 @@ import {
   Banknote,
   Smartphone,
   CheckCircle,
+  FileText,
+  Download,
   RotateCcw,
   Store as StoreIcon,
   Barcode,
@@ -83,6 +86,63 @@ export default function PosPage() {
   };
 
   // Modals
+  const { user: authUser } = useAuth();
+
+  // Seller Sales PDF Export Modal State
+  const [isSellerPdfModalOpen, setIsSellerPdfModalOpen] = React.useState(false);
+  const [sellerPdfPeriod, setSellerPdfPeriod] = React.useState({
+    start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+    seller_email: '',
+  });
+  const [isExportingSellerPdf, setIsExportingSellerPdf] = React.useState(false);
+
+  // Set default seller email from current user
+  React.useEffect(() => {
+    if (authUser?.email) {
+      setSellerPdfPeriod((prev) => ({ ...prev, seller_email: authUser.email }));
+    }
+  }, [authUser]);
+
+  const handleExportSellerPdf = async () => {
+    try {
+      setIsExportingSellerPdf(true);
+      const queryParams = new URLSearchParams({
+        start_date: sellerPdfPeriod.start_date,
+        end_date: sellerPdfPeriod.end_date,
+        ...(sellerPdfPeriod.seller_email ? { seller: sellerPdfPeriod.seller_email } : {}),
+      });
+      const response = await fetch(`/api/v1/sales/export-seller-pdf/?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Erreur lors de la génération du bilan des ventes du vendeur');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Vente_Vendeur_${sellerPdfPeriod.start_date}_${sellerPdfPeriod.end_date}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        type: 'success',
+        title: 'Bilan Vendeur Téléchargé',
+        message: 'Votre état de vente individuel et votre analyse avec suggestions ont été générés.',
+      });
+      setIsSellerPdfModalOpen(false);
+    } catch (err: any) {
+      toast({
+        type: 'error',
+        title: 'Erreur Export PDF',
+        message: err.message || 'Impossible de générer le bilan de vente.',
+      });
+    } finally {
+      setIsExportingSellerPdf(false);
+    }
+  };
+
   const [isCustomerModalOpen, setIsCustomerModalOpen] = React.useState(false);
   const [isCameraScannerOpen, setIsCameraScannerOpen] = React.useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = React.useState(false);
@@ -453,6 +513,15 @@ export default function PosPage() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setIsSellerPdfModalOpen(true)}
+              className="text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 transition-all"
+              title="Exporter uniquement mes ventes en PDF avec analyse personnalisée et suggestions"
+            >
+              <FileText className="h-4 w-4 mr-1.5" /> Mon Bilan Vente PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setIsCameraScannerOpen(true)}
               className="text-xs"
             >
@@ -767,6 +836,82 @@ export default function PosPage() {
         onClose={() => setIsCameraScannerOpen(false)}
         onScanSuccess={handleBarcodeScanned}
       />
+
+      {/* MODAL: EXPORT PDF DES VENTES DU VENDEUR AVEC ANALYSE & SUGGESTIONS */}
+      <Modal
+        isOpen={isSellerPdfModalOpen}
+        onClose={() => setIsSellerPdfModalOpen(false)}
+        title="Exporter mon Bilan de Vente & Analyse Commerciale (PDF)"
+        maxWidth="md"
+      >
+        <div className="space-y-4 pt-2">
+          <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-foreground space-y-1">
+            <p className="font-bold flex items-center gap-1.5 text-primary">
+              <Sparkles className="h-4 w-4" /> Rapport Individuel Vendeur sur 2 Pages :
+            </p>
+            <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground text-[11px]">
+              <li><strong>Page 1 :</strong> État officiel détaillé de vos ventes sur la période (chiffre d'affaires, panier moyen, factures et règlements).</li>
+              <li><strong>Page 2 :</strong> Analyse automatique de vos performances commerciales avec ventilation par marge et suggestions concrètes d'optimisation.</li>
+            </ul>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Date de Début *
+              </label>
+              <Input
+                type="date"
+                required
+                value={sellerPdfPeriod.start_date}
+                onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, start_date: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Date de Fin *
+              </label>
+              <Input
+                type="date"
+                required
+                value={sellerPdfPeriod.end_date}
+                onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, end_date: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground block mb-1">
+              Compte Vendeur / Caissier
+            </label>
+            <Input
+              value={sellerPdfPeriod.seller_email}
+              onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, seller_email: e.target.value })}
+              placeholder="Ex: caissier@nexora-bf.com"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Filtre automatique : seules les transactions encaissées par ce vendeur seront extraites.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsSellerPdfModalOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              onClick={handleExportSellerPdf}
+              isLoading={isExportingSellerPdf}
+            >
+              <Download className="h-4 w-4 mr-1.5" /> Télécharger mon Rapport PDF (2 Pages)
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Payment Modal [F8] */}
       <Modal
