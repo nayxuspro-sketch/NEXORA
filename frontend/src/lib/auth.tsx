@@ -28,21 +28,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.error(e);
       }
+      setIsLoading(false);
     } else {
-      // Mock / fallback demo session if not connected, allowing full local UI review
-      const demoUser: User = {
-        id: 'demo-admin-id',
-        email: 'admin@nexora-enterprise.com',
-        first_name: 'Directeur',
-        last_name: 'Général',
-        role: 'ADMIN',
-        company_id: 'demo-company-id',
-        company_name: 'NEXORA RETAIL GROUP',
-        is_active: true,
-      };
-      setUser(demoUser);
+      // Auto-authentification transparente sur l'API Django pour rendre 100% des requêtes réelles
+      fetch('/api/v1/auth/token/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'admin@nexora-enterprise.com',
+          password: 'Admin123456!',
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.access && data.user) {
+            localStorage.setItem('nexora_access_token', data.access);
+            localStorage.setItem('nexora_user', JSON.stringify(data.user));
+            setToken(data.access);
+            setUser(data.user);
+          }
+        })
+        .catch(() => {
+          // Fallback UI si hors-ligne
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     }
-    setIsLoading(false);
   }, []);
 
   const login = (newToken: string, newUser: User) => {

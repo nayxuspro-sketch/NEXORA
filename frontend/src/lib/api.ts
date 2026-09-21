@@ -1,4 +1,10 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+// Récupérer l'URL API :
+// 1. Variable d'environnement explicite
+// 2. Si exécuté dans le navigateur, utiliser le proxy local relatif /api/v1 (fonctionne quel que soit le port Django)
+// 3. Repli standard sur http://127.0.0.1:8008/api/v1
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== 'undefined' ? '/api/v1' : 'http://127.0.0.1:8008/api/v1');
 
 export class ApiError extends Error {
   code: string;

@@ -38,13 +38,14 @@ def seed_demo_data():
     if not admin_user:
         admin_user = User.objects.create_superuser(
             email="admin@nexora-enterprise.com",
-            password="Password123!",
+            password="Admin123456!",
             first_name="Directeur",
             last_name="Général",
             company=company,
             role=UserRole.ADMIN
         )
     else:
+        admin_user.set_password("Admin123456!")
         admin_user.company = company
         admin_user.save()
 
@@ -52,12 +53,16 @@ def seed_demo_data():
     if not cashier_user:
         cashier_user = User.objects.create_user(
             email="caissier@nexora-bf.com",
-            password="Password123!",
+            password="Cashier123!",
             first_name="Ibrahim",
             last_name="Ouedraogo",
             company=company,
             role=UserRole.CASHIER
         )
+    else:
+        cashier_user.set_password("Cashier123!")
+        cashier_user.company = company
+        cashier_user.save()
 
     # 3. Store
     store, _ = Store.objects.get_or_create(
