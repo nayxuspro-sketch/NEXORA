@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
+import { BarcodeScannerModal } from '@/components/ui/barcode-scanner-modal';
 import { useToast } from '@/components/ui/toast';
 import { formatCurrency } from '@/lib/utils';
 import { apiRequest } from '@/lib/api';
@@ -50,6 +51,36 @@ export default function PosPage() {
   const [cart, setCart] = React.useState<CartItem[]>([]);
   const [globalDiscount, setGlobalDiscount] = React.useState<number>(0);
   const [selectedCustomer, setSelectedCustomer] = React.useState<Partner | null>(null);
+
+  // Traitement d'un code-barres scanné par caméra
+  const handleBarcodeScanned = (code: string) => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+
+    // Rechercher le produit correspondant dans les données chargées
+    const matched = productsData?.results?.find(
+      (p) =>
+        (p.barcode && p.barcode.trim() === trimmed) ||
+        (p.sku && p.sku.toLowerCase() === trimmed.toLowerCase())
+    );
+
+    if (matched) {
+      addToCart(matched);
+      toast({
+        type: 'success',
+        title: 'Article scanné',
+        message: `${matched.name} ajouté au panier d'encaissement.`,
+      });
+    } else {
+      // Filtrer la barre de recherche avec le code scanné
+      setSearch(trimmed);
+      toast({
+        type: 'warning',
+        title: 'Article non reconnu directement',
+        message: `Code "${trimmed}" scanné. Recherche automatique activée.`,
+      });
+    }
+  };
 
   // Modals
   const [isCustomerModalOpen, setIsCustomerModalOpen] = React.useState(false);
@@ -730,35 +761,12 @@ export default function PosPage() {
         </div>
       </Modal>
 
-      {/* Camera Barcode / QR Scan Modal */}
-      <Modal
+      {/* Real Hardware Camera Barcode / QR Scanner */}
+      <BarcodeScannerModal
         isOpen={isCameraScannerOpen}
         onClose={() => setIsCameraScannerOpen(false)}
-        title="Scanner Caméra (Code-Barres / QR Code)"
-        maxWidth="sm"
-      >
-        <div className="text-center py-6 space-y-4">
-          <div className="relative mx-auto w-48 h-48 rounded-2xl border-2 border-dashed border-primary bg-muted/40 flex flex-col items-center justify-center overflow-hidden">
-            <Camera className="h-10 w-10 text-primary animate-pulse" />
-            <div className="absolute inset-x-0 h-0.5 bg-red-500 animate-bounce top-1/2" />
-            <span className="text-[11px] text-muted-foreground mt-2">Viser le code-barres</span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Compatible webcam PC, caméra tablette ou smartphone.
-          </p>
-          <Button
-            size="sm"
-            onClick={() => {
-              if (productsData?.results?.[0]) {
-                addToCart(productsData.results[0]);
-                setIsCameraScannerOpen(false);
-              }
-            }}
-          >
-            Simuler Détection Rapide
-          </Button>
-        </div>
-      </Modal>
+        onScanSuccess={handleBarcodeScanned}
+      />
 
       {/* Payment Modal [F8] */}
       <Modal
