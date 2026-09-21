@@ -4,68 +4,52 @@
 
 @layer base {
   /*
-   * THEME MODERNE EQUILIBRE (GRIS ANTHRACITE PRO & REPOS VISUEL)
-   * Neutres chauds, contrastes doux, lisibilité optimale sans éblouissement
+   * THEME SOMBRE HOMOGENE & HARMONIEUX POUR TOUTE L'APPLICATION
+   * Palette sombre unifiée identique à la page de connexion :
+   * - Fond général : Slate-900 / Zinc-950 (#0b132b)
+   * - Cartes & Surfaces : Slate-800 (#1e293b)
+   * - Texte : Blanc doux (#f8fafc) & Gris ardoise (#94a3b8)
+   * - Accents : Bleu Roi SaaS (#0284c7) & Vert Émeraude (#10b981)
    */
-  :root {
-    --background: 220 14% 96%;        /* #f1f3f5 - fond gris doux et reposant */
-    --foreground: 222 47% 11%;        /* #0f172a - texte anthracite très lisible */
+  :root, .dark {
+    --background: 222 47% 9%;         /* #0c1322 - fond sombre doux reposant */
+    --foreground: 210 40% 98%;        /* #f8fafc - texte net et très contrasté */
 
-    --card: 0 0% 100%;                /* #ffffff - cartes blanches bien définies */
-    --card-foreground: 222 47% 11%;
+    --card: 217 33% 14%;              /* #182234 - cartes slate bien délimitées */
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 217 33% 14%;
+    --popover-foreground: 210 40% 98%;
 
-    /* Brand Primary: Bleu Océan SaaS professionnel */
-    --primary: 217 91% 45%;           /* #0284c7 */
-    --primary-foreground: 210 40% 98%;
+    /* Brand Primary : Bleu Lumineux visible sur sombre */
+    --primary: 217 91% 60%;           /* #3b82f6 */
+    --primary-foreground: 0 0% 100%;
 
     /* Surfaces secondaires */
-    --secondary: 214 32% 91%;         /* #e2e8f0 */
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 217 33% 19%;         /* #233047 */
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 214 20% 90%;
-    --muted-foreground: 215 16% 40%;  /* #64748b */
+    --muted: 217 33% 17%;             /* #1e293b */
+    --muted-foreground: 215 20% 65%;  /* #94a3b8 */
 
-    --accent: 214 32% 91%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 217 33% 20%;
+    --accent-foreground: 210 40% 98%;
 
     /* Sémantiques */
-    --success: 152 76% 36%;           /* #16a34a */
+    --success: 152 76% 45%;           /* #22c55e */
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;            /* #f59e0b */
-    --warning-foreground: 222 47% 11%;
+    --warning-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;         /* #ef4444 */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 25% 85%;            /* Bordures visibles et nettes */
-    --input: 214 25% 85%;
-    --ring: 217 91% 45%;
+    --border: 217 33% 22%;            /* Bordures nettes mais douces */
+    --input: 217 33% 22%;
+    --ring: 217 91% 60%;
 
     --radius: 0.625rem;
-  }
-
-  .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 96%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 96%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 96%;
-    --primary: 217 91% 55%;
-    --primary-foreground: 222 47% 8%;
-    --secondary: 217 33% 18%;
-    --secondary-foreground: 210 40% 96%;
-    --muted: 217 33% 16%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 18%;
-    --accent-foreground: 210 40% 96%;
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 217 91% 55%;
   }
 }
 
@@ -74,12 +58,28 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/15 selection:text-primary;
+    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/25 selection:text-primary-foreground;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
-/* Typographie monétaire alignée */
+/* Micro-animations */
+.animate-scale-in {
+  animation: scaleIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Typographie monétaire avec alignement des chiffres FCFA */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }

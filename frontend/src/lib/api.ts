@@ -28,22 +28,48 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     ...(options.headers as Record<string, string>),
   };
 
-  if (token) {
+  // N'ajouter l'en-tête Authorization que si le token est un vrai JWT (commençant par eyJ...)
+  if (token && token.startsWith('eyJ')) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+  // Tenter l'appel : d'abord via le proxy relatif /api/v1, sinon directement sur 127.0.0.1:8008
+  const primaryUrl = endpoint.startsWith('http') ? endpoint : `/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  
+  let response: Response;
+  try {
+    response = await fetch(primaryUrl, {
+      ...options,
+      headers,
+    });
+  } catch {
+    // Si échec du proxy (ex: Next.js dev server non redémarré), repli direct sur le port 8008
+    const fallbackUrl = `http://127.0.0.1:8008/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    response = await fetch(fallbackUrl, {
+      ...options,
+      headers,
+    });
+  }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  const data = await response.json().catch(() => ({}));
+  const rawText = await response.text();
+  let data: any = {};
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    // Si la réponse n'est pas du JSON valide (erreur proxy HTML 502/504)
+    if (!response.ok) {
+      throw new ApiError(
+        'Le serveur backend (port 8008) n\'a pas renvoyé de données valides. Vérifiez que Django tourne.',
+        'server_unreachable',
+        null,
+        response.status
+      );
+    }
+  }
 
   if (!response.ok) {
     throw new ApiError(
-      data.message || data.error || 'Une erreur est survenue sur le serveur.',
+      data.message || data.error || data.detail || 'Une erreur est survenue lors de l\'enregistrement.',
       data.code || 'request_failed',
       data.details || data,
       response.status
