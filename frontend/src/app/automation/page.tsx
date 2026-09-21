@@ -87,6 +87,27 @@ export default function AutomationPage() {
     },
   });
 
+  // Dictionnaires de traduction en français des déclencheurs et actions
+  const formatTriggerTypeFr = (type: string) => {
+    const dict: Record<string, string> = {
+      STOCK_BELOW_THRESHOLD: "Stock sous le seuil d'alerte",
+      OVERDUE_INVOICE: "Facture impayée depuis X jours",
+      LARGE_TRANSACTION: "Vente dépassant le montant cible",
+      INVENTORY_DISCREPANCY: "Écart constaté en inventaire",
+    };
+    return dict[type] || type;
+  };
+
+  const formatActionTypeFr = (type: string) => {
+    const dict: Record<string, string> = {
+      CREATE_NOTIFICATION: "Créer une notification prioritaire",
+      DRAFT_PURCHASE_ORDER: "Générer un bon d'achat fournisseur brouillon",
+      SEND_EMAIL_ALERT: "Envoyer un e-mail d'alerte",
+      LOG_AUDIT_WARNING: "Consigner un avertissement d'audit",
+    };
+    return dict[type] || type;
+  };
+
   // Trigger engine manually
   const triggerMutation = useMutation({
     mutationFn: async () => {
@@ -166,18 +187,18 @@ export default function AutomationPage() {
       ),
     },
     {
-      header: 'Déclencheur (SI Condition)',
+      header: 'Condition Déclencheur (SI...)',
       cell: (row: AutomationRuleItem) => (
-        <Badge variant="outline" className="text-xs font-mono">
-          {row.trigger_type}
+        <Badge variant="outline" className="text-xs font-medium border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/5">
+          {formatTriggerTypeFr(row.trigger_type)}
         </Badge>
       ),
     },
     {
-      header: 'Action Réalisée (ALORS Action)',
+      header: 'Action Automatisée (ALORS...)',
       cell: (row: AutomationRuleItem) => (
-        <Badge variant="default" className="text-xs">
-          {row.action_type}
+        <Badge variant="default" className="text-xs font-medium">
+          {formatActionTypeFr(row.action_type)}
         </Badge>
       ),
     },
@@ -185,21 +206,23 @@ export default function AutomationPage() {
       header: 'Dernière Exécution',
       cell: (row: AutomationRuleItem) => (
         <span className="text-xs text-muted-foreground">
-          {row.last_triggered_at ? formatDate(row.last_triggered_at) : 'Jamais'}
+          {row.last_triggered_at ? formatDate(row.last_triggered_at) : 'Jamais exécutée'}
         </span>
       ),
     },
     {
-      header: 'Compteur',
+      header: 'Fréquence / Compteur',
       cell: (row: AutomationRuleItem) => (
-        <span className="font-bold text-primary">{row.execution_count} fois</span>
+        <span className="font-bold text-primary text-xs">
+          {row.execution_count === 0 ? '0 exécution' : `${row.execution_count} exécution${row.execution_count > 1 ? 's' : ''}`}
+        </span>
       ),
     },
     {
-      header: 'Statut',
+      header: 'État d\'Activation',
       cell: (row: AutomationRuleItem) => (
-        <Badge variant={row.is_active ? 'success' : 'destructive'}>
-          {row.is_active ? 'Active' : 'Désactivée'}
+        <Badge variant={row.is_active ? 'success' : 'destructive'} className="text-xs font-semibold">
+          {row.is_active ? 'Active & Surveillée' : 'Désactivée'}
         </Badge>
       ),
     },
