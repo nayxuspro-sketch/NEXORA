@@ -29,7 +29,9 @@ import {
   ShieldAlert,
   Flame,
   CheckCircle2,
-  PackageX
+  PackageX,
+  FileText,
+  Download
 } from 'lucide-react';
 
 export default function InventoryPage() {
@@ -46,6 +48,54 @@ export default function InventoryPage() {
   const [selectedInventory, setSelectedInventory] = React.useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
   const [isAddLineModalOpen, setIsAddLineModalOpen] = React.useState(false);
+  // PDF Export Modal State
+  const [isPdfModalOpen, setIsPdfModalOpen] = React.useState(false);
+  const [pdfPeriod, setPdfPeriod] = React.useState({
+    start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+    store_id: '',
+  });
+  const [isExportingPdf, setIsExportingPdf] = React.useState(false);
+
+  const handleExportPdf = async () => {
+    try {
+      setIsExportingPdf(true);
+      const queryParams = new URLSearchParams({
+        start_date: pdfPeriod.start_date,
+        end_date: pdfPeriod.end_date,
+        ...(pdfPeriod.store_id ? { store_id: pdfPeriod.store_id } : {})
+      });
+      const response = await fetch(`/api/v1/inventory/export-pdf/?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Erreur lors de la génération du PDF');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Etat_Stocks_${pdfPeriod.start_date}_${pdfPeriod.end_date}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        type: 'success',
+        title: 'Export PDF réussi',
+        message: 'Le rapport des niveaux de stock a été téléchargé avec succès.',
+      });
+      setIsPdfModalOpen(false);
+    } catch (err: any) {
+      toast({
+        type: 'error',
+        title: 'Erreur Export PDF',
+        message: err.message || 'Impossible de générer le rapport PDF.',
+      });
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   const [lineData, setLineData] = React.useState({
     product: '',
     counted_quantity: '0',
@@ -664,13 +714,23 @@ export default function InventoryPage() {
         {/* TAB 2: CURRENT STOCK LEVELS */}
         {tab === 'levels' && (
           <div className="space-y-4">
-            <Input
-              placeholder="Filtrer par nom de produit, référence SKU..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              icon={<Search className="h-4 w-4" />}
-              className="max-w-md bg-card"
-            />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <Input
+                placeholder="Filtrer par nom de produit, référence SKU..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                icon={<Search className="h-4 w-4" />}
+                className="max-w-md bg-card"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsPdfModalOpen(true)}
+                className="self-start sm:self-auto text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-all border-primary/30"
+              >
+                <FileText className="h-4 w-4 mr-1.5 text-primary" /> Exporter en PDF (par période)
+              </Button>
+            </div>
             <DataTable
               columns={[
                 {
@@ -1232,6 +1292,85 @@ export default function InventoryPage() {
               </div>
             </div>
           )}
+        </Modal>
+
+        {/* MODAL: EXPORT PDF DES NIVEAUX DE STOCK PAR PÉRIODE */}
+        <Modal
+          isOpen={isPdfModalOpen}
+          onClose={() => setIsPdfModalOpen(false)}
+          title="Exporter l'État des Stocks en PDF"
+          maxWidth="md"
+        >
+          <div className="space-y-4 pt-2">
+            <p className="text-xs text-muted-foreground">
+              Générez un rapport officiel des stocks détaillant les stocks de début, entrées, sorties, stocks de fin de période et valorisations financières en FCFA.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Date de Début *
+                </label>
+                <Input
+                  type="date"
+                  required
+                  value={pdfPeriod.start_date}
+                  onChange={(e) => setPdfPeriod({ ...pdfPeriod, start_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Date de Fin *
+                </label>
+                <Input
+                  type="date"
+                  required
+                  value={pdfPeriod.end_date}
+                  onChange={(e) => setPdfPeriod({ ...pdfPeriod, end_date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Magasin ou Dépôt (Optionnel)
+              </label>
+              <select
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                value={pdfPeriod.store_id}
+                onChange={(e) => setPdfPeriod({ ...pdfPeriod, store_id: e.target.value })}
+              >
+                <option value="">Tous les magasins et dépôts confondus</option>
+                {storesData?.results?.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="p-3 rounded-lg bg-muted/40 border border-border text-xs text-muted-foreground flex items-center justify-between">
+              <span>Format du document :</span>
+              <span className="font-bold text-foreground">PDF Paysage A4 (Haute Définition)</span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPdfModalOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                onClick={handleExportPdf}
+                isLoading={isExportingPdf}
+              >
+                <Download className="h-4 w-4 mr-1.5" /> Télécharger le Rapport PDF
+              </Button>
+            </div>
+          </div>
         </Modal>
 
         {/* MODAL: AJOUTER UNE LIGNE DE COMPTAGE */}
