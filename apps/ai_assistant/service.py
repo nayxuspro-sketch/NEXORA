@@ -85,7 +85,7 @@ class AIAssistantService:
 
         return {
             'answer': (
-                f"Aujourd'hui, vous avez enregistré un chiffre d'affaires de {total_revenue} € {scope}, "
+                f"Aujourd'hui, vous avez enregistré un chiffre d'affaires de {total_revenue} FCFA {scope}, "
                 f"pour un volume de {count} vente(s) validée(s)."
             ),
             'metrics': {
@@ -143,7 +143,7 @@ class AIAssistantService:
                 'explanation': None
             }
 
-        top_names = ", ".join([f"'{r['name']}' (Marge brute: {r['profit']:.2f} €, Taux: {r['margin_rate']}%)" for r in results])
+        top_names = ", ".join([f"'{r['name']}' (Marge brute: {r['profit']:.0f} FCFA, Taux: {r['margin_rate']}%)" for r in results])
 
         return {
             'answer': (
@@ -239,7 +239,7 @@ class AIAssistantService:
         low_count = StockLevel.objects.filter(company=company, quantity__lte=F('product__alert_threshold')).count()
 
         summary_text = (
-            f"Synthèse de vos 7 derniers jours : {tx_count} vente(s) enregistrée(s) pour un chiffre d'affaires de {total_rev} €. "
+            f"Synthèse de vos 7 derniers jours : {tx_count} vente(s) enregistrée(s) pour un chiffre d'affaires de {total_rev} FCFA. "
             f"Sur le plan logistique, {low_count} article(s) nécessitent un réapprovisionnement."
         )
 

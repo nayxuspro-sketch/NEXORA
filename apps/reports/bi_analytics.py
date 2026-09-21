@@ -175,7 +175,7 @@ class BusinessIntelligenceAnalyticsView(APIView):
             if curr_basket > prev_basket:
                 explanations.append(
                     f"Le chiffre d'affaires progresse de {rev_growth_pct}%, principalement porté par une hausse du panier moyen "
-                    f"passé de {prev_basket.quantize(Decimal('0.01'))} € à {curr_basket.quantize(Decimal('0.01'))} €."
+                    f"passé de {prev_basket.quantize(Decimal('1.00'))} FCFA à {curr_basket.quantize(Decimal('1.00'))} FCFA."
                 )
             else:
                 explanations.append(
