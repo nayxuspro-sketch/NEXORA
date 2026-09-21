@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import {
   Menu,
   Search,
@@ -11,7 +12,8 @@ import {
   Download,
   BookOpen,
   Wifi,
-  ChevronDown
+  ChevronDown,
+  Settings
 } from 'lucide-react';
 
 interface TopbarProps {
@@ -121,6 +123,17 @@ export function Topbar({ onToggleSidebar, onOpenQuickSearch }: TopbarProps) {
         >
           <Search className="h-5 w-5" />
         </button>
+
+        {/* Raccourci direct Paramètres & Droits */}
+        <Link
+          href="/settings"
+          title="Paramètres, Utilisateurs & Droits d'Accès"
+          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center gap-1.5"
+          aria-label="Paramètres"
+        >
+          <Settings className="h-4 w-4 text-primary" />
+          <span className="hidden lg:inline text-xs font-semibold text-foreground">Paramètres</span>
+        </Link>
 
         {/* Notifications discrètes */}
         <button
