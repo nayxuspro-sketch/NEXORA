@@ -9,14 +9,19 @@ import { Input } from '@/components/ui/input';
 import { apiRequest } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Sale, PaginatedResponse } from '@/types';
-import { Search, FileText } from 'lucide-react';
+import { Search, FileText, Eye, Download } from 'lucide-react';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 
 export default function SalesPage() {
   const [search, setSearch] = React.useState('');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [selectedSale, setSelectedSale] = React.useState<Sale | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
 
   const { data: salesData, isLoading } = useQuery<PaginatedResponse<Sale>>({
-    queryKey: ['sales-list', search],
-    queryFn: () => apiRequest<PaginatedResponse<Sale>>(`/sales/?search=${encodeURIComponent(search)}`),
+    queryKey: ['sales-list', search, currentPage],
+    queryFn: () => apiRequest<PaginatedResponse<Sale>>(`/sales/?page=${currentPage}&search=${encodeURIComponent(search)}`),
     placeholderData: {
       status: 'success',
       pagination: { count: 2, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
@@ -47,11 +52,11 @@ export default function SalesPage() {
           seller_name: 'admin@alpha.com',
           status: 'COMPLETED',
           payment_status: 'PARTIAL',
-          subtotal_amount: '700.00',
-          tax_amount: '140.00',
-          discount_amount: '40.00',
-          total_amount: '800.00',
-          paid_amount: '400.00',
+          subtotal_amount: '110000.00',
+          tax_amount: '19800.00',
+          discount_amount: '0.00',
+          total_amount: '129800.00',
+          paid_amount: '129800.00',
           items: [],
           created_at: new Date(Date.now() - 7200000).toISOString(),
         },
@@ -97,13 +102,48 @@ export default function SalesPage() {
           PENDING: 'destructive',
           REFUNDED: 'destructive',
         };
-        return <Badge variant={variants[row.payment_status] || 'outline'}>{row.payment_status}</Badge>;
+        const labels: Record<string, string> = {
+          PAID: 'Payé Intégral',
+          PARTIAL: 'Solde Partiel',
+          PENDING: 'En Attente',
+          REFUNDED: 'Remboursé',
+        };
+        return (
+          <Badge variant={variants[row.payment_status] || 'outline'} className="text-[11px] font-semibold">
+            {labels[row.payment_status] || row.payment_status}
+          </Badge>
+        );
       },
     },
     {
       header: 'Statut Vente',
+      cell: (row: Sale) => {
+        const labels: Record<string, string> = {
+          COMPLETED: 'Clôturée / Livrée',
+          DRAFT: 'Brouillon',
+          CANCELLED: 'Annulée',
+        };
+        return (
+          <Badge variant={row.status === 'COMPLETED' ? 'success' : 'destructive'} className="text-[11px] font-semibold">
+            {labels[row.status] || row.status}
+          </Badge>
+        );
+      },
+    },
+    {
+      header: 'Actions',
       cell: (row: Sale) => (
-        <Badge variant={row.status === 'COMPLETED' ? 'success' : 'destructive'}>{row.status}</Badge>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-all"
+          onClick={() => {
+            setSelectedSale(row);
+            setIsDetailModalOpen(true);
+          }}
+        >
+          <Eye className="h-3.5 w-3.5 mr-1 text-primary" /> Détails
+        </Button>
       ),
     },
   ];
@@ -128,7 +168,161 @@ export default function SalesPage() {
           className="max-w-md bg-card"
         />
 
-        <DataTable columns={columns} data={salesData?.results || []} isLoading={isLoading} />
+        <DataTable
+          columns={columns}
+          data={salesData?.results || []}
+          isLoading={isLoading}
+          pagination={{
+            currentPage,
+            totalPages: salesData?.pagination?.total_pages || 1,
+            onPageChange: setCurrentPage,
+          }}
+        />
+
+        {/* MODAL: DÉTAIL INTÉGRAL DE LA FACTURE / VENTE */}
+        <Modal
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedSale(null);
+          }}
+          title={`Détail de la Facture : ${selectedSale?.reference || ''}`}
+          maxWidth="2xl"
+        >
+          {selectedSale && (
+            <div className="space-y-4 pt-1">
+              {/* Synthèse client & magasin */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-xl bg-muted/40 border text-xs">
+                <div>
+                  <span className="text-muted-foreground block">Client :</span>
+                  <span className="font-bold text-foreground">
+                    {selectedSale.customer_name || 'Client Comptoir'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Magasin :</span>
+                  <span className="font-bold text-foreground">{selectedSale.store_name}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Vendeur / Caissier :</span>
+                  <span className="font-mono text-muted-foreground truncate block">
+                    {selectedSale.seller_name || 'Système'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Date & Heure :</span>
+                  <span className="font-medium text-foreground">{formatDate(selectedSale.created_at)}</span>
+                </div>
+              </div>
+
+              {/* Lignes d'articles vendus */}
+              <div className="border rounded-xl overflow-hidden">
+                <div className="bg-muted/60 px-3 py-2 border-b flex justify-between items-center text-xs font-bold text-foreground">
+                  <span>Articles & Lignes de Vente</span>
+                  <span>{selectedSale.items?.length || 0} référence(s)</span>
+                </div>
+                <div className="max-h-56 overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted/30 text-muted-foreground font-semibold border-b">
+                      <tr>
+                        <th className="p-2.5">Article & SKU</th>
+                        <th className="p-2.5 text-right">Prix Unitaire</th>
+                        <th className="p-2.5 text-right">Qté</th>
+                        <th className="p-2.5 text-right">TVA</th>
+                        <th className="p-2.5 text-right">Total TTC</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {selectedSale.items && selectedSale.items.length > 0 ? (
+                        selectedSale.items.map((item: any, i: number) => (
+                          <tr key={i} className="hover:bg-muted/20">
+                            <td className="p-2.5 font-semibold text-foreground">
+                              {item.product_name}
+                              <span className="block text-[10px] font-mono text-muted-foreground">
+                                {item.product_sku}
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-right font-mono">
+                              {formatCurrency(item.unit_price)}
+                            </td>
+                            <td className="p-2.5 text-right font-bold font-mono">
+                              {item.quantity}
+                            </td>
+                            <td className="p-2.5 text-right font-mono text-muted-foreground">
+                              {item.tax_rate}%
+                            </td>
+                            <td className="p-2.5 text-right font-bold text-foreground font-mono">
+                              {formatCurrency(item.total)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="p-4 text-center text-muted-foreground">
+                            Aucun détail de ligne disponible.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Totaux financiers */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-xl bg-card border text-xs">
+                <div>
+                  <span className="text-muted-foreground block">Sous-total HT :</span>
+                  <span className="font-bold text-foreground">{formatCurrency(selectedSale.subtotal_amount)}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">TVA Collectée :</span>
+                  <span className="font-bold text-foreground">{formatCurrency(selectedSale.tax_amount)}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Remise :</span>
+                  <span className="font-bold text-amber-600">{formatCurrency(selectedSale.discount_amount)}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Total TTC :</span>
+                  <span className="font-black text-primary text-sm">{formatCurrency(selectedSale.total_amount)}</span>
+                </div>
+              </div>
+
+              {/* Règlements associés */}
+              {selectedSale.payments && selectedSale.payments.length > 0 && (
+                <div className="border rounded-xl p-3 bg-muted/20 space-y-1.5 text-xs">
+                  <span className="font-bold text-foreground block">Mode(s) de Règlement Enregistré(s) :</span>
+                  <div className="space-y-1">
+                    {selectedSale.payments.map((p: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between font-mono">
+                        <span className="text-muted-foreground">
+                          {p.payment_method === 'MOBILE_MONEY' ? 'Mobile Money (Orange / Moov)' : p.payment_method === 'CASH' ? 'Espèces' : p.payment_method === 'CARD' ? 'Carte Bancaire' : 'À Crédit'}
+                          {p.reference ? ` (${p.reference})` : ''}
+                        </span>
+                        <span className="font-bold text-emerald-600">
+                          {formatCurrency(p.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-3 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsDetailModalOpen(false);
+                    setSelectedSale(null);
+                  }}
+                >
+                  Fermer
+                </Button>
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     </DashboardLayout>
   );

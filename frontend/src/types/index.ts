@@ -123,6 +123,13 @@ export interface Sale {
   paid_amount: string;
   notes?: string;
   items: SaleItem[];
+  payments?: Array<{
+    id: string;
+    amount: string;
+    payment_method: string;
+    reference?: string;
+    created_at: string;
+  }>;
   created_at: string;
 }
 
