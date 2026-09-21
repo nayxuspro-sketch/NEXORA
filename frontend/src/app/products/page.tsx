@@ -12,13 +12,54 @@ import { useToast } from '@/components/ui/toast';
 import { apiRequest } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { Product, PaginatedResponse } from '@/types';
-import { Plus, Search, Package, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Package, Edit, Trash2, FileText, Download, Filter } from 'lucide-react';
 
 export default function ProductsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [search, setSearch] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
+  // PDF Export Modal State
+  const [isPdfModalOpen, setIsPdfModalOpen] = React.useState(false);
+  const [pdfStatusFilter, setPdfStatusFilter] = React.useState('ALL');
+  const [isExportingPdf, setIsExportingPdf] = React.useState(false);
+
+  const handleExportPdf = async () => {
+    try {
+      setIsExportingPdf(true);
+      const queryParams = new URLSearchParams({
+        status: pdfStatusFilter,
+      });
+      const response = await fetch(`/api/v1/catalog/export-pdf/?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Erreur lors de la génération du catalogue PDF');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Catalogue_Produits_${pdfStatusFilter.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        type: 'success',
+        title: 'Catalogue PDF Téléchargé',
+        message: `Le catalogue filtré par statut (${pdfStatusFilter}) a été exporté avec succès.`,
+      });
+      setIsPdfModalOpen(false);
+    } catch (err: any) {
+      toast({
+        type: 'error',
+        title: 'Erreur Export PDF',
+        message: err.message || 'Impossible d\'exporter le catalogue en PDF.',
+      });
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
@@ -276,9 +317,18 @@ export default function ProductsPage() {
               Gestion centralisée des prix de revient, tarifs de vente et seuils d'alerte.
             </p>
           </div>
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" /> Nouveau Produit
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsPdfModalOpen(true)}
+              className="text-xs font-semibold border-primary/30 hover:bg-primary/10 hover:text-primary transition-all"
+            >
+              <FileText className="h-4 w-4 mr-1.5 text-primary" /> Exporter en PDF (par Statut)
+            </Button>
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-1.5" /> Nouveau Produit
+            </Button>
+          </div>
         </div>
 
         {/* Filter bar */}
@@ -416,6 +466,62 @@ export default function ProductsPage() {
               </Button>
             </div>
           </form>
+        </Modal>
+
+        {/* MODAL: EXPORT PDF DU CATALOGUE PAR STATUT */}
+        <Modal
+          isOpen={isPdfModalOpen}
+          onClose={() => setIsPdfModalOpen(false)}
+          title="Exporter le Catalogue des Produits en PDF (par Statut)"
+          maxWidth="md"
+        >
+          <div className="space-y-4 pt-2">
+            <p className="text-xs text-muted-foreground">
+              Générez un catalogue officiel au format A4 Paysage avec prix de revient, tarifs de vente en FCFA, marges unitaires, stocks disponibles et alertes critiques.
+            </p>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Filtrer par Statut de Produit *
+              </label>
+              <select
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-medium"
+                value={pdfStatusFilter}
+                onChange={(e) => setPdfStatusFilter(e.target.value)}
+              >
+                <option value="ALL">📋 Tous les produits (Actifs & Inactifs)</option>
+                <option value="ACTIVE">✅ Produits ACTIFS uniquement (Disponibles à la vente)</option>
+                <option value="INACTIVE">⛔ Produits INACTIFS uniquement (Archivés / Retirés)</option>
+                <option value="OUT_OF_STOCK">🚨 Produits en RUPTURE DE STOCK (Stock ≤ 0)</option>
+                <option value="LOW_STOCK">⚠️ Produits sous le SEUIL D'ALERTE (Stock critique)</option>
+              </select>
+            </div>
+
+            <div className="p-3 rounded-xl bg-muted/40 border border-border text-xs space-y-1">
+              <span className="font-bold text-foreground block">Contenu du document PDF généré :</span>
+              <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground text-[11px]">
+                <li>Cartouche statistique : total références, ventilation actifs/inactifs, unités globales, valorisation financière globale en FCFA.</li>
+                <li>Tableau complet : Désignation, SKU, Code-barres, Catégorie, Prix Achat HT, Prix Vente TTC, Marge unitaire, Stock réel et Statut coloré.</li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPdfModalOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                onClick={handleExportPdf}
+                isLoading={isExportingPdf}
+              >
+                <Download className="h-4 w-4 mr-1.5" /> Télécharger le Catalogue PDF
+              </Button>
+            </div>
+          </div>
         </Modal>
 
         {/* Edit Modal */}

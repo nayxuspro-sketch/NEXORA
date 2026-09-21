@@ -7,6 +7,7 @@ from apps.common.health import HealthCheckView
 from apps.accounts.views import CustomTokenObtainPairView, UserViewSet
 from apps.companies.views import CompanyViewSet
 from apps.catalog.views import CategoryViewSet, UnitViewSet, ProductViewSet
+from apps.catalog.pdf_export import ProductCatalogPdfExportView
 from apps.partners.views import PartnerViewSet
 from apps.inventory.views import StoreViewSet, StockLevelViewSet, StockMovementViewSet, InventoryViewSet
 from apps.inventory.analytics import StockIntelligenceAnalyticsView
@@ -82,6 +83,7 @@ urlpatterns = [
 
     # AI Conversational Assistant
     path('ai/chat/', AIChatAssistantView.as_view(), name='ai_chat'),
+    path('catalog/export-pdf/', ProductCatalogPdfExportView.as_view(), name='catalog_pdf_export'),
 
     # Stock Intelligence & Anticipation
     path('inventory/intelligence/', StockIntelligenceAnalyticsView.as_view(), name='stock_intelligence'),
