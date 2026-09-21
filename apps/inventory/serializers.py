@@ -50,6 +50,7 @@ class InventoryLineSerializer(serializers.ModelSerializer):
 
 class InventorySerializer(serializers.ModelSerializer):
     lines = InventoryLineSerializer(many=True, read_only=True)
+    store = serializers.PrimaryKeyRelatedField(queryset=Store.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = Inventory

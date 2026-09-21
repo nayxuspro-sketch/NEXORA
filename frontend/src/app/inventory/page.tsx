@@ -43,6 +43,14 @@ export default function InventoryPage() {
   const [isTransferModalOpen, setIsTransferModalOpen] = React.useState(false);
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = React.useState(false);
   const [isNewInventoryModalOpen, setIsNewInventoryModalOpen] = React.useState(false);
+  const [selectedInventory, setSelectedInventory] = React.useState<any>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
+  const [isAddLineModalOpen, setIsAddLineModalOpen] = React.useState(false);
+  const [lineData, setLineData] = React.useState({
+    product: '',
+    counted_quantity: '0',
+    notes: '',
+  });
 
   // Transfer form state
   const [transferData, setTransferData] = React.useState({
@@ -174,12 +182,156 @@ export default function InventoryPage() {
   const { data: storesData } = useQuery<PaginatedResponse<Store>>({
     queryKey: ['stores-list'],
     queryFn: () => apiRequest<PaginatedResponse<Store>>('/stores/'),
+    placeholderData: {
+      status: 'success',
+      pagination: { count: 1, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
+      results: [
+        {
+          id: 'store-01',
+          name: 'Magasin & Dépôt Ouaga Central',
+          code: 'MAG-OUAGA-01',
+          address: 'Avenue Kwamé N\'Krumah, Ouagadougou',
+          phone: '+226 25 31 10 20',
+          is_active: true,
+        },
+      ],
+    },
   });
 
   // Fetch products
   const { data: productsData } = useQuery<PaginatedResponse<Product>>({
     queryKey: ['products-options'],
     queryFn: () => apiRequest<PaginatedResponse<Product>>('/products/'),
+    placeholderData: {
+      status: 'success',
+      pagination: { count: 3, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
+      results: [
+        {
+          id: 'p1',
+          name: 'Ordinateur Portable HP ProBook 15',
+          sku: 'LAPTOP-HP-01',
+          barcode: '3700123456789',
+          description: 'Intel i5, 16Go RAM, 512Go SSD',
+          cost_price: '325000.00',
+          selling_price: '450000.00',
+          tax_rate: '18.00',
+          alert_threshold: '5.00',
+          is_active: true,
+          unit_symbol: 'pcs',
+        },
+        {
+          id: 'p2',
+          name: 'Souris Sans Fil Ergonomique Rechargeable',
+          sku: 'MOUSE-WL-01',
+          barcode: '3700123456790',
+          description: 'Capteur optique haute précision',
+          cost_price: '8000.00',
+          selling_price: '15000.00',
+          tax_rate: '18.00',
+          alert_threshold: '10.00',
+          is_active: true,
+          unit_symbol: 'pcs',
+        },
+      ],
+    },
+  });
+
+  // State pour création d'inventaire
+  const [newInvData, setNewInvData] = React.useState({
+    reference: `INV-${new Date().getFullYear()}-01`,
+    inventory_type: 'FULL',
+    notes: 'Comptage physique des stocks en magasin',
+  });
+
+  // Mutation Ajouter une ligne de comptage
+  const addLineMutation = useMutation({
+    mutationFn: async ({ invId, data }: { invId: string; data: typeof lineData }) => {
+      return await apiRequest(`/inventories/${invId}/add_line/`, {
+        method: 'POST',
+        body: JSON.stringify({
+          product: data.product,
+          counted_quantity: data.counted_quantity,
+          notes: data.notes,
+        }),
+      });
+    },
+    onSuccess: (newLine) => {
+      toast({
+        type: 'success',
+        title: 'Comptage enregistré',
+        message: 'La référence a été ajoutée avec succès au comptage.',
+      });
+      setIsAddLineModalOpen(false);
+      setLineData({ product: '', counted_quantity: '0', notes: '' });
+      queryClient.invalidateQueries({ queryKey: ['inventories-list'] });
+      if (selectedInventory) {
+        setSelectedInventory((prev: any) => ({
+          ...prev,
+          lines: [...(prev.lines || []), newLine],
+        }));
+      }
+    },
+    onError: (err: any) => {
+      toast({
+        type: 'error',
+        title: 'Erreur',
+        message: err.message || 'Impossible d\'enregistrer le comptage.',
+      });
+    },
+  });
+
+  // Mutation Valider & Régulariser l'inventaire
+  const validateInventoryMutation = useMutation({
+    mutationFn: async (invId: string) => {
+      return await apiRequest(`/inventories/${invId}/validate/`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: (updated) => {
+      toast({
+        type: 'success',
+        title: 'Inventaire clôturé & régularisé',
+        message: 'Les ajustements de stock ont été appliqués automatiquement en comptabilité de stock.',
+      });
+      setSelectedInventory(updated);
+      queryClient.invalidateQueries({ queryKey: ['inventories-list'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-levels'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-intelligence'] });
+    },
+    onError: (err: any) => {
+      toast({
+        type: 'error',
+        title: 'Erreur',
+        message: err.message || 'Impossible de clôturer l\'inventaire.',
+      });
+    },
+  });
+
+  // Mutation Nouvel Inventaire
+  const createInventoryMutation = useMutation({
+    mutationFn: async (data: typeof newInvData) => {
+      return await apiRequest('/inventories/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        type: 'success',
+        title: 'Inventaire créé',
+        message: 'La session d\'inventaire physique a été enregistrée avec succès.',
+      });
+      setIsNewInventoryModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['inventories-list'] });
+    },
+    onError: (err: any) => {
+      toast({
+        type: 'error',
+        title: 'Erreur',
+        message: err.message || 'Impossible de créer la session d\'inventaire.',
+      });
+    },
   });
 
   // Fetch inventories
@@ -663,8 +815,40 @@ export default function InventoryPage() {
                   header: 'Statut',
                   cell: (row: any) => (
                     <Badge variant={row.status === 'VALIDATED' ? 'success' : 'warning'}>
-                      {row.status}
+                      {row.status === 'VALIDATED' ? 'Validé & Régularisé' : row.status === 'IN_PROGRESS' ? 'En cours' : 'Brouillon'}
                     </Badge>
+                  ),
+                },
+                {
+                  header: 'Actions',
+                  cell: (row: any) => (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs font-semibold"
+                        onClick={() => {
+                          setSelectedInventory(row);
+                          setIsDetailModalOpen(true);
+                        }}
+                      >
+                        Consulter / Compter
+                      </Button>
+                      {row.status !== 'VALIDATED' && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="h-8 text-xs font-semibold"
+                          isLoading={validateInventoryMutation.isPending && selectedInventory?.id === row.id}
+                          onClick={() => {
+                            setSelectedInventory(row);
+                            validateInventoryMutation.mutate(row.id);
+                          }}
+                        >
+                          Clôturer
+                        </Button>
+                      )}
+                    </div>
                   ),
                 },
               ]}
@@ -855,6 +1039,268 @@ export default function InventoryPage() {
                 Annuler
               </Button>
               <Button type="submit">Valider le Transfert</Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* MODAL: NOUVEL INVENTAIRE PHYSIQUE */}
+        <Modal
+          isOpen={isNewInventoryModalOpen}
+          onClose={() => setIsNewInventoryModalOpen(false)}
+          title="Créer une Session d'Inventaire Physique"
+          maxWidth="md"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              createInventoryMutation.mutate(newInvData);
+            }}
+            className="space-y-4 pt-2"
+          >
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Référence / Code Session *
+              </label>
+              <Input
+                required
+                placeholder="Ex: INV-2026-T1"
+                value={newInvData.reference}
+                onChange={(e) => setNewInvData({ ...newInvData, reference: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Type d'Inventaire *
+              </label>
+              <select
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                value={newInvData.inventory_type}
+                onChange={(e) => setNewInvData({ ...newInvData, inventory_type: e.target.value })}
+              >
+                <option value="FULL">Inventaire Général Complet (Tous les articles)</option>
+                <option value="PARTIAL">Inventaire Tournant / Partiel</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Notes ou Consignes de comptage
+              </label>
+              <Input
+                placeholder="Ex: Comptage physique annuel de clôture..."
+                value={newInvData.notes}
+                onChange={(e) => setNewInvData({ ...newInvData, notes: e.target.value })}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsNewInventoryModalOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="submit" isLoading={createInventoryMutation.isPending}>
+                Créer l'Inventaire
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* MODAL: DÉTAILS DE L'INVENTAIRE & SAISIE DU COMPTAGE */}
+        <Modal
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          title={`Inventaire : ${selectedInventory?.reference || ''}`}
+          maxWidth="2xl"
+        >
+          {selectedInventory && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border text-xs">
+                <div>
+                  <span className="text-muted-foreground block">Type d'inventaire :</span>
+                  <span className="font-bold text-foreground">
+                    {selectedInventory.inventory_type === 'PARTIAL' ? 'Tournant / Partiel' : 'Général Complet'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Statut :</span>
+                  <Badge variant={selectedInventory.status === 'VALIDATED' ? 'success' : 'warning'}>
+                    {selectedInventory.status === 'VALIDATED' ? 'Validé & Régularisé' : 'En attente de clôture'}
+                  </Badge>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Lignes comptées :</span>
+                  <span className="font-bold text-foreground">{selectedInventory.lines?.length || 0} référence(s)</span>
+                </div>
+              </div>
+
+              {selectedInventory.notes && (
+                <p className="text-xs text-muted-foreground italic px-1">
+                  « {selectedInventory.notes} »
+                </p>
+              )}
+
+              {/* Table des lignes */}
+              <div className="border border-border rounded-lg overflow-hidden">
+                <div className="max-h-64 overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted/60 text-muted-foreground font-semibold sticky top-0 border-b">
+                      <tr>
+                        <th className="p-2.5">Produit / SKU</th>
+                        <th className="p-2.5 text-right">Stock Théorique</th>
+                        <th className="p-2.5 text-right">Compté Physique</th>
+                        <th className="p-2.5 text-right">Écart</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {selectedInventory.lines && selectedInventory.lines.length > 0 ? (
+                        selectedInventory.lines.map((l: any, idx: number) => {
+                          const diff = parseFloat(l.difference ?? (parseFloat(l.counted_quantity || '0') - parseFloat(l.expected_quantity || '0')));
+                          return (
+                            <tr key={idx} className="hover:bg-muted/20">
+                              <td className="p-2.5 font-semibold text-foreground">
+                                {l.product_name || 'Article'}
+                                <span className="block text-[10px] font-mono text-muted-foreground">
+                                  {l.product_sku || ''}
+                                </span>
+                              </td>
+                              <td className="p-2.5 text-right font-mono">{l.expected_quantity}</td>
+                              <td className="p-2.5 text-right font-mono font-bold text-primary">{l.counted_quantity}</td>
+                              <td className="p-2.5 text-right font-mono font-bold">
+                                <span className={diff > 0 ? 'text-emerald-600' : diff < 0 ? 'text-rose-600' : 'text-muted-foreground'}>
+                                  {diff > 0 ? `+${diff}` : diff}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="p-6 text-center text-muted-foreground">
+                            Aucune ligne comptée pour l'instant. Cliquez sur "+ Ajouter un comptage".
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Modal footer / actions */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border">
+                {selectedInventory.status !== 'VALIDATED' ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsAddLineModalOpen(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-1.5" /> Ajouter un comptage
+                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsDetailModalOpen(false)}
+                      >
+                        Fermer
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="sm"
+                        isLoading={validateInventoryMutation.isPending}
+                        onClick={() => validateInventoryMutation.mutate(selectedInventory.id)}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1.5" /> Clôturer & Régulariser le Stock
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsDetailModalOpen(false)}
+                    >
+                      Fermer
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* MODAL: AJOUTER UNE LIGNE DE COMPTAGE */}
+        <Modal
+          isOpen={isAddLineModalOpen}
+          onClose={() => setIsAddLineModalOpen(false)}
+          title="Ajouter un Produit au Comptage Physique"
+          maxWidth="sm"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!selectedInventory) return;
+              addLineMutation.mutate({ invId: selectedInventory.id, data: lineData });
+            }}
+            className="space-y-4 pt-2"
+          >
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Article à compter *
+              </label>
+              <select
+                required
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                value={lineData.product}
+                onChange={(e) => setLineData({ ...lineData, product: e.target.value })}
+              >
+                <option value="">Sélectionner un produit</option>
+                {productsData?.results?.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.sku})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Quantité réellement comptée en rayon / dépôt *
+              </label>
+              <Input
+                type="number"
+                step="any"
+                min="0"
+                required
+                placeholder="Ex: 25"
+                value={lineData.counted_quantity}
+                onChange={(e) => setLineData({ ...lineData, counted_quantity: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Remarque ou motif d'écart
+              </label>
+              <Input
+                placeholder="Ex: 2 unités abîmées mises de côté..."
+                value={lineData.notes}
+                onChange={(e) => setLineData({ ...lineData, notes: e.target.value })}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsAddLineModalOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="submit" isLoading={addLineMutation.isPending}>
+                Enregistrer la Ligne
+              </Button>
             </div>
           </form>
         </Modal>
