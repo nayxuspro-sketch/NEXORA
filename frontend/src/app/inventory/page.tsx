@@ -68,6 +68,56 @@ export default function InventoryPage() {
   };
 
   // PDF Export Modal State
+  // Inventories & Discrepancies PDF Export Modal State
+  const [isInventoriesPdfModalOpen, setIsInventoriesPdfModalOpen] = React.useState(false);
+  const [inventoriesPdfPeriod, setInventoriesPdfPeriod] = React.useState({
+    start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+    store_id: '',
+    status: '',
+  });
+  const [isExportingInventoriesPdf, setIsExportingInventoriesPdf] = React.useState(false);
+
+  const handleExportInventoriesPdf = async () => {
+    try {
+      setIsExportingInventoriesPdf(true);
+      const queryParams = new URLSearchParams({
+        start_date: inventoriesPdfPeriod.start_date,
+        end_date: inventoriesPdfPeriod.end_date,
+        ...(inventoriesPdfPeriod.store_id ? { store_id: inventoriesPdfPeriod.store_id } : {}),
+        ...(inventoriesPdfPeriod.status ? { status: inventoriesPdfPeriod.status } : {}),
+      });
+      const response = await fetch(`/api/v1/inventory/export-inventories-pdf/?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Erreur lors de la génération du PDF des inventaires & écarts');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Inventaires_Ecarts_${inventoriesPdfPeriod.start_date}_${inventoriesPdfPeriod.end_date}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        type: 'success',
+        title: 'Export PDF réussi',
+        message: 'Le rapport des inventaires et analyse des écarts a été téléchargé avec succès.',
+      });
+      setIsInventoriesPdfModalOpen(false);
+    } catch (err: any) {
+      toast({
+        type: 'error',
+        title: 'Erreur Export PDF',
+        message: err.message || 'Impossible de générer le rapport des inventaires.',
+      });
+    } finally {
+      setIsExportingInventoriesPdf(false);
+    }
+  };
+
   // Movements PDF Export Modal State
   const [isMovementsPdfModalOpen, setIsMovementsPdfModalOpen] = React.useState(false);
   const [movementsPdfPeriod, setMovementsPdfPeriod] = React.useState({
@@ -918,13 +968,23 @@ export default function InventoryPage() {
         {/* TAB 4: PHYSICAL INVENTORIES & RECONCILIATIONS */}
         {tab === 'inventories' && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <p className="text-xs text-muted-foreground">
                 Campagnes de comptage physique, inventaires complets ou tournants avec calcul automatique des écarts.
               </p>
-              <Button size="sm" onClick={() => setIsNewInventoryModalOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" /> Nouvel Inventaire
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsInventoriesPdfModalOpen(true)}
+                  className="text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-all border-primary/30"
+                >
+                  <FileText className="h-4 w-4 mr-1.5 text-primary" /> Exporter en PDF (par période)
+                </Button>
+                <Button size="sm" onClick={() => setIsNewInventoryModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" /> Nouvel Inventaire
+                </Button>
+              </div>
             </div>
 
             <DataTable
@@ -1371,6 +1431,103 @@ export default function InventoryPage() {
               </div>
             </div>
           )}
+        </Modal>
+
+        {/* MODAL: EXPORT PDF DES INVENTAIRES ET ÉCARTS PAR PÉRIODE */}
+        <Modal
+          isOpen={isInventoriesPdfModalOpen}
+          onClose={() => setIsInventoriesPdfModalOpen(false)}
+          title="Exporter les Inventaires & Analyse des Écarts en PDF"
+          maxWidth="md"
+        >
+          <div className="space-y-4 pt-2">
+            <p className="text-xs text-muted-foreground">
+              Générez un rapport officiel des campagnes d'inventaire physique récapitulant les stocks théoriques, les quantités réelles comptées, les écarts (surplus / manquants) et leur valorisation financière en FCFA.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Date de Début *
+                </label>
+                <Input
+                  type="date"
+                  required
+                  value={inventoriesPdfPeriod.start_date}
+                  onChange={(e) => setInventoriesPdfPeriod({ ...inventoriesPdfPeriod, start_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Date de Fin *
+                </label>
+                <Input
+                  type="date"
+                  required
+                  value={inventoriesPdfPeriod.end_date}
+                  onChange={(e) => setInventoriesPdfPeriod({ ...inventoriesPdfPeriod, end_date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Magasin / Dépôt
+                </label>
+                <select
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                  value={inventoriesPdfPeriod.store_id}
+                  onChange={(e) => setInventoriesPdfPeriod({ ...inventoriesPdfPeriod, store_id: e.target.value })}
+                >
+                  <option value="">Tous les dépôts</option>
+                  {storesData?.results?.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Filtrer par Statut
+                </label>
+                <select
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                  value={inventoriesPdfPeriod.status}
+                  onChange={(e) => setInventoriesPdfPeriod({ ...inventoriesPdfPeriod, status: e.target.value })}
+                >
+                  <option value="">Tous les statuts</option>
+                  <option value="VALIDATED">Validés & Régularisés</option>
+                  <option value="IN_PROGRESS">En cours</option>
+                  <option value="DRAFT">Brouillons</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-muted/40 border border-border text-xs text-muted-foreground flex items-center justify-between">
+              <span>Format du document :</span>
+              <span className="font-bold text-foreground">Rapport d'Écarts A4 Paysage (Landscape)</span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsInventoriesPdfModalOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                onClick={handleExportInventoriesPdf}
+                isLoading={isExportingInventoriesPdf}
+              >
+                <Download className="h-4 w-4 mr-1.5" /> Télécharger le Rapport d'Écarts PDF
+              </Button>
+            </div>
+          </div>
         </Modal>
 
         {/* MODAL: EXPORT PDF DES MOUVEMENTS DE STOCK PAR PÉRIODE */}
