@@ -43,7 +43,7 @@ export default function ProductsPage() {
     barcode: '',
     cost_price: '0.00',
     selling_price: '0.00',
-    tax_rate: '20.00',
+    tax_rate: '18.00',
     alert_threshold: '5.00',
     description: '',
   });
@@ -64,9 +64,9 @@ export default function ProductsPage() {
           sku: 'LAPTOP-01',
           barcode: '3700123456789',
           description: 'Intel i7, 16Go RAM, 512Go SSD',
-          cost_price: '500.00',
-          selling_price: '800.00',
-          tax_rate: '20.00',
+          cost_price: '325000.00',
+          selling_price: '450000.00',
+          tax_rate: '18.00',
           alert_threshold: '5.00',
           is_active: true,
           unit_symbol: 'pcs',
@@ -77,9 +77,9 @@ export default function ProductsPage() {
           sku: 'MOUSE-01',
           barcode: '3700123456790',
           description: 'Capteur laser haute précision',
-          cost_price: '15.00',
-          selling_price: '35.00',
-          tax_rate: '20.00',
+          cost_price: '8000.00',
+          selling_price: '15000.00',
+          tax_rate: '18.00',
           alert_threshold: '10.00',
           is_active: true,
           unit_symbol: 'pcs',
@@ -108,7 +108,7 @@ export default function ProductsPage() {
         barcode: '',
         cost_price: '0.00',
         selling_price: '0.00',
-        tax_rate: '20.00',
+        tax_rate: '18.00',
         alert_threshold: '5.00',
         description: '',
       });
@@ -348,23 +348,40 @@ export default function ProductsPage() {
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">
                   Prix de revient HT (FCFA)
                 </label>
-                <Input
-                  type="number"
-                  step="1"
-                  value={formData.cost_price}
-                  onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    placeholder="Ex: 50000"
+                    value={formData.cost_price}
+                    onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
+                    className="pr-14"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs font-bold text-muted-foreground pointer-events-none">
+                    FCFA
+                  </span>
+                </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">
-                  Prix de vente TTC (FCFA)
+                  Prix de vente TTC (FCFA) *
                 </label>
-                <Input
-                  type="number"
-                  step="1"
-                  value={formData.selling_price}
-                  onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    required
+                    placeholder="Ex: 75000"
+                    value={formData.selling_price}
+                    onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
+                    className="pr-14"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs font-bold text-muted-foreground pointer-events-none">
+                    FCFA
+                  </span>
+                </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">
@@ -449,24 +466,38 @@ export default function ProductsPage() {
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">
                   Prix de revient HT (FCFA)
                 </label>
-                <Input
-                  type="number"
-                  step="1"
-                  value={editFormData.cost_price}
-                  onChange={(e) => setEditFormData({ ...editFormData, cost_price: e.target.value })}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={editFormData.cost_price}
+                    onChange={(e) => setEditFormData({ ...editFormData, cost_price: e.target.value })}
+                    className="pr-14"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs font-bold text-muted-foreground pointer-events-none">
+                    FCFA
+                  </span>
+                </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">
                   Prix de vente TTC (FCFA) *
                 </label>
-                <Input
-                  type="number"
-                  step="1"
-                  required
-                  value={editFormData.selling_price}
-                  onChange={(e) => setEditFormData({ ...editFormData, selling_price: e.target.value })}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    required
+                    value={editFormData.selling_price}
+                    onChange={(e) => setEditFormData({ ...editFormData, selling_price: e.target.value })}
+                    className="pr-14"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs font-bold text-muted-foreground pointer-events-none">
+                    FCFA
+                  </span>
+                </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">
