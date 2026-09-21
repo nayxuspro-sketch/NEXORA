@@ -15,7 +15,8 @@ import {
   X,
   CreditCard,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
@@ -41,6 +42,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: 'Assistant IA', href: '/ai', icon: Bell, badge: 'Copilot' },
     { name: 'Automatisation', href: '/automation', icon: ShieldCheck },
     { name: 'Audit & Sécurité', href: '/audit', icon: ShieldCheck },
+    { name: 'Paramètres & Droits', href: '/settings', icon: Settings, badge: 'RBAC' },
   ];
 
   return (

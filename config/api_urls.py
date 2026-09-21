@@ -5,6 +5,11 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 
 from apps.common.health import HealthCheckView
 from apps.accounts.views import CustomTokenObtainPairView, UserViewSet
+from apps.accounts.settings_views import (
+    GroupViewSet,
+    UserManagementViewSet,
+    SystemPermissionsListView
+)
 from apps.companies.views import CompanyViewSet
 from apps.catalog.views import CategoryViewSet, UnitViewSet, ProductViewSet
 from apps.catalog.pdf_export import ProductCatalogPdfExportView
@@ -32,9 +37,10 @@ from apps.ai_assistant.views import AutomationRuleViewSet, AutomationLogViewSet,
 
 router = DefaultRouter()
 
-# Core & Tenants
+# Core & Tenants & User Management
 router.register(r'companies', CompanyViewSet, basename='company')
-router.register(r'users', UserViewSet, basename='user')
+router.register(r'users', UserManagementViewSet, basename='user')
+router.register(r'groups', GroupViewSet, basename='group')
 
 # Catalog
 router.register(r'categories', CategoryViewSet, basename='category')
@@ -105,6 +111,9 @@ urlpatterns = [
     path('reports/bi-analytics/', BusinessIntelligenceAnalyticsView.as_view(), name='report_bi_analytics'),
     path('reports/export-bi-pdf/', BiReportPdfExportView.as_view(), name='report_bi_pdf_export'),
     path('audit/export-pdf/', AuditLogPdfExportView.as_view(), name='audit_pdf_export'),
+
+    # Permissions list
+    path('settings/permissions/', SystemPermissionsListView.as_view(), name='system_permissions_list'),
 
     # ViewSets Router
     path('', include(router.urls)),
