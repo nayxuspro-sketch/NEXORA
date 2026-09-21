@@ -20,7 +20,11 @@ class StockIntelligenceAnalyticsView(APIView):
     permission_classes = [IsAuthenticatedAndInTenant]
 
     def get(self, request):
-        company = request.user.company
+        company = getattr(request.user, 'company', None)
+        if not company:
+            from apps.companies.models import Company
+            company = Company.objects.first()
+
         store_id = request.query_params.get('store_id')
         days = int(request.query_params.get('days', 30))
         since_date = timezone.now() - timedelta(days=days)
