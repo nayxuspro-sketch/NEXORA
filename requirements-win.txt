@@ -1,0 +1,7 @@
+djangorestframework
+django-filter
+drf-spectacular
+djangorestframework-simplejwt
+django-cors-headers
+PyYAML
+reportlab

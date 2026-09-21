@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXORA ERP & POS - Manuel & Guide d'Utilisation Officiel</title>
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --secondary: #10b981;
+      --dark: #0f172a;
+      --slate: #334155;
+      --light: #f8fafc;
+      --border: #e2e8f0;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f1f5f9;
+      color: var(--slate);
+      line-height: 1.6;
+      padding: 24px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      padding: 40px;
+    }
+    .header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header h1 {
+      font-size: 28px;
+      color: var(--dark);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .badge-curr {
+      background: #ecfdf5;
+      color: #047857;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid #a7f3d0;
+    }
+    .print-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .print-btn:hover { background: var(--primary-dark); }
+    h2 {
+      color: var(--dark);
+      font-size: 20px;
+      margin: 32px 0 16px;
+      padding-left: 12px;
+      border-left: 4px solid var(--primary);
+    }
+    h3 {
+      font-size: 16px;
+      color: var(--dark);
+      margin: 20px 0 8px;
+    }
+    p, li {
+      font-size: 14.5px;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
+    }
+    th {
+      background: var(--light);
+      color: var(--dark);
+      font-weight: 600;
+    }
+    .shortcut {
+      background: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: bold;
+      color: #1e293b;
+    }
+    .box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .box-tip {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+    }
+    .box-warning {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+    }
+    @media print {
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; padding: 20px; }
+      .print-btn { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>📖 Guide d'Utilisation NEXORA ERP & POS</h1>
+      <p style="margin-top: 4px;">Manuel pratique pour administrateurs, comptables et caissiers</p>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <span class="badge-curr">Édition Afrique de l'Ouest (FCFA)</span>
+      <button class="print-btn" onclick="window.print()">🖨️ Imprimer en PDF</button>
+    </div>
+  </div>
+
+  <h2>1. Accès et Connexion au Système</h2>
+  <p>L'application est accessible depuis n'importe quel ordinateur, tablette ou smartphone relié au réseau local :</p>
+  <ul>
+    <li><strong>Adresse de l'application Web :</strong> <code>http://localhost:3000</code> (ou l'adresse IP de votre serveur, ex: <code>http://192.168.1.50:3000</code>)</li>
+    <li><strong>Portail d'Administration Backend & API :</strong> <code>http://localhost:8000/admin/</code></li>
+  </ul>
+
+  <h3>Comptes par défaut pré-configurés :</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Rôle</th>
+        <th>Identifiant</th>
+        <th>Mot de passe</th>
+        <th>Accès et autorisations</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Directeur / Administrateur</strong></td>
+        <td><code>admin</code></td>
+        <td><code>Admin123456!</code></td>
+        <td>Accès total : Caisse, Stocks, Achats, Rapports financiers, Configuration TVA et Utilisateurs.</td>
+      </tr>
+      <tr>
+        <td><strong>Caissier / Vendeur</strong></td>
+        <td><code>cashier</code></td>
+        <td><code>Cashier123!</code></td>
+        <td>Accès exclusif : Caisse enregistreuse POS, impression des tickets et clôture de sa session de caisse.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Le Point de Vente (POS / Caisse Enregistreuse)</h2>
+  <p>Le module de caisse est conçu pour être rapide, tactile et utilisable avec des lecteurs de codes-barres physiques.</p>
+
+  <h3>Étapes pour enregistrer une vente :</h3>
+  <ol>
+    <li><strong>Ouvrir la caisse :</strong> Cliquez sur le bouton bleu <em>« Ouvrir Caisse »</em> ou rendez-vous sur <code>/pos</code>.</li>
+    <li><strong>Sélectionner un client :</strong> Par défaut, le client est <em>« Client de passage (Comptoir) »</em>. Vous pouvez choisir un client professionnel enregistré pour la facturation à crédit.</li>
+    <li><strong>Ajouter des articles :</strong>
+      <ul>
+        <li>Scannez directement le code-barres avec votre douchette.</li>
+        <li>Ou cliquez sur les produits affichés dans la grille tactile.</li>
+        <li>Ou recherchez par nom ou référence dans la barre de recherche.</li>
+      </ul>
+    </li>
+    <li><strong>Ajuster les quantités et remises :</strong> Cliquez sur les boutons <code>+</code> / <code>-</code> ou saisissez une remise autorisée.</li>
+    <li><strong>Encaisser la vente (<span class="shortcut">F8</span> ou bouton vert Encaisser) :</strong>
+      <ul>
+        <li>Choisissez le mode de paiement : <strong>Espèces</strong>, <strong>Orange Money</strong>, <strong>Moov Money</strong>, <strong>Wave</strong> ou <strong>Carte Bancaire</strong>.</li>
+        <li>Si espèces : saisissez le montant reçu, la caisse calcule automatiquement le rendu de monnaie en FCFA.</li>
+      </ul>
+    </li>
+    <li><strong>Valider et Imprimer (<span class="shortcut">Entrée</span>) :</strong> Le ticket de caisse au format 80mm/58mm est généré instantanément et les stocks sont décrémentés en temps réel.</li>
+  </ol>
+
+  <div class="box box-tip">
+    <strong>⌨️ Raccourcis Clavier du Caissier (Gain de vitesse) :</strong><br>
+    • <span class="shortcut">F2</span> : Mettre le curseur directement dans la recherche d'articles<br>
+    • <span class="shortcut">F4</span> : Sélectionner ou changer de client<br>
+    • <span class="shortcut">F8</span> : Ouvrir la fenêtre d'encaissement<br>
+    • <span class="shortcut">F10</span> : Mettre la vente en attente (servir un autre client)<br>
+    • <span class="shortcut">ESC</span> : Annuler l'action en cours ou vider le panier
+  </div>
+
+  <h2>3. Gestion des Stocks et des Produits</h2>
+  <p>Le module Stock surveille vos niveaux d'inventaire et vous alerte automatiquement avant la rupture.</p>
+  <ul>
+    <li><strong>Création d'un article :</strong> Rendez-vous dans <em>Catalogue > Articles</em>. Indiquez la désignation, le prix de vente en FCFA, le prix d'achat, le taux de TVA (0% ou 18%) et le <em>seuil d'alerte stock</em>.</li>
+    <li><strong>Mouvements de stock :</strong> Tout encaissement crée automatiquement un bon de sortie. Toute réception fournisseur crée un bon d'entrée.</li>
+    <li><strong>Inventaire physique :</strong> Effectuez des ajustements d'inventaire périodiques dans <em>Stocks > Inventaires</em> pour régulariser les écarts (perte, casse, vol).</li>
+  </ul>
+
+  <h2>4. Gestion des Achats et Fournisseurs</h2>
+  <ol>
+    <li>Enregistrez vos fournisseurs dans le carnet d'adresses (avec coordonnées et N° IFU).</li>
+    <li>Créez des <strong>Bons de Commande Fournisseur</strong>.</li>
+    <li>À la livraison des marchandises, validez la réception pour réapprovisionner les stocks automatiquement et générer la facture d'achat fournisseur.</li>
+  </ol>
+
+  <h2>5. Clôture de Caisse (Rapport Z de fin de journée)</h2>
+  <div class="box box-warning">
+    <strong>⚠️ Procédure quotidienne obligatoire :</strong><br>
+    À la fin de la journée ou à la passation de relais entre caissiers :
+    <ol style="margin-left: 20px; margin-top: 8px;">
+      <li>Cliquez sur <strong>« Clôturer la Session »</strong> dans le menu POS.</li>
+      <li>Comptez les espèces réelles présentes dans le tiroir-caisse et saisissez le montant.</li>
+      <li>Vérifiez les totaux reçus via Mobile Money (Orange Money, Moov, Wave).</li>
+      <li>Le système compare le théorique et le réel, enregistre tout écart éventuel et imprime le <strong>Rapport Z</strong> officiel.</li>
+    </ol>
+  </div>
+
+  <h2>6. Rapports Financiers et Comptabilité</h2>
+  <p>Le module <em>Rapports</em> offre aux gérants et comptables des données consolidées :</p>
+  <ul>
+    <li><strong>Chiffre d'Affaires :</strong> Évolution des ventes jour par jour en FCFA.</li>
+    <li><strong>Marges commerciales :</strong> Marge brute et bénéfice net par catégorie d'articles.</li>
+    <li><strong>Déclaration de TVA :</strong> État récapitulatif de la TVA collectée (18%) et de la TVA déductible.</li>
+    <li><strong>Top Ventes :</strong> Palmarès des produits les plus vendus et des meilleurs clients.</li>
+  </ul>
+
+  <hr style="border: 0; border-top: 1px solid var(--border); margin: 32px 0;">
+  <p style="text-align: center; font-size: 13px; color: #94a3b8;">
+    NEXORA Enterprise Platform • Conforme règlementations fiscales UEMOA / OHADA • Support technique : support@nexora.local
+  </p>
+</div>
+
+</body>
+</html>
