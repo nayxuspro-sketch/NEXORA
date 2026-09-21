@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Modal } from '@/components/ui/modal';
 import { KpiCard } from '@/components/ui/kpi-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,12 +26,51 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ShieldAlert,
-  Wallet
+  Wallet,
+  FileText,
+  Download
 } from 'lucide-react';
 
 export default function ReportsPage() {
   const [selectedView, setSelectedView] = React.useState<'executive' | 'manager' | 'sales' | 'stock' | 'cashier'>('executive');
   const [days, setDays] = React.useState<number>(30);
+  // BI PDF Export Modal State
+  const [isBiPdfModalOpen, setIsBiPdfModalOpen] = React.useState(false);
+  const [pdfPeriodDays, setPdfPeriodDays] = React.useState<number>(days);
+  const [isExportingPdf, setIsExportingPdf] = React.useState(false);
+
+  React.useEffect(() => {
+    setPdfPeriodDays(days);
+  }, [days]);
+
+  const handleExportBiPdf = async () => {
+    try {
+      setIsExportingPdf(true);
+      const queryParams = new URLSearchParams({
+        days: pdfPeriodDays.toString(),
+        view: selectedView,
+      });
+      const response = await fetch(`/api/v1/reports/export-bi-pdf/?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Erreur lors de la génération du rapport BI & Décision');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Rapport_BI_Decision_${pdfPeriodDays}j_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      setIsBiPdfModalOpen(false);
+    } catch (err: any) {
+      console.error('Erreur export BI PDF:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   const { data: biData, isLoading } = useQuery<{
     requested_view: string;
@@ -143,21 +183,33 @@ export default function ReportsPage() {
             </p>
           </div>
 
-          {/* Timeframe switch */}
-          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border self-start md:self-auto text-xs">
-            {[7, 30, 90].map((d) => (
-              <button
-                key={d}
-                onClick={() => setDays(d)}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                  days === d
-                    ? 'bg-primary text-primary-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {d === 7 ? '7 jours' : d === 30 ? '30 jours' : 'Trimestre'}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Export PDF Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsBiPdfModalOpen(true)}
+              className="text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 transition-all shadow-xs"
+            >
+              <FileText className="h-4 w-4 mr-1.5 text-primary" /> Exporter Rapport BI en PDF
+            </Button>
+
+            {/* Timeframe switch */}
+            <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border self-start md:self-auto text-xs">
+              {[7, 30, 90].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDays(d)}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                    days === d
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {d === 7 ? '7 jours' : d === 30 ? '30 jours' : 'Trimestre'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -322,6 +374,63 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* MODAL: EXPORT RAPPORT BI & DECISION */}
+        <Modal
+          isOpen={isBiPdfModalOpen}
+          onClose={() => setIsBiPdfModalOpen(false)}
+          title="Exporter le Rapport Business Intelligence & Décision (PDF)"
+          maxWidth="md"
+        >
+          <div className="space-y-4 pt-2">
+            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-foreground space-y-1">
+              <p className="font-bold flex items-center gap-1.5 text-primary">
+                <Sparkles className="h-4 w-4" /> Rapport Stratégique de Direction sur 2 Pages :
+              </p>
+              <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground text-[11px]">
+                <li><strong>Page 1 :</strong> Scorecard exécutif (CA net, marges, panier moyen, stocks valorisés), explications diagnostiques et contribution par famille en FCFA.</li>
+                <li><strong>Page 2 :</strong> Matrice de rentabilité des produits phares, vitesse d'écoulement et plan d'action d'aide à la décision stratégique.</li>
+              </ul>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Horizon d'Analyse Temporelle *
+              </label>
+              <select
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
+                value={pdfPeriodDays}
+                onChange={(e) => setPdfPeriodDays(parseInt(e.target.value))}
+              >
+                <option value={7}>Semaine Écoulée (7 derniers jours)</option>
+                <option value={30}>Mois d'Activité Standard (30 derniers jours)</option>
+                <option value={90}>Trimestre Complet (90 derniers jours)</option>
+              </select>
+            </div>
+
+            <div className="p-3 rounded-lg bg-muted/40 border border-border text-xs text-muted-foreground flex items-center justify-between">
+              <span>Format du document :</span>
+              <span className="font-bold text-foreground">Document Exécutif A4 Portrait (2 Pages)</span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsBiPdfModalOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                onClick={handleExportBiPdf}
+                isLoading={isExportingPdf}
+              >
+                <Download className="h-4 w-4 mr-1.5" /> Télécharger le Rapport BI (PDF)
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </DashboardLayout>
   );

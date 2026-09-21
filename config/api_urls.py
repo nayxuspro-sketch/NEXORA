@@ -25,6 +25,7 @@ from apps.notifications.views import NotificationViewSet
 from apps.audit.views import AuditLogViewSet
 from apps.reports.views import DashboardSummaryReportView, InventoryValuationReportView
 from apps.reports.bi_analytics import BusinessIntelligenceAnalyticsView
+from apps.reports.pdf_bi_report import BiReportPdfExportView
 from apps.ai_assistant.views import AutomationRuleViewSet, AutomationLogViewSet, AIChatAssistantView
 
 router = DefaultRouter()
@@ -99,6 +100,7 @@ urlpatterns = [
     path('reports/dashboard/', DashboardSummaryReportView.as_view(), name='report_dashboard'),
     path('reports/inventory-valuation/', InventoryValuationReportView.as_view(), name='report_inventory_valuation'),
     path('reports/bi-analytics/', BusinessIntelligenceAnalyticsView.as_view(), name='report_bi_analytics'),
+    path('reports/export-bi-pdf/', BiReportPdfExportView.as_view(), name='report_bi_pdf_export'),
 
     # ViewSets Router
     path('', include(router.urls)),
