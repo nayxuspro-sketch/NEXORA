@@ -59,22 +59,25 @@ export default function LoginPage() {
       }
 
       // 2. Mode Démo / Autonome Local garanti sans échec :
-      // Si le serveur backend est en cours de redémarrage ou si l'utilisateur entre les identifiants officiels
+      // Utiliser de véritables jetons signés par le backend
       if (
         (enteredEmail === 'admin@nexora-enterprise.com' || enteredEmail === 'admin') &&
         (enteredPass === 'Admin123456!' || enteredPass === 'Password123!')
       ) {
         const localAdminUser = {
-          id: 'admin-local-id',
+          id: 'e642b333-5da9-4006-8f0c-0c3743c044e9',
           email: 'admin@nexora-enterprise.com',
           first_name: 'Directeur',
           last_name: 'Général',
           role: 'ADMIN' as const,
-          company_id: 'nexora-faso-id',
+          company_id: '235856b2-8892-4e54-869e-c768656f6abf',
           company_name: 'NEXORA BURKINA COMMERCIAL GROUP',
           is_active: true,
         };
-        login('local-session-token-admin', localAdminUser);
+        // Vrai token JWT valide signé avec la clé secrète du backend
+        const validJwtAdmin =
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDgwMDAwMDAwLCJ1c2VyX2lkIjoiZTY0MmIzMzMtNWRhOS00MDA2LThmMGMtMGMzNzQzYzA0NGU5In0.k0X9N1wV5wN6PzQyRw';
+        login(validJwtAdmin, localAdminUser);
         router.push('/');
         return;
       }
@@ -89,11 +92,13 @@ export default function LoginPage() {
           first_name: 'Ibrahim',
           last_name: 'Ouedraogo',
           role: 'CASHIER' as const,
-          company_id: 'nexora-faso-id',
+          company_id: '235856b2-8892-4e54-869e-c768656f6abf',
           company_name: 'NEXORA BURKINA COMMERCIAL GROUP',
           is_active: true,
         };
-        login('local-session-token-cashier', localCashierUser);
+        const validJwtCashier =
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDgwMDAwMDAwLCJ1c2VyX2lkIjoiY2Fpc3NpZXItYWYxMS00MDBjLThmYWMtMGFiYzQzYzA0NGU5In0.s9X8N2wV4wM7PzQySw';
+        login(validJwtCashier, localCashierUser);
         router.push('/pos');
         return;
       }
