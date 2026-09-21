@@ -1,6 +1,8 @@
+'use client';
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { User } from '@/types';
-import { apiRequest } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -13,13 +15,16 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('nexora_access_token');
-    const savedUser = localStorage.getItem('nexora_user');
+    const savedToken = typeof window !== 'undefined' ? localStorage.getItem('nexora_access_token') : null;
+    const savedUser = typeof window !== 'undefined' ? localStorage.getItem('nexora_user') : null;
 
     if (savedToken && savedUser) {
       setToken(savedToken);
@@ -30,32 +35,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setIsLoading(false);
     } else {
-      // Auto-authentification transparente sur l'API Django pour rendre 100% des requêtes réelles
-      fetch('/api/v1/auth/token/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'admin@nexora-enterprise.com',
-          password: 'Admin123456!',
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.access && data.user) {
-            localStorage.setItem('nexora_access_token', data.access);
-            localStorage.setItem('nexora_user', JSON.stringify(data.user));
-            setToken(data.access);
-            setUser(data.user);
-          }
-        })
-        .catch(() => {
-          // Fallback UI si hors-ligne
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      // Si aucun utilisateur n'est connecté et qu'on n'est pas déjà sur /login, rediriger vers /login
+      setToken(null);
+      setUser(null);
+      setIsLoading(false);
+      if (pathname !== '/login') {
+        router.push('/login');
+      }
     }
-  }, []);
+  }, [pathname, router]);
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem('nexora_access_token', newToken);
@@ -69,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('nexora_user');
     setToken(null);
     setUser(null);
+    router.push('/login');
   };
 
   return (
