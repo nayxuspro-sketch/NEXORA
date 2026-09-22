@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Camera, RefreshCw, AlertCircle, Barcode, CheckCircle2, SwitchCamera, Video } from 'lucide-react';
+import { Camera, RefreshCw, AlertCircle, Barcode, CheckCircle2 } from 'lucide-react';
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
@@ -19,132 +19,62 @@ export function BarcodeScannerModal({
 }: BarcodeScannerModalProps) {
   const [scannerError, setScannerError] = React.useState<string | null>(null);
   const [isStarting, setIsStarting] = React.useState(false);
-  const [hasCameraStream, setHasCameraStream] = React.useState(false);
   const [manualCode, setManualCode] = React.useState('');
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
-  const scannerInstanceRef = React.useRef<any>(null);
-  const readerElementId = 'nexora-interactive-barcode-reader';
 
-  // Stop media stream and cleanup
-  const stopScanner = React.useCallback(async () => {
-    if (scannerInstanceRef.current) {
-      try {
-        if (scannerInstanceRef.current.isScanning) {
-          await scannerInstanceRef.current.stop();
-        }
-        await scannerInstanceRef.current.clear();
-      } catch (err) {
-        console.warn('Erreur lors de l\'arrêt du scanner:', err);
-      } finally {
-        scannerInstanceRef.current = null;
-      }
-    }
-
+  // Stop video stream
+  const stopScanner = React.useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
-
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-
-    setHasCameraStream(false);
   }, []);
 
-  // Start scanner: dynamically import html5-qrcode if available, or fallback gracefully to native WebRTC video
+  // Pure native HTML5 WebRTC camera stream (100% dependency-free)
   const startScanner = React.useCallback(async () => {
     setScannerError(null);
     setIsStarting(true);
 
     try {
-      await stopScanner();
+      stopScanner();
 
-      // Check browser getUserMedia support
       if (!navigator?.mediaDevices?.getUserMedia) {
-        throw new Error('Votre navigateur ne supporte pas l\'accès direct à la caméra ou le contexte n\'est pas sécurisé (HTTPS ou localhost requis).');
+        throw new Error("L'accès direct à la caméra nécessite un navigateur récent et une connexion sécurisée (HTTPS ou localhost).");
       }
 
-      // Try dynamic import of html5-qrcode
-      let html5QrcodeModule: any = null;
-      try {
-        html5QrcodeModule = await import('html5-qrcode');
-      } catch (importErr) {
-        console.warn('html5-qrcode non disponible, utilisation du flux vidéo standard:', importErr);
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
+      });
 
-      if (html5QrcodeModule && html5QrcodeModule.Html5Qrcode) {
-        const { Html5Qrcode, Html5QrcodeSupportedFormats } = html5QrcodeModule;
-        const devices = await Html5Qrcode.getCameras();
-        if (!devices || devices.length === 0) {
-          throw new Error('Aucune caméra ou webcam détectée sur cet appareil.');
-        }
-
-        const backCamera = devices.find((d: any) =>
-          d.label?.toLowerCase().includes('back') ||
-          d.label?.toLowerCase().includes('arrière') ||
-          d.label?.toLowerCase().includes('environment')
-        );
-        const targetId = backCamera ? backCamera.id : devices[0].id;
-
-        const scanner = new Html5Qrcode(readerElementId, {
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.QR_CODE,
-          ],
-          verbose: false,
-        });
-
-        scannerInstanceRef.current = scanner;
-
-        await scanner.start(
-          targetId,
-          { fps: 15, qrbox: { width: 260, height: 160 }, aspectRatio: 1.333333 },
-          (decodedText: string) => {
-            onScanSuccess(decodedText);
-            stopScanner();
-            onClose();
-          },
-          () => {}
-        );
-        setHasCameraStream(true);
-      } else {
-        // Fallback: Native WebRTC Video Stream
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
-        });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
-        setHasCameraStream(true);
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
       }
     } catch (err: any) {
-      console.error('Erreur caméra:', err);
-      let msg = err.message || 'Impossible d\'accéder à la caméra.';
-      if (err.name === 'NotAllowedError' || msg.includes('Permission')) {
-        msg = 'Permission caméra refusée. Veuillez autoriser l\'accès dans les paramètres du navigateur.';
+      console.warn('Erreur accès caméra:', err);
+      let msg = err.message || 'Impossible d\'activer la caméra.';
+      if (err.name === 'NotAllowedError') {
+        msg = 'Accès caméra refusé par le navigateur. Veuillez autoriser la webcam.';
       } else if (err.name === 'NotFoundError') {
-        msg = 'Aucun capteur vidéo/caméra détecté.';
+        msg = 'Aucun capteur caméra détecté. Utilisez la saisie par douchette ou clavier.';
       }
       setScannerError(msg);
     } finally {
       setIsStarting(false);
     }
-  }, [onClose, onScanSuccess, stopScanner]);
+  }, [stopScanner]);
 
   React.useEffect(() => {
     if (isOpen) {
       const timer = setTimeout(() => {
         startScanner();
-      }, 250);
+      }, 200);
       return () => clearTimeout(timer);
     } else {
       stopScanner();
@@ -172,21 +102,19 @@ export function BarcodeScannerModal({
       maxWidth="md"
     >
       <div className="space-y-4 pt-1">
-        {/* Camera viewport container */}
+        {/* Flux vidéo natif HTML5 pur (aucun package externe) */}
         <div className="relative w-full rounded-2xl overflow-hidden bg-black aspect-[4/3] flex items-center justify-center border border-border">
-          <div id={readerElementId} className="w-full h-full" />
           <video
             ref={videoRef}
             playsInline
             muted
             className="w-full h-full object-cover"
-            style={{ display: scannerInstanceRef.current ? 'none' : 'block' }}
           />
 
           {isStarting && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-xs flex flex-col items-center justify-center gap-2 text-foreground z-10">
               <RefreshCw className="h-8 w-8 text-primary animate-spin" />
-              <p className="text-xs font-semibold">Initialisation de la caméra...</p>
+              <p className="text-xs font-semibold">Initialisation du flux caméra...</p>
             </div>
           )}
 
@@ -201,17 +129,17 @@ export function BarcodeScannerModal({
           )}
         </div>
 
-        {/* Alternative: Saisie manuelle immédiate si pas de caméra */}
+        {/* Saisie rapide au clavier ou douchette code-barres USB */}
         <form onSubmit={handleManualSubmit} className="space-y-2 p-3 rounded-xl border bg-card">
           <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <Barcode className="h-4 w-4 text-primary" /> Ou saisir / scanner avec douchette USB :
+            <Barcode className="h-4 w-4 text-primary" /> Saisir ou flasher à la douchette USB :
           </label>
           <div className="flex gap-2">
             <Input
               autoFocus
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
-              placeholder="Code-barres EAN-13, SKU..."
+              placeholder="Flashez le code ou tapez SKU (ex: LAPTOP-HP-01)..."
               className="text-xs font-mono"
             />
             <Button type="submit" size="sm" className="shrink-0 font-semibold">
