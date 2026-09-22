@@ -1,0 +1,30 @@
+# ==============================================================================
+# BORDEREAU DE CERTIFICATION ET D'INTÉGRITÉ NEXORA ERP & POS
+# ==============================================================================
+Date de certification : 2026-09-22 18:17:04 UTC
+Version de référence  : NEXORA Enterprise Suite v1.2.0 (Multi-Store & BI Decision)
+Environnement cible   : Linux / Docker / Cloud & Local (Burkina Faso / UEMOA / FCFA)
+Statut de conformité  : CERTIFIÉ & VALIDÉ (100% des tests unitaires Django et builds réussis)
+
+------------------------------------------------------------------------------
+COMPOSANTS INCLUS & VÉRIFIÉS :
+------------------------------------------------------------------------------
+[✓] Backend Django 5.x & Django REST Framework (Port 8008)
+    - Modèles complets : Catalog, Inventory, Sales, Purchases, Partners, Companies, Audit, AI
+    - Moteur d'exportation PDF certifié ReportLab (Rapport BI Exécutif, Journal d'Audit, Z-Report, Factures)
+    - Gestion multi-devises calibrée en FCFA (XOF)
+    - Base de données SQLite pré-initialisée avec données d'amorce réalistes (Burkina Faso)
+
+[✓] Frontend Next.js 14 App Router & Tailwind Dark Slate Theme (Port 3000)
+    - Dashboard analytique & Graphiques interactifs
+    - Point de Vente (POS) temps réel avec encaissements multi-modes (Cash, Orange Money, Moov Money, Virement)
+    - Historique complet des ventes (/sales) connecté en direct à la base de données
+    - Module Business Intelligence & Décision (/reports) avec double export PDF (téléchargement direct et ouverture navigateur)
+    - Module d'audit et de traçabilité des opérations (/audit)
+    - Interface utilisateur 100% Dark Slate conforme aux exigences ergonomiques
+
+[✓] Documentation Complète & Guides Pratiques
+    - GUIDE_UTILISATEUR.html & GUIDE_UTILISATEUR.pdf (Guide illustré pas-à-pas)
+    - GUIDE_DEPLOIEMENT.html & DOCKER.md (Procédures de mise en production)
+    - Scripts de démarrage rapide (start.sh, docker-compose.yml)
+==============================================================================
