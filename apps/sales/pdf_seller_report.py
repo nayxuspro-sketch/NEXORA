@@ -177,21 +177,52 @@ class SellerSalesReportPdfView(APIView):
             spaceAfter=6
         )
 
+        table_header_style = ParagraphStyle(
+            'TableHeader',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=8.5,
+            leading=11,
+            textColor=colors.white
+        )
+
+        table_header_right = ParagraphStyle(
+            'TableHeaderRight',
+            parent=table_header_style,
+            alignment=2
+        )
+
         cell_style = ParagraphStyle(
             'SellerCell',
             parent=styles['Normal'],
             fontName='Helvetica',
             fontSize=8,
-            leading=10,
-            textColor=colors.HexColor('#1e293b')
+            leading=10.5,
+            textColor=colors.HexColor('#0f172a')
+        )
+
+        cell_style_right = ParagraphStyle(
+            'SellerCellRight',
+            parent=cell_style,
+            alignment=2
         )
 
         cell_bold = ParagraphStyle(
             'SellerCellBold',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=8,
+            fontSize=7.5,
             leading=10,
+            textColor=colors.HexColor('#0284c7')
+        )
+
+        cell_bold_right = ParagraphStyle(
+            'SellerCellBoldRight',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=8,
+            leading=10.5,
+            alignment=2,
             textColor=colors.HexColor('#0f172a')
         )
 
@@ -259,16 +290,14 @@ class SellerSalesReportPdfView(APIView):
         elements.append(Paragraph("<b>Détail des Factures & Tickets Réalisés par le Vendeur :</b>", section_heading))
 
         sales_headers = [
-            Paragraph("<b>Réf. Facture</b>", cell_bold),
-            Paragraph("<b>Date & Heure</b>", cell_bold),
-            Paragraph("<b>Client Facturé</b>", cell_bold),
-            Paragraph("<b>Articles</b>", cell_bold),
-            Paragraph("<b>Total TTC</b>", cell_bold),
-            Paragraph("<b>Montant Réglé</b>", cell_bold),
-            Paragraph("<b>Règlement</b>", cell_bold),
+            Paragraph("<b>Réf. Facture</b>", table_header_style),
+            Paragraph("<b>Date & Heure</b>", table_header_style),
+            Paragraph("<b>Client Facturé</b>", table_header_style),
+            Paragraph("<b>Qté</b>", table_header_style),
+            Paragraph("<b>Total TTC</b>", table_header_right),
+            Paragraph("<b>Montant Réglé</b>", table_header_right),
+            Paragraph("<b>Règlement</b>", table_header_style),
         ]
-        for h in sales_headers:
-            h.style.textColor = colors.white
 
         sales_table_data = [sales_headers]
 
@@ -276,34 +305,37 @@ class SellerSalesReportPdfView(APIView):
             for s in sales:
                 c_name = s.customer.name if s.customer else "Client Comptoir"
                 pay_status = 'Soldé' if s.payment_status == 'PAID' else 'Partiel' if s.payment_status == 'PARTIAL' else 'En attente'
-                pay_color = '#059669' if s.payment_status == 'PAID' else '#d97706' if s.payment_status == 'PARTIAL' else '#dc2626'
+                pay_color = '#047857' if s.payment_status == 'PAID' else '#b45309' if s.payment_status == 'PARTIAL' else '#b91c1c'
                 items_summary = f"{sum([it.quantity for it in s.items.all()], Decimal('0.00')):,.0f} art."
 
                 sales_table_data.append([
                     Paragraph(f"<b>{s.reference}</b>", cell_bold),
                     Paragraph(s.created_at.strftime('%d/%m/%Y %H:%M'), cell_style),
-                    Paragraph(c_name[:24], cell_style),
+                    Paragraph(f"<b>{c_name[:26]}</b>" if s.customer else c_name[:26], cell_style),
                     Paragraph(items_summary, cell_style),
-                    Paragraph(f"<b>{s.total_amount:,.0f}</b>".replace(',', ' '), cell_bold),
-                    Paragraph(f"{s.paid_amount:,.0f}".replace(',', ' '), cell_style),
+                    Paragraph(f"<b>{s.total_amount:,.0f}</b>".replace(',', ' '), cell_bold_right),
+                    Paragraph(f"{s.paid_amount:,.0f}".replace(',', ' '), cell_style_right),
                     Paragraph(f"<font color='{pay_color}'><b>{pay_status}</b></font>", cell_style),
                 ])
         else:
             sales_table_data.append([
-                Paragraph("Aucune vente enregistrée pour ce vendeur sur la période sélectionnée.", cell_style),
+                Paragraph("<b>Aucune vente enregistrée pour ce vendeur sur la période sélectionnée.</b>", cell_style),
                 Paragraph("", cell_style), Paragraph("", cell_style), Paragraph("", cell_style),
                 Paragraph("", cell_style), Paragraph("", cell_style), Paragraph("", cell_style)
             ])
 
-        col_w = [95, 80, 125, 55, 65, 60, 58]
+        # Dimensions calibrées pour la largeur totale A4 (538 pt)
+        col_w = [126, 70, 116, 36, 66, 66, 58]
         sales_table = Table(sales_table_data, colWidths=col_w, repeatRows=1)
         sales_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
-            ('ALIGN', (3, 0), (5, -1), 'RIGHT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
-            ('PADDING', (0, 0), (-1, -1), 3.5),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f1f5f9')]),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4.5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4.5),
         ]))
         elements.append(sales_table)
 
