@@ -274,7 +274,7 @@ class SellerSalesReportPdfView(APIView):
 
         if sales:
             for s in sales:
-                c_name = s.customer.name if s.customer else (s.customer_name or "Client Comptoir")
+                c_name = s.customer.name if s.customer else "Client Comptoir"
                 pay_status = 'Soldé' if s.payment_status == 'PAID' else 'Partiel' if s.payment_status == 'PARTIAL' else 'En attente'
                 pay_color = '#059669' if s.payment_status == 'PAID' else '#d97706' if s.payment_status == 'PARTIAL' else '#dc2626'
                 items_summary = f"{sum([it.quantity for it in s.items.all()], Decimal('0.00')):,.0f} art."
