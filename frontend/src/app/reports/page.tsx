@@ -113,6 +113,8 @@ export default function ReportsPage() {
   }>({
     queryKey: ['bi-analytics', selectedView, days],
     queryFn: () => apiRequest(`/reports/bi-analytics/?view=${selectedView}&days=${days}`),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     placeholderData: {
       requested_view: 'executive',
       period_days: 30,

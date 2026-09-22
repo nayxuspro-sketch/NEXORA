@@ -520,7 +520,13 @@ export default function PosPage() {
       setIsReceiptModalOpen(true);
       clearCart();
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-list'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-report'] });
+      queryClient.invalidateQueries({ queryKey: ['bi-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-levels'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-intelligence'] });
     },
     onError: (err: any) => {
       toast({

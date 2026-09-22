@@ -36,6 +36,9 @@ class SellerSalesReportPdfView(APIView):
         end_date_str = request.query_params.get('end_date')
         seller_param = request.query_params.get('seller_id') or request.query_params.get('seller')
 
+        days_param = request.query_params.get('days')
+        days = int(days_param) if days_param and days_param.isdigit() else 30
+
         now = timezone.now()
         start_date = None
         end_date = None
@@ -50,14 +53,19 @@ class SellerSalesReportPdfView(APIView):
         if end_date_str:
             try:
                 end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                # Couvrir jusqu'à la fin de la journée sélectionnée
                 end_date = timezone.make_aware(datetime.combine(end_date.date(), datetime.max.time()))
             except Exception:
                 pass
 
         if not end_date:
-            end_date = now
+            end_date = now + timezone.timedelta(days=1)
+        else:
+            # S'assurer que les ventes de la minute présente ou avec léger décalage horaire UTC sont bien incluses
+            end_date = max(end_date, now + timezone.timedelta(hours=4))
+
         if not start_date:
-            start_date = end_date - timezone.timedelta(days=30)
+            start_date = now - timezone.timedelta(days=days)
 
         # Identify target seller
         seller_user = None
@@ -84,7 +92,7 @@ class SellerSalesReportPdfView(APIView):
             created_at__lte=end_date
         )
 
-        if seller_user:
+        if seller_param and seller_user:
             sales_qs = sales_qs.filter(seller=seller_user)
 
         sales = list(sales_qs.prefetch_related('items__product', 'payments').order_by('-created_at'))
