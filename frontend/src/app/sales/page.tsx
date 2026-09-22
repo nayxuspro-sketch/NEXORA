@@ -44,6 +44,26 @@ export default function SalesPage() {
       ),
     },
     {
+      header: 'Articles Vendus',
+      cell: (row: Sale) => {
+        const items = row.items || [];
+        const totalQty = items.reduce((sum, item) => sum + parseFloat(item.quantity?.toString() || '0'), 0);
+        return (
+          <div className="max-w-xs">
+            <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
+              <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold text-[10px]">
+                {items.length} réf.
+              </span>
+              <span>({totalQty} art.)</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground truncate mt-0.5" title={items.map(it => `${it.quantity}x ${it.product_name}`).join(', ')}>
+              {items.map(it => `${it.product_name}`).join(', ')}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
       header: 'Total TTC',
       cell: (row: Sale) => <span className="font-bold text-foreground">{formatCurrency(row.total_amount)}</span>,
     },

@@ -15,7 +15,7 @@ from apps.inventory.models import Store, StockMovementType
 from apps.inventory.services import StockService
 from apps.pos.models import CashRegister, RegisterStatus
 from apps.sales.services import SaleService
-from apps.sales.models import PaymentMethod
+from apps.sales.models import Sale, PaymentMethod
 from apps.ai_assistant.models import AutomationRule, TriggerType, ActionType
 
 def seed_demo_data():
