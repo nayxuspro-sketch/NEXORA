@@ -15,6 +15,7 @@ from apps.companies.licenses import (
     StoreLicenseViewSet,
     StoreLicenseCertificatePdfExportView
 )
+from apps.common.download_view import DirectZipDownloadView
 from apps.catalog.views import CategoryViewSet, UnitViewSet, ProductViewSet
 from apps.catalog.pdf_export import ProductCatalogPdfExportView
 from apps.partners.views import PartnerViewSet
@@ -122,6 +123,9 @@ urlpatterns = [
 
     # License PDF certificate
     path('store-licenses/<uuid:license_id>/certificate-pdf/', StoreLicenseCertificatePdfExportView.as_view(), name='store_license_pdf'),
+
+    # Direct ZIP Release Download
+    path('download/nexora-latest.zip', DirectZipDownloadView.as_view(), name='download_nexora_zip'),
 
     # ViewSets Router
     path('', include(router.urls)),
