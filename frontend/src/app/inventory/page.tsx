@@ -45,6 +45,15 @@ export default function InventoryPage() {
   // Modals
   const [isTransferModalOpen, setIsTransferModalOpen] = React.useState(false);
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = React.useState(false);
+  const [isStockEntryModalOpen, setIsStockEntryModalOpen] = React.useState(false);
+  const [stockEntryData, setStockEntryData] = React.useState({
+    store: '',
+    product: '',
+    quantity: '10',
+    movement_type: 'INITIAL',
+    reason: 'Approvisionnement direct / Initialisation stock',
+    reference: '',
+  });
   const [isNewInventoryModalOpen, setIsNewInventoryModalOpen] = React.useState(false);
   const [selectedInventory, setSelectedInventory] = React.useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
@@ -499,6 +508,50 @@ export default function InventoryPage() {
     },
   });
 
+  // Direct Stock Entry Mutation
+  const stockEntryMutation = useMutation({
+    mutationFn: async (data: typeof stockEntryData) => {
+      const qty = Math.abs(parseFloat(data.quantity) || 0);
+      return await apiRequest('/stock-movements/', {
+        method: 'POST',
+        body: JSON.stringify({
+          store: data.store,
+          product: data.product,
+          quantity: qty.toString(),
+          movement_type: data.movement_type,
+          reference: data.reference || `ENTREE-${Date.now().toString().slice(-6)}`,
+          reason: data.reason || 'Entrée manuelle de stock',
+        }),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        type: 'success',
+        title: 'Stock mis à jour avec succès',
+        message: 'Les quantités ont été ajoutées immédiatement au stock du magasin.',
+      });
+      setIsStockEntryModalOpen(false);
+      setStockEntryData({
+        store: '',
+        product: '',
+        quantity: '10',
+        movement_type: 'INITIAL',
+        reason: 'Approvisionnement direct / Initialisation stock',
+        reference: '',
+      });
+      queryClient.invalidateQueries({ queryKey: ['stock-levels'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-intelligence'] });
+    },
+    onError: (err: any) => {
+      toast({
+        type: 'error',
+        title: 'Erreur',
+        message: err.message || 'Impossible d\'ajouter les quantités en stock.',
+      });
+    },
+  });
+
   // Record Manual Movement Mutation (Loss, Damage, In, Out)
   const manualMovementMutation = useMutation({
     mutationFn: async (data: typeof adjustData) => {
@@ -555,18 +608,26 @@ export default function InventoryPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
+              variant="default"
+              size="sm"
+              onClick={() => setIsStockEntryModalOpen(true)}
+              className="text-xs font-bold shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <Plus className="h-4 w-4 mr-1.5" /> + Saisir / Entrer du Stock
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               onClick={() => setIsAdjustmentModalOpen(true)}
-              className="text-xs"
+              className="text-xs font-semibold"
             >
               <RotateCw className="h-4 w-4 mr-1.5" /> Déclarer Perte / Casse
             </Button>
             <Button
-              variant="default"
+              variant="outline"
               size="sm"
               onClick={() => setIsTransferModalOpen(true)}
-              className="text-xs shadow-xs"
+              className="text-xs font-semibold"
             >
               <ArrowRightLeft className="h-4 w-4 mr-1.5" /> Transfert Inter-Magasins
             </Button>
@@ -603,7 +664,7 @@ export default function InventoryPage() {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            <History className="h-4 w-4" /> Grand Livre des Mouvements
+            <History className="h-4 w-4" /> Mouvements & Entrées de Stock
           </button>
           <button
             onClick={() => setTab('inventories')}
@@ -1756,6 +1817,113 @@ export default function InventoryPage() {
           </form>
         </Modal>
       </div>
+
+        {/* MODAL: SAISIE DIRECTE DU STOCK / APPROVISIONNEMENT */}
+        <Modal
+          isOpen={isStockEntryModalOpen}
+          onClose={() => setIsStockEntryModalOpen(false)}
+          title="Saisie Directe & Approvisionnement de Stock"
+          maxWidth="md"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              stockEntryMutation.mutate(stockEntryData);
+            }}
+            className="space-y-4 pt-2"
+          >
+            <p className="text-xs text-muted-foreground">
+              Augmentez immédiatement le stock physique disponible pour un produit dans le magasin sélectionné.
+            </p>
+
+            <div>
+              <label className="text-xs font-bold text-foreground block mb-1">Motif d'entrée *</label>
+              <select
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
+                value={stockEntryData.movement_type}
+                onChange={(e) => setStockEntryData({ ...stockEntryData, movement_type: e.target.value })}
+              >
+                <option value="INITIAL">Stock Initial (Mise en rayon de départ)</option>
+                <option value="ADJUSTMENT_IN">Arrivage Fournisseur / Réception Marchandise</option>
+                <option value="RETURN_IN">Retour Client / Réintégration Stock</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-foreground block mb-1">Magasin de Destination *</label>
+                <select
+                  required
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
+                  value={stockEntryData.store}
+                  onChange={(e) => setStockEntryData({ ...stockEntryData, store: e.target.value })}
+                >
+                  <option value="">Sélectionner un magasin</option>
+                  {storesData?.results?.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-foreground block mb-1">Produit à Approvisionner *</label>
+                <select
+                  required
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
+                  value={stockEntryData.product}
+                  onChange={(e) => setStockEntryData({ ...stockEntryData, product: e.target.value })}
+                >
+                  <option value="">Sélectionner un produit</option>
+                  {productsData?.results?.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.sku})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-foreground block mb-1">Quantité à Ajouter en Stock *</label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                required
+                placeholder="Ex: 25"
+                value={stockEntryData.quantity}
+                onChange={(e) => setStockEntryData({ ...stockEntryData, quantity: e.target.value })}
+                className="font-bold text-base font-mono"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Indiquez le nombre d'unités physiques reçues qui seront immédiatement ajoutées au stock.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Numéro de Bon de Livraison / Référence (Optionnel)
+              </label>
+              <Input
+                placeholder="Ex: BL-FOURNISSEUR-2026-08"
+                value={stockEntryData.reference}
+                onChange={(e) => setStockEntryData({ ...stockEntryData, reference: e.target.value })}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={() => setIsStockEntryModalOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="submit" isLoading={stockEntryMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+                <Plus className="h-4 w-4 mr-1.5" /> Valider l'Entrée de Stock
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
     </DashboardLayout>
   );
 }
