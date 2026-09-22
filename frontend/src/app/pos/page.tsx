@@ -397,6 +397,15 @@ export default function PosPage() {
     );
   };
 
+  const setDirectQuantity = (productId: string, qty: number) => {
+    if (isNaN(qty) || qty <= 0) return;
+    setCart((prev) =>
+      prev.map((item) =>
+        item.product.id === productId ? { ...item, quantity: Math.max(1, qty) } : item
+      )
+    );
+  };
+
   const updateLineDiscount = (productId: string, discount: number) => {
     setCart((prev) =>
       prev.map((item) =>
@@ -752,17 +761,29 @@ export default function PosPage() {
 
                       {/* Controls: Quantity + Line Discount */}
                       <div className="flex items-center justify-between text-xs pt-1">
-                        <div className="flex items-center border rounded-lg bg-background">
+                        <div className="flex items-center border rounded-lg bg-background overflow-hidden shadow-2xs">
                           <button
+                            type="button"
                             onClick={() => updateQuantity(item.product.id, -1)}
-                            className="p-1 hover:bg-muted text-muted-foreground rounded-l"
+                            className="px-2 py-1 hover:bg-muted text-muted-foreground transition-colors"
+                            title="Diminuer la quantité"
                           >
                             <Minus className="h-3 w-3" />
                           </button>
-                          <span className="w-8 text-center font-bold">{item.quantity}</span>
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={item.quantity}
+                            onChange={(e) => setDirectQuantity(item.product.id, parseInt(e.target.value) || 1)}
+                            className="w-12 h-7 text-center font-bold text-xs bg-transparent border-x border-input focus:outline-none focus:bg-muted/40"
+                            title="Taper directement la quantité désirée"
+                          />
                           <button
+                            type="button"
                             onClick={() => updateQuantity(item.product.id, 1)}
-                            className="p-1 hover:bg-muted text-muted-foreground rounded-r"
+                            className="px-2 py-1 hover:bg-muted text-muted-foreground transition-colors"
+                            title="Augmenter la quantité"
                           >
                             <Plus className="h-3 w-3" />
                           </button>
@@ -779,7 +800,7 @@ export default function PosPage() {
                               updateLineDiscount(item.product.id, parseFloat(e.target.value) || 0)
                             }
                             placeholder="0"
-                            className="w-12 h-6 text-center border rounded text-xs bg-background"
+                            className="w-12 h-7 text-center border rounded-lg text-xs bg-background font-medium"
                           />
                         </div>
                       </div>
