@@ -6,3 +6,10 @@ media/
 staticfiles/
 .env
 .pytest_cache/
+node_modules/
+.next/
+*.zip
+*.tar.gz
+*.backup
+frontend/public/*.zip
+frontend/public/*.tar.gz
