@@ -31,19 +31,10 @@ export default function ProductsPage() {
       const queryParams = new URLSearchParams({
         status: pdfStatusFilter,
       });
-      const response = await fetch(`/api/v1/catalog/export-pdf/?${queryParams.toString()}`);
-      if (!response.ok) {
-        throw new Error('Erreur lors de la génération du catalogue PDF');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Catalogue_Produits_${pdfStatusFilter.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      await downloadPdfFile(
+        `/api/v1/catalog/export-pdf/?${queryParams.toString()}`,
+        `Catalogue_Produits_${pdfStatusFilter.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`
+      );
 
       toast({
         type: 'success',

@@ -12,6 +12,7 @@ import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { apiRequest } from '@/lib/api';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { downloadPdfFile } from '@/lib/pdf-export';
 import { StockLevel, StockMovement, PaginatedResponse, Product, Store } from '@/types';
 import {
   Search,
@@ -87,19 +88,10 @@ export default function InventoryPage() {
         ...(inventoriesPdfPeriod.store_id ? { store_id: inventoriesPdfPeriod.store_id } : {}),
         ...(inventoriesPdfPeriod.status ? { status: inventoriesPdfPeriod.status } : {}),
       });
-      const response = await fetch(`/api/v1/inventory/export-inventories-pdf/?${queryParams.toString()}`);
-      if (!response.ok) {
-        throw new Error('Erreur lors de la génération du PDF des inventaires & écarts');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Inventaires_Ecarts_${inventoriesPdfPeriod.start_date}_${inventoriesPdfPeriod.end_date}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      await downloadPdfFile(
+        `/api/v1/inventory/export-inventories-pdf/?${queryParams.toString()}`,
+        `Inventaires_Ecarts_${inventoriesPdfPeriod.start_date}_${inventoriesPdfPeriod.end_date}.pdf`
+      );
 
       toast({
         type: 'success',
@@ -134,22 +126,12 @@ export default function InventoryPage() {
       const queryParams = new URLSearchParams({
         start_date: movementsPdfPeriod.start_date,
         end_date: movementsPdfPeriod.end_date,
-        ...(movementsPdfPeriod.store_id ? { store_id: movementsPdfPeriod.store_id } : {}),
-        ...(movementsPdfPeriod.movement_type ? { movement_type: movementsPdfPeriod.movement_type } : {}),
+        ...(movementsPdfPeriod.store_id ? { store_id: movementsPdfPeriod.store_id } : {})
       });
-      const response = await fetch(`/api/v1/inventory/export-movements-pdf/?${queryParams.toString()}`);
-      if (!response.ok) {
-        throw new Error('Erreur lors de la génération du PDF des mouvements');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Grand_Livre_Mouvements_${movementsPdfPeriod.start_date}_${movementsPdfPeriod.end_date}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      await downloadPdfFile(
+        `/api/v1/inventory/export-movements-pdf/?${queryParams.toString()}`,
+        `Grand_Livre_Mouvements_${movementsPdfPeriod.start_date}_${movementsPdfPeriod.end_date}.pdf`
+      );
 
       toast({
         type: 'success',
@@ -183,19 +165,10 @@ export default function InventoryPage() {
         end_date: pdfPeriod.end_date,
         ...(pdfPeriod.store_id ? { store_id: pdfPeriod.store_id } : {})
       });
-      const response = await fetch(`/api/v1/inventory/export-pdf/?${queryParams.toString()}`);
-      if (!response.ok) {
-        throw new Error('Erreur lors de la génération du PDF');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Etat_Stocks_${pdfPeriod.start_date}_${pdfPeriod.end_date}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      await downloadPdfFile(
+        `/api/v1/inventory/export-pdf/?${queryParams.toString()}`,
+        `Etat_Stocks_${pdfPeriod.start_date}_${pdfPeriod.end_date}.pdf`
+      );
 
       toast({
         type: 'success',

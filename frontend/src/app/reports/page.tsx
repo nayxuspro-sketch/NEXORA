@@ -51,19 +51,10 @@ export default function ReportsPage() {
         days: pdfPeriodDays.toString(),
         view: selectedView,
       });
-      const response = await fetch(`/api/v1/reports/export-bi-pdf/?${queryParams.toString()}`);
-      if (!response.ok) {
-        throw new Error('Erreur lors de la génération du rapport BI & Décision');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Rapport_BI_Decision_${pdfPeriodDays}j_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      await downloadPdfFile(
+        `/api/v1/reports/export-bi-pdf/?${queryParams.toString()}`,
+        `Rapport_BI_Decision_${pdfPeriodDays}j_${new Date().toISOString().split('T')[0]}.pdf`
+      );
 
       setIsBiPdfModalOpen(false);
     } catch (err: any) {
