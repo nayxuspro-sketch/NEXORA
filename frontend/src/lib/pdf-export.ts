@@ -1,15 +1,20 @@
 /**
- * Robuste helper pour le téléchargement des fichiers PDF.
- * Fonctionne dans tous les contextes (Windows local, port proxy Next.js ou direct Django).
+ * Helper robuste et universel pour le téléchargement des fichiers PDF.
+ * Évite les boucles de redirection 301/308 entre Next.js et Django
+ * en interrogeant directement le port backend 8008 en priorité.
  */
 export async function downloadPdfFile(endpoint: string, defaultFilename: string): Promise<void> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
-  // Essayer d'abord via le proxy relatif Next.js, puis directement sur localhost:8008
+  // En environnement navigateur, cibler directement le backend sur le port 8008
+  const isBrowser = typeof window !== 'undefined';
+  const hostname = isBrowser ? window.location.hostname : '127.0.0.1';
+
   const urls = [
-    cleanEndpoint,
+    `http://${hostname}:8008${cleanEndpoint}`,
     `http://127.0.0.1:8008${cleanEndpoint}`,
-    `http://localhost:8008${cleanEndpoint}`
+    `http://localhost:8008${cleanEndpoint}`,
+    cleanEndpoint
   ];
 
   let lastError: any = null;
@@ -17,7 +22,7 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
 
   for (const url of urls) {
     try {
-      const token = typeof window !== 'undefined'
+      const token = isBrowser
         ? (sessionStorage.getItem('nexora_session_token') || sessionStorage.getItem('nexora_access_token'))
         : null;
 
@@ -33,7 +38,7 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
         headers
       });
 
-      if (response.ok) {
+      if (response && response.ok) {
         break;
       }
     } catch (err) {
@@ -48,7 +53,7 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
     );
   }
 
-  // Extraire le nom du fichier depuis l'en-tête Content-Disposition si présent
+  // Extraire le nom de fichier depuis l'en-tête Content-Disposition
   let filename = defaultFilename;
   const disposition = response.headers.get('Content-Disposition');
   if (disposition && disposition.includes('filename=')) {
