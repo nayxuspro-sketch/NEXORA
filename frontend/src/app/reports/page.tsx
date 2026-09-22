@@ -9,6 +9,7 @@ import { KpiCard } from '@/components/ui/kpi-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SimpleBarChart } from '@/components/ui/simple-chart';
+import { useToast } from '@/components/ui/toast';
 import { apiRequest } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { downloadPdfFile } from '@/lib/pdf-export';
@@ -33,6 +34,7 @@ import {
 } from 'lucide-react';
 
 export default function ReportsPage() {
+  const { toast } = useToast();
   const [selectedView, setSelectedView] = React.useState<'executive' | 'manager' | 'sales' | 'stock' | 'cashier'>('executive');
   const [days, setDays] = React.useState<number>(30);
   // BI PDF Export Modal State
@@ -56,9 +58,19 @@ export default function ReportsPage() {
         `Rapport_BI_Decision_${pdfPeriodDays}j_${new Date().toISOString().split('T')[0]}.pdf`
       );
 
+      toast({
+        type: 'success',
+        title: 'Rapport BI Téléchargé',
+        message: `Le rapport décisionnel (${pdfPeriodDays} jours) a été téléchargé en PDF.`,
+      });
       setIsBiPdfModalOpen(false);
     } catch (err: any) {
       console.error('Erreur export BI PDF:', err);
+      toast({
+        type: 'error',
+        title: 'Erreur Export PDF',
+        message: err.message || 'Impossible d\'exporter le rapport BI en PDF.',
+      });
     } finally {
       setIsExportingPdf(false);
     }
