@@ -181,9 +181,9 @@ class SellerSalesReportPdfView(APIView):
             'TableHeader',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=8.5,
-            leading=11,
-            textColor=colors.white
+            fontSize=8,
+            leading=10,
+            textColor=colors.HexColor('#ffffff')
         )
 
         table_header_right = ParagraphStyle(
@@ -293,10 +293,10 @@ class SellerSalesReportPdfView(APIView):
             Paragraph("<b>Réf. Facture</b>", table_header_style),
             Paragraph("<b>Date & Heure</b>", table_header_style),
             Paragraph("<b>Client Facturé</b>", table_header_style),
-            Paragraph("<b>Qté</b>", table_header_style),
+            Paragraph("<b>Articles</b>", table_header_style),
             Paragraph("<b>Total TTC</b>", table_header_right),
-            Paragraph("<b>Montant Réglé</b>", table_header_right),
-            Paragraph("<b>Règlement</b>", table_header_style),
+            Paragraph("<b>Réglé</b>", table_header_right),
+            Paragraph("<b>Statut</b>", table_header_style),
         ]
 
         sales_table_data = [sales_headers]
@@ -325,17 +325,20 @@ class SellerSalesReportPdfView(APIView):
             ])
 
         # Dimensions calibrées pour la largeur totale A4 (538 pt)
-        col_w = [126, 70, 116, 36, 66, 66, 58]
+        col_w = [126, 68, 120, 44, 64, 62, 54]
         sales_table = Table(sales_table_data, colWidths=col_w, repeatRows=1)
         sales_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e293b')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f1f5f9')]),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING', (0, 0), (-1, -1), 4.5),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 4.5),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+            ('TOPPADDING', (0, 0), (-1, 0), 5.5),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 5.5),
+            ('TOPPADDING', (0, 1), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
         ]))
         elements.append(sales_table)
 
