@@ -110,6 +110,22 @@ export function Topbar({ onToggleSidebar, onOpenQuickSearch }: TopbarProps) {
                     <p className="text-[10px] text-muted-foreground">Installation réseau & production</p>
                   </div>
                 </a>
+
+                <div className="pt-1 mt-1 border-t border-border/60">
+                  <a
+                    href="/download.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => setDocMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors font-semibold"
+                  >
+                    <Download className="h-4 w-4 shrink-0 text-emerald-500" />
+                    <div>
+                      <p className="font-bold">Télécharger l'Application (ZIP)</p>
+                      <p className="text-[10px] text-muted-foreground">Release v1.0.0 complète prête à l'emploi</p>
+                    </div>
+                  </a>
+                </div>
               </div>
             </>
           )}

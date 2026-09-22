@@ -120,10 +120,31 @@ class UserManagementSerializer(serializers.ModelSerializer):
 
 
 class UserManagementViewSet(viewsets.ModelViewSet):
-    """
-    CRUD management of users, assignable roles and user groups.
-    """
-    permission_classes = [AllowAny]
     queryset = User.objects.prefetch_related('groups').all().order_by('-date_joined')
     serializer_class = UserManagementSerializer
 
+    def get_permissions(self):
+        return [AllowAny()]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user and user.is_authenticated:
+            if user.role != UserRole.ADMIN and not user.is_superuser:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Seul un administrateur d'entreprise peut créer un utilisateur.")
+            serializer.save(company_id=user.company_id)
+        else:
+            serializer.save()
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        if user and user.is_authenticated:
+            target_user = self.get_object()
+            if user.role != UserRole.ADMIN and not user.is_superuser:
+                if target_user.id != user.id:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied("Vous ne pouvez pas modifier un autre utilisateur.")
+                if 'role' in serializer.validated_data and serializer.validated_data['role'] != user.role:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied("Vous n'êtes pas autorisé à modifier vos propres permissions ou votre rôle.")
+        serializer.save()
