@@ -204,7 +204,7 @@ def seed_demo_data():
 
     # Ventes historiques additionnelles pour enrichir l'historique :
     try:
-        if Sale.objects.filter(company=company).count() <= 1:
+        if Sale.objects.filter(company=company).count() < 8:
             # Vente 2 : Vente comptoir en espèces
             SaleService.create_and_complete_sale(
                 company=company,
