@@ -214,6 +214,70 @@ def seed_demo_data():
         }
     )
 
+    # 10. Audit Logs initiaux de traçabilité
+    from apps.audit.models import AuditLog
+    if AuditLog.objects.filter(company=company).count() == 0:
+        sample_logs = [
+            {
+                'action': 'LOGIN_SUCCESS',
+                'resource_type': 'Authentication',
+                'resource_id': str(admin_user.id),
+                'user': admin_user,
+                'ip_address': '192.168.1.10',
+                'details': {'email': admin_user.email, 'role': admin_user.role, 'client': 'NEXORA Enterprise Desktop'}
+            },
+            {
+                'action': 'POST_SALES',
+                'resource_type': 'Sale',
+                'resource_id': 'VNT-INITIAL-OUAGA',
+                'user': cashier_user,
+                'ip_address': '192.168.1.25',
+                'details': {'total': '465000 FCFA', 'customer': cust1.name, 'method': 'MOBILE_MONEY'}
+            },
+            {
+                'action': 'POST_PRODUCTS',
+                'resource_type': 'Product',
+                'resource_id': prod1.sku,
+                'user': admin_user,
+                'ip_address': '192.168.1.10',
+                'details': {'name': prod1.name, 'price': f"{prod1.selling_price} FCFA", 'action': 'CATALOG_INIT'}
+            },
+            {
+                'action': 'POST_INVENTORY',
+                'resource_type': 'StockMovement',
+                'resource_id': 'INIT-FASO',
+                'user': admin_user,
+                'ip_address': '192.168.1.10',
+                'details': {'movement_type': 'INITIAL', 'store': store.name}
+            },
+            {
+                'action': 'LOGIN_SUCCESS',
+                'resource_type': 'Authentication',
+                'resource_id': str(cashier_user.id),
+                'user': cashier_user,
+                'ip_address': '192.168.1.25',
+                'details': {'email': cashier_user.email, 'role': cashier_user.role, 'terminal': register.name}
+            },
+            {
+                'action': 'PERMISSION_DENIED_ATTEMPT',
+                'resource_type': 'SecurityAlert',
+                'resource_id': '/api/v1/settings/companies/',
+                'user': cashier_user,
+                'ip_address': '192.168.1.25',
+                'details': {'status_code': 403, 'attempted_action': 'ACCESS_ADMIN_SETTINGS'}
+            }
+        ]
+        for log_item in sample_logs:
+            AuditLog.objects.create(
+                company=company,
+                action=log_item['action'],
+                resource_type=log_item['resource_type'],
+                resource_id=log_item['resource_id'],
+                user=log_item['user'],
+                ip_address=log_item['ip_address'],
+                details=log_item['details']
+            )
+
     print("Seed: Données Burkina Faso (FCFA) initialisées avec succès !")
 
 if __name__ == '__main__':
