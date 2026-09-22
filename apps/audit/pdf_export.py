@@ -36,29 +36,38 @@ class AuditLogPdfExportView(APIView):
         end_date = None
 
         if start_date_str:
-            try:
-                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-                start_date = timezone.make_aware(datetime.combine(start_date.date(), datetime.min.time()))
-            except Exception:
-                pass
+            d_clean = start_date_str.strip().split('T')[0]
+            for fmt in ('%Y-%m-%d', '%d/%m/%Y'):
+                try:
+                    d = datetime.strptime(d_clean, fmt)
+                    start_date = timezone.make_aware(datetime.combine(d.date(), datetime.min.time()))
+                    break
+                except Exception:
+                    pass
 
         if end_date_str:
-            try:
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-                end_date = timezone.make_aware(datetime.combine(end_date.date(), datetime.max.time()))
-            except Exception:
-                pass
+            d_clean = end_date_str.strip().split('T')[0]
+            for fmt in ('%Y-%m-%d', '%d/%m/%Y'):
+                try:
+                    d = datetime.strptime(d_clean, fmt)
+                    end_date = timezone.make_aware(datetime.combine(d.date(), datetime.max.time()))
+                    break
+                except Exception:
+                    pass
 
         if not end_date:
             end_date = now
         if not start_date:
             start_date = end_date - timezone.timedelta(days=30)
 
-        logs_qs = AuditLog.objects.filter(
-            company=company,
+        logs_qs = AuditLog.objects.all().select_related('user').order_by('-created_at')
+        if company:
+            logs_qs = logs_qs.filter(company=company)
+
+        logs_qs = logs_qs.filter(
             created_at__gte=start_date,
             created_at__lte=end_date
-        ).select_related('user').order_by('-created_at')
+        )
 
         if action_filter:
             logs_qs = logs_qs.filter(action__icontains=action_filter)
