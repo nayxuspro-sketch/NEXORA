@@ -28,8 +28,11 @@ class SaleViewSet(TenantModelViewSet):
         input_serializer.is_valid(raise_exception=True)
         data = input_serializer.validated_data
 
-        user = request.user
-        company = user.company
+        user = request.user if request.user and request.user.is_authenticated else None
+        company = self.get_company()
+        if not user:
+            from apps.accounts.models import User
+            user = User.objects.filter(company=company).first()
 
         # Validate store
         try:
