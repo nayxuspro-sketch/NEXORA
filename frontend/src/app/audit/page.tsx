@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { apiRequest } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { downloadPdfFile } from '@/lib/pdf-export';
 import { PaginatedResponse } from '@/types';
 import {
   Search,
@@ -60,19 +61,10 @@ export default function AuditPage() {
         end_date: pdfPeriod.end_date,
         ...(pdfPeriod.action ? { action: pdfPeriod.action } : {}),
       });
-      const response = await fetch(`/api/v1/audit/export-pdf/?${queryParams.toString()}`);
-      if (!response.ok) {
-        throw new Error('Erreur lors de la génération du rapport PDF d\'audit');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Journal_Audit_${pdfPeriod.start_date}_${pdfPeriod.end_date}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      await downloadPdfFile(
+        `/api/v1/audit/export-pdf/?${queryParams.toString()}`,
+        `Journal_Audit_${pdfPeriod.start_date}_${pdfPeriod.end_date}.pdf`
+      );
 
       setIsPdfModalOpen(false);
     } catch (err: any) {

@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { apiRequest } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { downloadPdfFile } from '@/lib/pdf-export';
 import {
   Users,
   Shield,
@@ -228,17 +229,10 @@ export default function SettingsPage() {
 
   const downloadLicensePdf = async (licenseId: string, storeCode: string) => {
     try {
-      const response = await fetch(`/api/v1/store-licenses/${licenseId}/certificate-pdf/`);
-      if (!response.ok) throw new Error('Erreur lors du téléchargement');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Certificat_Licence_${storeCode}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      await downloadPdfFile(
+        `/api/v1/store-licenses/${licenseId}/certificate-pdf/`,
+        `Certificat_Licence_${storeCode}.pdf`
+      );
 
       toast({
         type: 'success',

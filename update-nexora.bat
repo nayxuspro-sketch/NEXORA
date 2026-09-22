@@ -6,8 +6,8 @@ echo =====================================================================
 echo           NEXORA Enterprise ERP - Mise a Jour du Systeme
 echo =====================================================================
 echo.
-echo Ce script met a jour NEXORA et installe les modules requis (PDF ReportLab).
-echo Vos ventes, stocks et clients existants sont preserves.
+echo Ce script met a jour NEXORA, installe le moteur PDF ReportLab
+echo et applique les migrations. Vos donnees sont 100% preservees.
 echo.
 pause
 
@@ -27,11 +27,11 @@ if exist "db.sqlite3" (
 )
 
 echo.
-echo [3/5] Verification et installation des dependances (moteur PDF inclus)...
-pip install -r requirements.txt
+echo [3/5] Installation et verification des modules PDF (reportlab, Pillow)...
+pip install reportlab Pillow django djangorestframework django-filter django-cors-headers djangorestframework-simplejwt PyYAML
 if %ERRORLEVEL% NEQ 0 (
-    echo Avertissement : pip a rencontre un probleme, tentative avec requirements-win...
-    pip install -r requirements-win.txt
+    echo Tentative d'installation avec requirements...
+    pip install -r requirements.txt
 )
 
 echo.
@@ -47,7 +47,7 @@ echo.
 echo [5/5] Mise a jour terminee avec succes !
 echo.
 echo =====================================================================
-echo       NEXORA v1.0.0 est a jour et le moteur PDF est operationnel !
+echo       NEXORA est a jour et tous les exports PDF sont prets !
 echo =====================================================================
 echo.
 echo Pour lancer NEXORA : double-cliquez sur start-local.bat

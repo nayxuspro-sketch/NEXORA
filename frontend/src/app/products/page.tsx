@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { apiRequest } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
+import { downloadPdfFile } from '@/lib/pdf-export';
 import { Product, PaginatedResponse } from '@/types';
 import { Plus, Search, Package, Edit, Trash2, FileText, Download, Filter } from 'lucide-react';
 

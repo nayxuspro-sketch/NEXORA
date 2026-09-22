@@ -12,6 +12,7 @@ import { BarcodeScannerModal } from '@/components/ui/barcode-scanner-modal';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/lib/auth';
 import { formatCurrency } from '@/lib/utils';
+import { downloadPdfFile } from '@/lib/pdf-export';
 import { apiRequest } from '@/lib/api';
 import { Product, CashRegister, Partner, PaginatedResponse } from '@/types';
 import {
@@ -115,18 +116,10 @@ export default function PosPage() {
         register_id: activeRegister.id,
         closing_balance: countedAmount.toString(),
       });
-      const response = await fetch(`/api/v1/pos/export-z-report/?${queryParams.toString()}`);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Rapport_Z_Cloture_Caisse_${new Date().toISOString().split('T')[0]}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
+      await downloadPdfFile(
+        `/api/v1/pos/export-z-report/?${queryParams.toString()}`,
+        `Rapport_Z_Cloture_Caisse_${new Date().toISOString().split('T')[0]}.pdf`
+      );
 
       toast({
         type: 'success',
@@ -173,19 +166,10 @@ export default function PosPage() {
         end_date: sellerPdfPeriod.end_date,
         ...(sellerPdfPeriod.seller_email ? { seller: sellerPdfPeriod.seller_email } : {}),
       });
-      const response = await fetch(`/api/v1/sales/export-seller-pdf/?${queryParams.toString()}`);
-      if (!response.ok) {
-        throw new Error('Erreur lors de la génération du bilan des ventes du vendeur');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Vente_Vendeur_${sellerPdfPeriod.start_date}_${sellerPdfPeriod.end_date}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      await downloadPdfFile(
+        `/api/v1/sales/export-seller-pdf/?${queryParams.toString()}`,
+        `Vente_Vendeur_${sellerPdfPeriod.start_date}_${sellerPdfPeriod.end_date}.pdf`
+      );
 
       toast({
         type: 'success',

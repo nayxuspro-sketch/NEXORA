@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { SimpleBarChart } from '@/components/ui/simple-chart';
 import { apiRequest } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
+import { downloadPdfFile } from '@/lib/pdf-export';
 import {
   TrendingUp,
   PieChart,
