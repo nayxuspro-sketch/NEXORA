@@ -126,8 +126,11 @@ urlpatterns = [
 
     # Direct ZIP Release Download & Certification
     path('download/nexora-latest.zip', DirectZipDownloadView.as_view(), name='download_nexora_zip'),
+    path('download/nexora-latest.zip/', DirectZipDownloadView.as_view(), name='download_nexora_zip_slash'),
     path('download/certified-release.zip', DirectZipDownloadView.as_view(), name='download_certified_zip'),
+    path('download/certified-release.zip/', DirectZipDownloadView.as_view(), name='download_certified_zip_slash'),
     path('download/certification-manifest.txt', CertificationManifestView.as_view(), name='download_manifest'),
+    path('download/certification-manifest.txt/', CertificationManifestView.as_view(), name='download_manifest_slash'),
 
     # ViewSets Router
     path('', include(router.urls)),
