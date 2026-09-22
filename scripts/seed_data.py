@@ -202,6 +202,62 @@ def seed_demo_data():
     except Exception as e:
         print(f"Sample sale note: {e}")
 
+    # Ventes historiques additionnelles pour enrichir l'historique :
+    try:
+        if Sale.objects.filter(company=company).count() <= 1:
+            # Vente 2 : Vente comptoir en espèces
+            SaleService.create_and_complete_sale(
+                company=company,
+                store=store,
+                seller=cashier_user,
+                customer=None,
+                register=register,
+                items_data=[
+                    {'product': prod2, 'quantity': Decimal('2.00')},
+                    {'product': prod4, 'quantity': Decimal('1.00')}
+                ],
+                payment_data={'amount': Decimal('64900.00'), 'method': PaymentMethod.CASH, 'reference': 'ESP-002'}
+            )
+            # Vente 3 : Équipements informatiques
+            SaleService.create_and_complete_sale(
+                company=company,
+                store=store,
+                seller=admin_user,
+                customer=cust1,
+                register=register,
+                items_data=[
+                    {'product': prod3, 'quantity': Decimal('2.00')}
+                ],
+                payment_data={'amount': Decimal('259600.00'), 'method': PaymentMethod.BANK_TRANSFER, 'reference': 'VIR-BF-003'}
+            )
+            # Vente 4 : Vente avec acompte partiel
+            SaleService.create_and_complete_sale(
+                company=company,
+                store=store,
+                seller=cashier_user,
+                customer=None,
+                register=register,
+                items_data=[
+                    {'product': prod1, 'quantity': Decimal('1.00')},
+                    {'product': prod2, 'quantity': Decimal('1.00')}
+                ],
+                payment_data={'amount': Decimal('300000.00'), 'method': PaymentMethod.MOBILE_MONEY, 'reference': 'OM-BF-004'}
+            )
+            # Vente 5 : Fournitures et accessoires
+            SaleService.create_and_complete_sale(
+                company=company,
+                store=store,
+                seller=cashier_user,
+                customer=cust1,
+                register=register,
+                items_data=[
+                    {'product': prod4, 'quantity': Decimal('5.00')}
+                ],
+                payment_data={'amount': Decimal('147500.00'), 'method': PaymentMethod.CASH, 'reference': 'ESP-005'}
+            )
+    except Exception as e:
+        print(f"Additional sales note: {e}")
+
     # 9. Automation Rule
     AutomationRule.objects.get_or_create(
         company=company,

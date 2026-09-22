@@ -22,46 +22,6 @@ export default function SalesPage() {
   const { data: salesData, isLoading } = useQuery<PaginatedResponse<Sale>>({
     queryKey: ['sales-list', search, currentPage],
     queryFn: () => apiRequest<PaginatedResponse<Sale>>(`/sales/?page=${currentPage}&search=${encodeURIComponent(search)}`),
-    placeholderData: {
-      status: 'success',
-      pagination: { count: 2, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
-      results: [
-        {
-          id: 's1',
-          reference: 'VNT-20260919-001',
-          store: 'store-01',
-          store_name: 'Magasin & Dépôt Ouaga Central',
-          customer_name: 'Client Comptoir',
-          seller_name: 'caissier@nexora-bf.com',
-          status: 'COMPLETED',
-          payment_status: 'PAID',
-          subtotal_amount: '465000.00',
-          tax_amount: '83700.00',
-          discount_amount: '0.00',
-          total_amount: '548700.00',
-          paid_amount: '548700.00',
-          items: [],
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: 's2',
-          reference: 'VNT-20260919-002',
-          store: 'store-01',
-          store_name: 'Alpha Dépôt Principal',
-          customer_name: 'Entreprise Partenaire B',
-          seller_name: 'admin@alpha.com',
-          status: 'COMPLETED',
-          payment_status: 'PARTIAL',
-          subtotal_amount: '110000.00',
-          tax_amount: '19800.00',
-          discount_amount: '0.00',
-          total_amount: '129800.00',
-          paid_amount: '129800.00',
-          items: [],
-          created_at: new Date(Date.now() - 7200000).toISOString(),
-        },
-      ],
-    },
   });
 
   const columns = [
