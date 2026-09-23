@@ -87,38 +87,9 @@ export default function ProductsPage() {
       apiRequest<PaginatedResponse<Product>>(
         `/products/?page=${currentPage}&search=${encodeURIComponent(search)}`
       ),
-    placeholderData: {
-      status: 'success',
-      pagination: { count: 3, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
-      results: [
-        {
-          id: 'p1',
-          name: 'Ordinateur Portable Pro 15',
-          sku: 'LAPTOP-01',
-          barcode: '3700123456789',
-          description: 'Intel i7, 16Go RAM, 512Go SSD',
-          cost_price: '325000.00',
-          selling_price: '450000.00',
-          tax_rate: '18.00',
-          alert_threshold: '5.00',
-          is_active: true,
-          unit_symbol: 'pcs',
-        },
-        {
-          id: 'p2',
-          name: 'Souris Sans Fil Ergonomique',
-          sku: 'MOUSE-01',
-          barcode: '3700123456790',
-          description: 'Capteur laser haute précision',
-          cost_price: '8000.00',
-          selling_price: '15000.00',
-          tax_rate: '18.00',
-          alert_threshold: '10.00',
-          is_active: true,
-          unit_symbol: 'pcs',
-        },
-      ],
-    },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 3000,
   });
 
   const createMutation = useMutation({

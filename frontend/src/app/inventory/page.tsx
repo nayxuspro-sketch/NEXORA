@@ -315,17 +315,23 @@ export default function InventoryPage() {
     },
   });
 
-  // Fetch levels
-  const { data: levelsData, isLoading: isLevelsLoading } = useQuery<PaginatedResponse<StockLevel>>({
+  // Fetch levels with instant sync & real-time zero cache
+  const { data: levelsData, isLoading: isLevelsLoading, refetch: refetchStockLevels } = useQuery<PaginatedResponse<StockLevel>>({
     queryKey: ['stock-levels', search],
     queryFn: () => apiRequest<PaginatedResponse<StockLevel>>(`/stock-levels/?search=${encodeURIComponent(search)}`),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 3000, // Actualisation automatique transparente toutes les 3 secondes
   });
 
-  // Fetch movements
+  // Fetch movements with instant sync
   const { data: movementsData, isLoading: isMovementsLoading } = useQuery<PaginatedResponse<StockMovement>>({
     queryKey: ['stock-movements', search],
     queryFn: () =>
       apiRequest<PaginatedResponse<StockMovement>>(`/stock-movements/?search=${encodeURIComponent(search)}`),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 3000,
   });
 
   // Fetch stores
@@ -349,41 +355,12 @@ export default function InventoryPage() {
   });
 
   // Fetch products
+  // Fetch products with live options
   const { data: productsData } = useQuery<PaginatedResponse<Product>>({
     queryKey: ['products-options'],
-    queryFn: () => apiRequest<PaginatedResponse<Product>>('/products/'),
-    placeholderData: {
-      status: 'success',
-      pagination: { count: 3, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
-      results: [
-        {
-          id: 'p1',
-          name: 'Ordinateur Portable HP ProBook 15',
-          sku: 'LAPTOP-HP-01',
-          barcode: '3700123456789',
-          description: 'Intel i5, 16Go RAM, 512Go SSD',
-          cost_price: '325000.00',
-          selling_price: '450000.00',
-          tax_rate: '18.00',
-          alert_threshold: '5.00',
-          is_active: true,
-          unit_symbol: 'pcs',
-        },
-        {
-          id: 'p2',
-          name: 'Souris Sans Fil Ergonomique Rechargeable',
-          sku: 'MOUSE-WL-01',
-          barcode: '3700123456790',
-          description: 'Capteur optique haute précision',
-          cost_price: '8000.00',
-          selling_price: '15000.00',
-          tax_rate: '18.00',
-          alert_threshold: '10.00',
-          is_active: true,
-          unit_symbol: 'pcs',
-        },
-      ],
-    },
+    queryFn: () => apiRequest<PaginatedResponse<Product>>('/products/?page_size=100'),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   // State pour création d'inventaire
