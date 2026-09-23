@@ -3,7 +3,10 @@
  * Fonctionne aussi bien dans l'iframe d'aperçu Arena.ai que sur serveur dédié ou localhost.
  */
 export async function downloadPdfFile(endpoint: string, defaultFilename: string): Promise<void> {
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  // Cache-busting systématique : garantit la génération et le téléchargement en temps réel
+  const cacheBuster = `_t=${Date.now()}`;
+  cleanEndpoint = cleanEndpoint.includes('?') ? `${cleanEndpoint}&${cacheBuster}` : `${cleanEndpoint}?${cacheBuster}`;
 
   // Récupérer le token d'authentification disponible
   const isBrowser = typeof window !== 'undefined';
@@ -12,7 +15,9 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
     : null;
 
   const headers: Record<string, string> = {
-    'Accept': 'application/pdf, */*'
+    'Accept': 'application/pdf, */*',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
   };
   if (token && token.startsWith('eyJ')) {
     headers['Authorization'] = `Bearer ${token}`;
