@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101a36">
+  <title>NEXORA — Power BI de zéro à expert</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><span></span><span></span><span></span></div>
+        <div><strong>NEXORA</strong><small>DATA ACADEMY</small></div>
+      </div>
+
+      <div class="profile-chip">
+        <div class="avatar">AM</div>
+        <div><strong>Alex Martin</strong><small>Parcours débutant</small></div>
+        <button class="icon-button" aria-label="Ouvrir le menu du profil">•••</button>
+      </div>
+
+      <nav class="main-nav" aria-label="Navigation principale">
+        <p class="nav-label">ESPACE D’APPRENTISSAGE</p>
+        <button class="nav-item active" data-route="dashboard"><span class="nav-icon">⌂</span> Vue d’ensemble</button>
+        <button class="nav-item" data-route="parcours"><span class="nav-icon">▤</span> Mon parcours <b class="nav-count">12</b></button>
+        <button class="nav-item" data-route="lab"><span class="nav-icon">ƒx</span> Atelier DAX <em>NEW</em></button>
+        <button class="nav-item" data-route="ressources"><span class="nav-icon">↗</span> Ressources</button>
+        <p class="nav-label nav-label-spaced">COMMUNAUTÉ</p>
+        <button class="nav-item" data-route="notes"><span class="nav-icon">☆</span> Mes notes</button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-progress">
+          <div class="progress-heading"><span>Progression</span><strong id="sidebar-progress-value">18%</strong></div>
+          <div class="progress-track"><span id="sidebar-progress-bar" style="width:18%"></span></div>
+          <small>2 modules sur 12 terminés</small>
+        </div>
+        <div class="help-card"><span class="help-orb">?</span><div><strong>Besoin d’aide ?</strong><small>Consulter le guide de démarrage</small></div><span>›</span></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobile-menu" aria-label="Ouvrir la navigation">☰</button>
+        <div class="breadcrumbs"><span>Formation Power BI</span><b>/</b><strong id="breadcrumb-current">Vue d’ensemble</strong></div>
+        <div class="topbar-actions">
+          <label class="search-box" aria-label="Rechercher dans la formation"><span>⌕</span><input id="search-input" type="search" placeholder="Rechercher une notion, une formule…"><kbd>⌘ K</kbd></label>
+          <button class="round-action" aria-label="Notifications">♧<i></i></button>
+          <div class="mini-avatar">AM</div>
+        </div>
+      </header>
+
+      <section id="view-dashboard" class="view active-view">
+        <div class="welcome-row">
+          <div>
+            <p class="eyebrow">MARDI 25 SEPTEMBRE 2026 <span class="dot"></span> BON RETOUR</p>
+            <h1>Bonjour Alex <span class="wave">✦</span></h1>
+            <p class="lead">Construisez des rapports qui aident vraiment à décider.</p>
+          </div>
+          <button class="button button-dark" data-action="continue"><span>▶</span> Reprendre ma formation</button>
+        </div>
+
+        <div class="hero-card">
+          <div class="hero-copy">
+            <div class="pill light-pill"><span class="pulse-dot"></span> PARCOURS GUIDÉ · 42 HEURES</div>
+            <h2>Des données brutes<br><i>aux bonnes décisions.</i></h2>
+            <p>Une formation pratique pour passer de zéro à concepteur de tableaux de bord professionnels, étape par étape.</p>
+            <div class="hero-meta"><span>◷ 12 modules</span><span>▣ 36 leçons</span><span>◒ Projets concrets</span></div>
+            <button class="button button-coral" data-action="start">Commencer le parcours <span>→</span></button>
+          </div>
+          <div class="hero-art" aria-hidden="true">
+            <div class="art-grid"></div>
+            <div class="art-card art-card-main"><div class="art-card-top"><span>PERFORMANCE COMMERCIALE</span><b>⋯</b></div><strong>€ 248 620</strong><small>Chiffre d’affaires <em>↗ 18,4 %</em></small><div class="fake-chart"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="chart-axis"><span>JAN</span><span>MAR</span><span>MAI</span><span>JUIL</span><span>SEP</span></div></div>
+            <div class="art-card art-card-donut"><div class="donut"><span>82<small>%</small></span></div><b>Objectif atteint</b><small>+12% ce mois</small></div>
+            <div class="floating-tag"><span>↗</span><strong>18,4%</strong><small>vs. période N-1</small></div>
+          </div>
+        </div>
+
+        <div class="section-heading"><div><p class="eyebrow">VOTRE PROGRESSION</p><h2>Continuez là où vous vous êtes arrêté</h2></div><button class="text-button" data-route="parcours">Voir le parcours complet <span>→</span></button></div>
+        <div class="continue-card">
+          <div class="module-number big-number">02</div><div class="continue-info"><div class="module-kicker"><span class="status-dot active"></span> MODULE 02 <span class="sep">•</span> 3 LEÇONS <span class="time">◷ 38 MIN RESTANTES</span></div><h3>Vos premiers pas dans Power BI Desktop</h3><p>Explorez l’interface, importez votre premier fichier Excel et créez votre premier visuel.</p><div class="small-progress"><span style="width:38%"></span></div></div><button class="play-button" data-module="2" aria-label="Reprendre le module 2">▶</button>
+        </div>
+
+        <div class="section-heading modules-heading"><div><p class="eyebrow">LE PARCOURS</p><h2>Apprendre en construisant</h2></div><div class="legend"><span><i class="legend-dot done"></i> Terminé</span><span><i class="legend-dot current"></i> En cours</span><span><i class="legend-dot locked"></i> À venir</span></div></div>
+        <div class="module-grid" id="dashboard-module-grid"></div>
+
+        <div class="bottom-grid">
+          <div class="quote-card"><div class="quote-mark">“</div><blockquote>Un bon rapport ne montre pas tout.<br><strong>Il montre ce qui compte.</strong></blockquote><div class="quote-foot"><div class="quote-avatar">SL</div><div><strong>Sarah Lemaire</strong><small>Lead Data Analyst · Mentor</small></div></div></div>
+          <div class="weekly-card"><div class="section-heading compact"><div><p class="eyebrow">CETTE SEMAINE</p><h3>Votre activité</h3></div><button class="more-button">•••</button></div><div class="activity-bars"><div><span style="height:33%"></span><small>L</small></div><div><span style="height:58%"></span><small>M</small></div><div><span style="height:45%"></span><small>M</small></div><div class="today"><span style="height:80%"></span><small>J</small></div><div><span style="height:68%"></span><small>V</small></div><div><span style="height:28%"></span><small>S</small></div><div><span style="height:15%"></span><small>D</small></div></div><div class="activity-total"><strong>2h 45</strong><span>de pratique <em>+24%</em></span></div></div>
+        </div>
+      </section>
+
+      <section id="view-parcours" class="view">
+        <div class="page-intro"><div><p class="eyebrow">12 MODULES · 36 LEÇONS</p><h1>Mon parcours</h1><p class="lead">Une progression pensée pour apprendre, pratiquer et retenir.</p></div><div class="completion-badge"><span>◒</span><div><strong id="completion-badge-value">18%</strong><small>du parcours réalisé</small></div></div></div>
+        <div class="path-layout"><div class="path-list" id="path-list"></div><aside class="path-aside"><div class="side-panel next-panel"><p class="eyebrow">PROCHAINE ÉTAPE</p><div class="next-icon">02</div><h3>Premiers pas dans Power BI Desktop</h3><p>Découvrez l’interface et réalisez votre premier rapport en moins de 40 minutes.</p><button class="button button-dark full" data-module="2">Démarrer la leçon <span>→</span></button></div><div class="side-panel certificate-panel"><div class="certificate-icon">✦</div><h3>Votre objectif final</h3><p>Présenter un dashboard commercial complet, documenté et partageable.</p><div class="certificate-line"></div><small>Certification NEXORA · Power BI Foundations</small></div></aside></div>
+      </section>
+
+      <section id="view-lesson" class="view">
+        <div class="lesson-header"><button class="back-button" data-route="parcours">← <span>Retour au parcours</span></button><div class="lesson-header-meta"><span id="lesson-header-module">MODULE 01</span><span>•</span><span id="lesson-header-time">35 MIN</span></div></div>
+        <div class="lesson-title-row"><div><p class="eyebrow" id="lesson-eyebrow">MODULE 01 · LES FONDAMENTAUX</p><h1 id="lesson-title">Comprendre la Business Intelligence</h1><p class="lead" id="lesson-subtitle">Avant de manipuler un outil, comprenons le problème qu’il résout.</p></div><button class="button button-coral" id="complete-lesson">Marquer comme terminé <span>✓</span></button></div>
+        <div class="lesson-layout"><article class="lesson-article" id="lesson-article"></article><aside class="lesson-toc"><p class="eyebrow">DANS CE MODULE</p><div id="lesson-toc-links"></div><div class="capture-note"><span>▧</span><div><strong>Support visuel</strong><p>Les repères <b>Capture à insérer</b> indiquent l’écran Power BI à reproduire selon votre version.</p></div></div></aside></div>
+      </section>
+
+      <section id="view-lab" class="view">
+        <div class="page-intro lab-intro"><div><p class="eyebrow">BAC À SABLE · DAX</p><h1>Atelier DAX</h1><p class="lead">Testez les formules essentielles et comprenez leur contexte de calcul.</p></div><div class="lab-badge">ƒx <span>12 fonctions clés</span></div></div>
+        <div class="lab-layout"><div class="formula-list" id="formula-list"></div><div class="formula-detail" id="formula-detail"></div></div>
+        <div class="lab-challenge"><div><p class="eyebrow">DÉFI EXPRESS</p><h2>Quelle mesure choisir ?</h2><p>Votre direction veut comparer le chiffre d’affaires de 2026 à celui de 2025, quel que soit le filtre de date appliqué au rapport.</p></div><div class="challenge-options"><button data-answer="wrong">Une colonne calculée</button><button data-answer="right">Une mesure avec CALCULATE</button><button data-answer="wrong">Une table calculée</button><div class="challenge-feedback" id="challenge-feedback"></div></div></div>
+      </section>
+
+      <section id="view-ressources" class="view">
+        <div class="page-intro"><div><p class="eyebrow">BOÎTE À OUTILS</p><h1>Ressources</h1><p class="lead">Les fichiers, pense-bêtes et repères pour progresser sans vous perdre.</p></div></div>
+        <div class="resource-grid"><div class="resource-card featured-resource"><div class="resource-icon coral">▦</div><div><p class="eyebrow">FICHIER D’EXERCICE</p><h3>Jeu de données Contoso</h3><p>Ventes, produits, clients et calendrier : le modèle utilisé dans tous les exercices du parcours.</p><button class="text-button" id="download-dataset">Télécharger le CSV <span>↓</span></button></div></div><div class="resource-card"><div class="resource-icon yellow">⌘</div><p class="eyebrow">MÉMO</p><h3>Les 20 fonctions DAX à connaître</h3><p>Une fiche synthétique avec syntaxe, cas d’usage et erreurs fréquentes.</p><button class="text-button" data-route="lab">Ouvrir l’atelier <span>→</span></button></div><div class="resource-card"><div class="resource-icon blue">▤</div><p class="eyebrow">CHECK-LIST</p><h3>Rapport professionnel</h3><p>18 points de contrôle avant de publier un dashboard.</p><button class="text-button" id="checklist-button">Afficher la checklist <span>→</span></button></div></div>
+        <div class="resource-bottom"><div class="glossary-card"><div class="section-heading compact"><div><p class="eyebrow">LEXIQUE</p><h2>Un mot vous échappe ?</h2></div><span class="glossary-count">48 termes</span></div><div class="glossary-search"><span>⌕</span><input id="glossary-input" placeholder="Rechercher : mesure, dimension…"></div><div class="glossary-terms" id="glossary-terms"></div></div><div class="capture-board"><div class="capture-board-top"><p class="eyebrow">REPÈRES VISUELS</p><span>VERSION DESKTOP</span></div><div class="fake-powerbi"><div class="fake-pbi-bar"></div><div class="fake-pbi-side"></div><div class="fake-pbi-canvas"><div class="fake-pbi-title"></div><div class="fake-pbi-widgets"><i></i><i></i><i></i></div><div class="fake-pbi-chart"></div></div></div><p>Capture à insérer : vue Rapport de Power BI Desktop avec le volet Visualisations ouvert.</p></div></div>
+      </section>
+
+      <section id="view-notes" class="view"><div class="page-intro"><div><p class="eyebrow">VOTRE CARNET</p><h1>Mes notes</h1><p class="lead">Gardez ici les idées à revoir et les raccourcis qui vous servent.</p></div><button class="button button-dark" id="add-note">+ Nouvelle note</button></div><div class="notes-layout"><div class="note-editor"><textarea id="note-text" placeholder="Écrire une note…\n\nExemple : CALCULATE modifie le contexte de filtre."></textarea><div class="note-editor-footer"><span>Vos notes restent dans ce navigateur.</span><button class="button button-coral" id="save-note">Enregistrer</button></div></div><div class="saved-notes" id="saved-notes"></div></div></section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
