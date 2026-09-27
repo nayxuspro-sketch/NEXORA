@@ -227,6 +227,70 @@ const glossary = [
   {t:'Visuel', d:'Élément graphique du rapport : courbe, barres, carte, matrice. Chaque visuel répond à une question précise.'}
 ];
 
+
+const quizzes = {
+  1: [
+    {q:'Quelle est la différence entre une donnée et une information ?', o:['L’information est organisée pour répondre à une question','La donnée est toujours chiffrée','L’information est plus ancienne'], a:0, why:'Une donnée est une trace brute ; l’information est mise en contexte pour éclairer une décision.'},
+    {q:'À quoi sert principalement Power BI Service ?', o:['À installer les connecteurs localement','À publier, partager et actualiser les rapports','À écrire des requêtes SQL'], a:1, why:'Desktop construit, Service diffuse : publication, partage, actualisation et sécurité.'},
+    {q:'Par quoi commence un projet BI réussi ?', o:['Par le choix des couleurs','Par une décision à améliorer','Par l’import de toutes les sources'], a:1, why:'Sans décision associée, un indicateur reste un chiffre décoratif.'}
+  ],
+  2: [
+    {q:'Quel fichier contient le modèle et le rapport Power BI Desktop ?', o:['Le classeur .xlsx','Le fichier .pbix','Le fichier .csv'], a:1, why:'Le .pbix rassemble requêtes, modèle, mesures et pages de rapport.'},
+    {q:'Par où commence l’import d’un fichier Excel ?', o:['Accueil → Obtenir les données → Excel','Fichier → Imprimer','Modélisation → Nouvelle table'], a:0, why:'Toute connexion part d’Accueil → Obtenir les données, puis on choisit Transformer ou Charger.'},
+    {q:'Une colonne texte déposée dans « Valeurs » produit par défaut…', o:['une somme','un comptage','une moyenne'], a:1, why:'Power BI compte les valeurs texte ; vérifiez toujours l’agrégation proposée et changez-la si besoin.'}
+  ],
+  3: [
+    {q:'Où Power BI enregistre-t-il chaque transformation ?', o:['Dans le volet Étapes appliquées','Dans la vue Modèle','Dans le fichier source'], a:0, why:'Chaque clic devient une étape rejouable à la prochaine actualisation.'},
+    {q:'Empiler les ventes de janvier et février revient à…', o:['Fusionner des requêtes','Ajouter des requêtes','Croiser des tables'], a:1, why:'Ajouter empile des lignes de même structure ; Fusionner rapproche des colonnes par une clé.'},
+    {q:'Pourquoi ne pas corriger directement le fichier Excel ?', o:['Excel est trop lourd','La correction ne serait pas rejouée à l’actualisation','Power BI interdit d’ouvrir Excel'], a:1, why:'La règle doit vivre dans Power Query pour être rejouée sur chaque nouvelle extraction.'}
+  ],
+  4: [
+    {q:'Quelle relation produit un modèle en étoile correct entre un produit et une vente ?', o:['*:* entre les deux tables','1:* avec le 1 sur D_Produit','1:1 partout'], a:1, why:'Un produit apparaît dans plusieurs ventes : le côté 1 est sur la dimension, le * sur le fait.'},
+    {q:'Quelle table contient les événements mesurables ?', o:['La table de faits','La table de dimension','La table de dates'], a:0, why:'Le fait répond à « combien » : une ligne de vente, une note, une commande.'},
+    {q:'Pourquoi une table de dates continue est-elle indispensable ?', o:['Pour trier les noms de mois','Pour les comparaisons N-1 et les cumuls','Pour réduire la taille du fichier'], a:1, why:'DATEADD et TOTALYTD ont besoin de chaque jour présent, relié au fait.'}
+  ],
+  5: [
+    {q:'Quelle fonction calcule le chiffre d’affaires total ?', o:['COUNT','SUM','AVERAGE'], a:1, why:'SUM additionne une colonne numérique ; COUNT compte des valeurs.'},
+    {q:'Comment compter chaque client une seule fois ?', o:['DISTINCTCOUNT','COUNTROWS','SUM'], a:0, why:'DISTINCTCOUNT élimine les doublons ; COUNTROWS compte toutes les lignes du fait.'},
+    {q:'Quand une mesure est-elle calculée ?', o:['À l’affichage, selon les filtres','Une seule fois à l’import','Jamais, elle est stockée en dur'], a:0, why:'La mesure s’adapte au contexte de chaque visuel — c’est ce qui la différencie d’une colonne.'}
+  ],
+  6: [
+    {q:'Que fait CALCULATE ?', o:['Modifie le contexte de filtre d’une mesure','Crée une nouvelle colonne','Trie un visuel'], a:0, why:'CALCULATE évalue une expression avec des filtres ajoutés ou retirés : la porte d’entrée du DAX analytique.'},
+    {q:'Quelle fonction permet de calculer la part du total ?', o:['FILTER','ALL','MIN'], a:1, why:'ALL retire le filtre de la catégorie pour retrouver le dénominateur global.'},
+    {q:'Comment obtenir les ventes de l’année précédente ?', o:['DATEADD(D_Date[Date], -1, YEAR)','SUM(-1)','NOW()'], a:0, why:'DATEADD décale le contexte de dates d’une année — à tester avec une table de dates continue.'}
+  ],
+  7: [
+    {q:'Quel visuel raconte le mieux une évolution mensuelle ?', o:['La courbe avec axe temporel','Le camembert','Le graphique radar'], a:0, why:'Le temps se lit en continu ; un camembert par mois rend la comparaison impossible.'},
+    {q:'Que fait mieux la médiane que la moyenne ?', o:['Elle résiste aux valeurs extrêmes','Elle additionne toujours','Elle évite les filtres'], a:0, why:'Une commande à 90 jours fausse la moyenne des délais mais peu la médiane.'},
+    {q:'Pourquoi limiter les couleurs ?', o:['Gagner de la mémoire','Ne pas surcharger la mémoire visuelle du lecteur','Respecter une règle légale'], a:1, why:'Chaque couleur doit porter une information ; sinon le lecteur mémorise une inutile.'}
+  ],
+  8: [
+    {q:'Quel mécanisme emmène vers une page de détail avec le contexte ?', o:['Le drill-through','Le signet','L’info-bulle'], a:0, why:'Le drill-through conserve la sélection courante pour ouvrir la page détaillée correspondante.'},
+    {q:'Quel objet permet au lecteur de filtrer lui-même la page ?', o:['Le segment','Le titre','La légende'], a:0, why:'Le segment est un filtre visible et manipulable ; gardez-en seulement les plus utiles.'},
+    {q:'Où vérifie-t-on l’effet d’un clic sur un autre visuel ?', o:['Accueil → Actualiser','Format → Modifier les interactions','Modélisation → Gérer les rôles'], a:1, why:'Chaque visuel source peut filtrer, surligner ou ignorer les autres : à contrôler explicitement.'}
+  ],
+  9: [
+    {q:'Que produit un fichier .pbix publié dans Service ?', o:['Uniquement un PDF','Un rapport et un modèle sémantique','Une base SQL'], a:1, why:'Le rapport s’appuie sur un modèle sémantique qui gère données, mesures et actualisation.'},
+    {q:'Quel élément relie Service à une source de données sur le réseau local ?', o:['La passerelle (gateway)','Le segment','Le signet'], a:0, why:'Sans passerelle, Service ne peut pas atteindre un fichier ou une base hébergés en interne.'},
+    {q:'Avant de partager un rapport, que faut-il tester ?', o:['Seulement l’affichage dans Desktop','Ouvrir le rapport dans Service et comparer les résultats','Le thème sombre'], a:1, why:'Source, droits et actualisation ne se voient qu’une fois le contenu publié.'}
+  ],
+  10: [
+    {q:'Que fait la RLS (Row-Level Security) ?', o:['Limite les lignes visibles selon l’utilisateur','Chiffre le fichier','Verrouille les visuels'], a:0, why:'Un responsable régional ne voit que sa région, sans copie de rapport.'},
+    {q:'Avec quel compte tester un rôle RLS ?', o:['Le compte administrateur','Un compte lecteur de test','Aucun, le test est automatique'], a:1, why:'L’administrateur voit souvent tout : le test avec un vrai lecteur est le seul crédible.'},
+    {q:'Que faire quand un collaborant quitte l’équipe ?', o:['Attendre la prochaine revue annuelle','Revoir ses habilitations et celles des groupes','Changer le mot de passe du rapport'], a:1, why:'Les droits minimaux et les revues régulières sont le cœur de la gouvernance.'}
+  ],
+  11: [
+    {q:'Par où passe la première étape du projet cockpit commercial ?', o:['La définition écrite de chaque KPI','Le choix du thème visuel','La publication'], a:0, why:'Sans définition validée, la revue finale n’a aucun point de référence.'},
+    {q:'Comment contrôler la fiabilité des totaux ?', o:['Faire confiance à Power BI','Rapprocher un échantillon de la source','Changer le type de visuel'], a:1, why:'Un contrôle écrit (source, valeur attendue, valeur obtenue) est la preuve de la fiabilité.'},
+    {q:'Par quoi commence une bonne présentation de rapport ?', o:['La liste des graphiques','Une conclusion appuyée sur les données','L’historique de Power BI'], a:1, why:'Décision d’abord, preuves ensuite, limites enfin.'}
+  ],
+  12: [
+    {q:'Quel critère pèse le plus dans la grille d’évaluation ?', o:['Le nombre de visuels','Les données, le modèle et le DAX','La couleur préférée'], a:1, why:'Modèle et calculs pèsent 25 % chacun : la fiabilité prime sur l’habillage.'},
+    {q:'Que faire des limites des données dans un portfolio ?', o:['Les cacher pour rassurer','Les afficher comme preuve de maturité','Les supprimer du projet'], a:1, why:'Un analyste crédible documente ce que la donnée ne permet pas de conclure.'},
+    {q:'Avant de publier des captures du projet final…', o:['Anonymiser les données réelles','Augmenter la résolution','Supprimer la page À propos'], a:0, why:'Aucune donnée personnelle ou confidentielle ne doit apparaître dans une capture publique.'}
+  ]
+};
+
 let completedModules = JSON.parse(localStorage.getItem('nexora-completed') || '[1]');
 let currentModule = Number(localStorage.getItem('nexora-current') || 2);
 let currentRoute = 'dashboard';
@@ -240,11 +304,80 @@ function isUnlocked(m){ return m.id <= Math.max(...completedModules, 1) + 1; }
 function progress(){ return Math.min(100, Math.round(((completedModules.length + (currentModule && !completedModules.includes(currentModule) ? .38 : 0)) / modules.length) * 100)); }
 function showToast(message){ const toast=$('#toast'); toast.textContent=message; toast.classList.add('show'); clearTimeout(window.toastTimer); window.toastTimer=setTimeout(()=>toast.classList.remove('show'),3000); }
 
+function quizScore(id){
+  const qs=quizzes[id]||[], sv=savedQuiz(id);
+  let score=0, answered=0;
+  qs.forEach((q,i)=>{ if(sv[i]!=null){ answered++; if(sv[i]===q.a) score++; } });
+  return {score, answered, total:qs.length};
+}
+function renderQuiz(m){
+  const qs=quizzes[m.id]; if(!qs||!qs.length) return '';
+  const sv=savedQuiz(m.id);
+  const questions=qs.map((q,i)=>{
+    const chosen=sv[i], answered=chosen!=null, correct=answered&&chosen===q.a;
+    const options=q.o.map((o,ci)=>{
+      let cls='quiz-option';
+      if(answered){ if(ci===q.a) cls+=' correct'; else if(ci===chosen) cls+=' wrong'; }
+      return `<button class="${cls}" data-quiz-mod="${m.id}" data-quiz-q="${i}" data-quiz-choice="${ci}" ${answered?'disabled':''}>${o}</button>`;
+    }).join('');
+    const fb=answered?`<p class="quiz-feedback ${correct?'ok':'ko'}">${correct?'✓ Exact. ':`✗ La bonne réponse était « ${q.o[q.a]} ». `}${q.why}</p>`:'';
+    return `<div class="quiz-question"><p class="quiz-q"><b>Q${i+1}</b> ${q.q}</p><div class="quiz-options">${options}</div>${fb}</div>`;
+  }).join('');
+  const st=quizScore(m.id);
+  const scoreLine=st.answered===st.total
+    ?`<div class="quiz-score done">Score final : <strong>${st.score}/${st.total}</strong> ${st.score===st.total?'— parfait !':st.score>=2?'— module validé, relisez la question manquée.':'— relisez les parties indiquées avant d’aller plus loin.'}</div>`
+    :`<div class="quiz-score">Répondues : <strong>${st.answered}/${st.total}</strong></div>`;
+  return `<h2>Vérifiez votre compréhension</h2><div class="quiz-block">${questions}${scoreLine}</div>`;
+}
+function handleQuizChoice(btn){
+  const mod=Number(btn.dataset.quizMod), qi=Number(btn.dataset.quizQ), ch=Number(btn.dataset.quizChoice);
+  const qs=quizzes[mod]; if(!qs) return;
+  const sv=savedQuiz(mod); if(sv[qi]!=null) return;
+  while(sv.length<qs.length) sv.push(null);
+  sv[qi]=ch; saveQuiz(mod,sv);
+  const block=btn.closest('.quiz-question'), q=qs[qi], correct=ch===q.a;
+  block.querySelectorAll('.quiz-option').forEach((b,ci)=>{ b.disabled=true; if(ci===q.a) b.classList.add('correct'); else if(ci===ch) b.classList.add('wrong'); });
+  const fb=document.createElement('p'); fb.className='quiz-feedback '+(correct?'ok':'ko');
+  fb.textContent=(correct?'✓ Exact. ':'✗ La bonne réponse était « '+q.o[q.a]+' ». ')+q.why;
+  block.appendChild(fb);
+  const st=quizScore(mod), scoreEl=document.querySelector('#lesson-article .quiz-score');
+  if(scoreEl){
+    if(st.answered===st.total){ scoreEl.className='quiz-score done'; scoreEl.innerHTML=`Score final : <strong>${st.score}/${st.total}</strong> ${st.score===st.total?'— parfait !':st.score>=2?'— module validé, relisez la question manquée.':'— relisez les parties indiquées.'}`; showToast(`Quiz terminé : ${st.score}/${st.total}.`); }
+    else scoreEl.innerHTML=`Répondues : <strong>${st.answered}/${st.total}</strong>`;
+  }
+}
+function savedQuiz(id){ let all={}; try{ all=JSON.parse(localStorage.getItem('nexora-quizzes')||'{}')||{}; }catch(e){} const arr=Array.isArray(all[id])?all[id]:[]; return arr; }
+function saveQuiz(id,arr){ let all={}; try{ all=JSON.parse(localStorage.getItem('nexora-quizzes')||'{}')||{}; }catch(e){} all[id]=arr; localStorage.setItem('nexora-quizzes',JSON.stringify(all)); }
+function exportProgress(){
+  const data={version:1,exportedAt:new Date().toISOString(),completed:completedModules,current:currentModule,
+    notes:JSON.parse(localStorage.getItem('nexora-notes')||'[]'),quizzes:JSON.parse(localStorage.getItem('nexora-quizzes')||'{}')};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='nexora_progression.json'; link.click(); URL.revokeObjectURL(link.href);
+  showToast('Progression exportée (modules, quiz et notes).');
+}
+function importProgress(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const d=JSON.parse(reader.result);
+      if(!d||!Array.isArray(d.completed)) throw new Error('format');
+      completedModules=d.completed.map(Number).filter(n=>Number.isInteger(n)&&n>=1&&n<=modules.length);
+      if(!completedModules.length) completedModules=[1];
+      localStorage.setItem('nexora-completed',JSON.stringify(completedModules));
+      currentModule=Number(d.current)&&Number(d.current)>=1&&Number(d.current)<=modules.length?Number(d.current):2;
+      localStorage.setItem('nexora-current',currentModule);
+      if(Array.isArray(d.notes)) localStorage.setItem('nexora-notes',JSON.stringify(d.notes));
+      if(d.quizzes&&typeof d.quizzes==='object') localStorage.setItem('nexora-quizzes',JSON.stringify(d.quizzes));
+      updateProgressUI(); renderNotes(); showToast('Progression importée avec succès.');
+    }catch(e){ showToast('Fichier invalide : import annulé.'); }
+  };
+  reader.readAsText(file);
+}
 function renderModuleCard(m){
   const done=completedModules.includes(m.id), current=m.id===currentModule && !done, unlocked=isUnlocked(m);
   return `<article class="module-card ${done?'done ':''}${current?'current ':''}${!unlocked?'locked':''}" data-module="${m.id}" ${!unlocked?'aria-disabled="true"':''}>
     <div class="module-card-top"><span>${String(m.id).padStart(2,'0')} · ${m.kicker}</span><span class="module-card-number">${done?'✓':String(m.id).padStart(2,'0')}</span></div>
-    <h3>${m.title}</h3><p>${m.short}</p><div class="module-card-footer"><b>◷ ${m.time}</b><span class="card-state">${done?'Terminé':current?'En cours':!unlocked?'⌁ Verrouillé':'À venir'}</span></div>
+    <h3>${m.title}</h3><p>${m.short}</p><div class="module-card-footer"><b>◷ ${m.time}</b><span class="card-state">${done?'Terminé':current?'En cours':!unlocked?'⌁ Verrouillé':'À venir'}</span>${(()=>{const st=quizzes[m.id]?quizScore(m.id):null;return st&&st.total&&st.answered===st.total?` <span class="card-quiz">Quiz ${st.score}/${st.total}</span>`:'';})()}</div>
   </article>`;
 }
 function renderDashboardModules(list=modules){ $('#dashboard-module-grid').innerHTML=list.map(renderModuleCard).join(''); }
@@ -287,6 +420,7 @@ function renderLesson(m){
   html+=`<h2>Erreurs fréquentes</h2><div class="warning-box"><ul>${m.errors.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
   html+=`<h2>Bonnes pratiques</h2><ul>${m.best.map(x=>`<li>${x}</li>`).join('')}</ul>`;
   html+=`<h2>Exercices</h2><div class="exercise-card"><h3>Exercice guidé</h3><p>${m.guided}</p><details><summary>Ouvrir les indications</summary><p>Avancez une étape à la fois, notez le résultat observé et comparez-le à la source. Si un résultat semble faux, revenez au type de données, au modèle puis au contexte de filtre.</p></details></div><div class="exercise-card" style="background:#fff;border-color:var(--line)"><h3 style="color:var(--ink)">Exercice autonome</h3><p>${m.autonomous}</p><details><summary>Voir la correction</summary><p>${m.correction}</p></details></div>`;
+  html+=renderQuiz(m);
   html+=`<div class="mini-project"><p class="eyebrow">MINI-PROJET DU MODULE</p><h3>${m.project}</h3><p>Conservez votre livrable dans un dossier projet avec une convention de nommage et une note de contrôle. Vous pourrez le réutiliser dans votre portfolio.</p></div>`;
   $('#lesson-article').innerHTML=html;
   const headings=$$('h2', $('#lesson-article')); $('#lesson-toc-links').innerHTML=headings.map((h,i)=>`<a class="toc-link" href="#section-${i}">${h.textContent}</a>`).join(''); headings.forEach((h,i)=>h.id=`section-${i}`);
@@ -359,6 +493,7 @@ document.addEventListener('click',e=>{
   const card=e.target.closest('[data-module]'); if(card && !e.target.closest('.play-button,button[data-route]')) openModule(card.dataset.module);
   const play=e.target.closest('.play-button'); if(play) openModule(play.dataset.module);
   const formula=e.target.closest('[data-formula]'); if(formula){selectedFormula=Number(formula.dataset.formula);renderLab();}
+  const qchoice=e.target.closest('[data-quiz-choice]'); if(qchoice&&!qchoice.disabled) handleQuizChoice(qchoice);
   const answer=e.target.closest('[data-answer]'); if(answer){const good=answer.dataset.answer==='right';$('#challenge-feedback').textContent=good?'✓ Exact. Une mesure respecte le contexte et se recalcule avec la période.':'À revoir : pensez à un calcul dynamique qui répond aux filtres du rapport.';$('#challenge-feedback').style.color=good?'var(--green)':'var(--coral)';}
   const term=e.target.closest('[data-term]'); if(term) showTermDefinition(term.dataset.term);
   const del=e.target.closest('[data-note]'); if(del){const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]');notes.splice(Number(del.dataset.note),1);localStorage.setItem('nexora-notes',JSON.stringify(notes));renderNotes();showToast('Note supprimée.');}
@@ -371,6 +506,8 @@ $('#modal-close').addEventListener('click',closeModal);
 $('#modal-overlay').addEventListener('click',e=>{if(e.target===$('#modal-overlay'))closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 $('#save-note').addEventListener('click',()=>{const text=$('#note-text').value.trim();if(!text){showToast('Écrivez une note avant de l’enregistrer.');return;}const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]');notes.unshift({text,date:new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium'}).format(new Date())});localStorage.setItem('nexora-notes',JSON.stringify(notes));$('#note-text').value='';renderNotes();showToast('Note enregistrée dans votre carnet.');});
+$('#export-progress').addEventListener('click',exportProgress);
+$('#import-progress').addEventListener('change',e=>{if(e.target.files[0])importProgress(e.target.files[0]);e.target.value='';});
 $('#add-note').addEventListener('click',()=>{$('#note-text').focus();});
 $$('[data-action="start"],[data-action="continue"]').forEach(btn=>btn.addEventListener('click',()=>openModule(currentModule)));
 

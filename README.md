@@ -11,6 +11,8 @@ NEXORA est un parcours de formation interactif en français, conçu pour accompa
 - atelier DAX avec les fonctions d’agrégation, de logique, de filtrage et d’analyse temporelle ;
 - jeu de données CSV téléchargeable ;
 - lexique, carnet de notes local et progression persistante dans le navigateur ;
+- **quiz auto-corrigés de 3 questions à la fin de chaque module** (36 questions avec explications) ;
+- **export / import de la progression** (modules, quiz et notes) au format JSON ;
 - parcours responsive, utilisable sur desktop et mobile ;
 - manuel imprimable complet dans `FORMATION_POWER_BI.md` ;
 - jeu de données versionné dans `data/contoso_exercice.csv`.
@@ -49,7 +51,7 @@ npm install --no-save jsdom
 node test/smoke.mjs
 ```
 
-Il vérifie 29 contrôles d’interface sans nécessiter de navigateur.
+Il vérifie 43 contrôles d’interface sans nécessiter de navigateur.
 
 ## Notes pédagogiques
 

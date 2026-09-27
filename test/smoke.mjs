@@ -75,6 +75,18 @@ $$('#dashboard-module-grid .module-card')[1].click();
 check('vue leçon active', $('#view-lesson').classList.contains('active-view'));
 check('titre module 2', $('#lesson-title').textContent.includes('Power BI Desktop'), $('#lesson-title').textContent);
 check('sections leçon', $$('#lesson-article h2').length >= 8, String($$('#lesson-article h2').length));
+
+// Quiz du module (3 questions)
+check('quiz : 3 questions', $$('#lesson-article .quiz-question').length === 3, String($$('#lesson-article .quiz-question').length));
+check('quiz : zone score', !!$('#lesson-article .quiz-score'));
+// Q1 réponse correcte (index 1), Q2 fausse (index 1), Q3 correcte (index 1)
+$('[data-quiz-mod="2"][data-quiz-q="0"][data-quiz-choice="1"]').click();
+check('quiz : feedback correct', $('#lesson-article .quiz-feedback.ok')?.textContent.includes('✓ Exact'), $('#lesson-article .quiz-feedback')?.textContent.slice(0, 40));
+$('[data-quiz-mod="2"][data-quiz-q="1"][data-quiz-choice="1"]').click();
+check('quiz : feedback incorrect', !!$('#lesson-article .quiz-feedback.ko'));
+$('[data-quiz-mod="2"][data-quiz-q="2"][data-quiz-choice="1"]').click();
+check('quiz : score final 2/3', $('#lesson-article .quiz-score').textContent.includes('2/3'), $('#lesson-article .quiz-score').textContent.trim());
+check('quiz : choix verrouillés', $$('#lesson-article .quiz-option[disabled]').length === 9, String($$('#lesson-article .quiz-option[disabled]').length));
 $('#complete-lesson').click();
 check('toast de validation', $('#toast').textContent.includes('Module validé'), $('#toast').textContent);
 check('progression mise à jour', $('#sidebar-progress-value').textContent !== '12%', $('#sidebar-progress-value').textContent);
@@ -102,6 +114,20 @@ check('note enregistrée', $$('#saved-notes .saved-note').length >= 1 && $('#sav
 // Persistance
 check('localStorage progression', JSON.parse(window.localStorage.getItem('nexora-completed')).includes(2));
 check('localStorage notes', JSON.parse(window.localStorage.getItem('nexora-notes')).length >= 1);
+check('localStorage quiz', JSON.parse(window.localStorage.getItem('nexora-quizzes'))['2'].length === 3);
+
+// Export / import de progression
+check('bouton export présent', !!$('#export-progress'));
+check('bouton import présent', !!$('#import-progress'));
+check('badge quiz sur carte module', $$('#dashboard-module-grid .module-card')[1].textContent.includes('Quiz 2/3'), $$('#dashboard-module-grid .module-card')[1].textContent.match(/Quiz \d\/\d/)?.[0] || 'absent');
+const payload = JSON.stringify({ version: 1, completed: [1, 2, 3], current: 3, notes: [{ text: 'note import', date: '27 sept.' }], quizzes: { 2: [1, 1, 1] } });
+const file = new window.File([payload], 'nexora_progression.json', { type: 'application/json' });
+window.importProgress(file);
+await new Promise(r => setTimeout(r, 100));
+check('import : modules', JSON.parse(window.localStorage.getItem('nexora-completed')).join(',') === '1,2,3', window.localStorage.getItem('nexora-completed'));
+check('import : module courant', window.localStorage.getItem('nexora-current') === '3');
+check('import : notes remplacées', JSON.parse(window.localStorage.getItem('nexora-notes'))[0].text === 'note import');
+check('import : progression visible', $('#sidebar-progress-value').textContent === '25%', $('#sidebar-progress-value').textContent);
 
 console.log(results.join('\n'));
 const fails = results.filter(r => r.startsWith('FAIL'));

@@ -6,6 +6,8 @@
 
 La progression suit toujours le même mouvement : **comprendre → observer → manipuler → pratiquer → appliquer → approfondir**. Ne sautez pas directement aux formules DAX. Un calcul juste sur un mauvais modèle reste un mauvais résultat.
 
+Dans l’application NEXORA, chaque module se termine par un **quiz auto-corrigé de 3 questions** avec explications : validez le quiz avant de marquer le module terminé, puis exportez votre progression depuis l’onglet Ressources si vous changez de navigateur.
+
 Chaque chapitre contient : objectifs, prérequis, notions, démonstration, formules, erreurs fréquentes, bonnes pratiques, exercices et mini-projet. Les mentions **Capture à insérer** décrivent précisément l’image à réaliser dans la version de Power BI Desktop utilisée.
 
 ---
