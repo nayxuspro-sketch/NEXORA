@@ -176,7 +176,56 @@ const formulas = [
   {name:'STDEV.P', tag:'Statistique', code:'Dispersion = STDEV.P(F_Commandes[DelaiJours])', description:'Mesure la dispersion d’une population autour de sa moyenne.', result:'2,7 jours', use:'Stabilité d’un délai ou variabilité d’un résultat.', error:'Ne comparez pas des écarts-types de populations ou unités différentes sans contexte.'}
 ];
 
-const glossary = ['Agrégation','Actualisation','CALCULATE','Colonne calculée','Contexte de filtre','DAX','Dimension','Drill-through','Gateway','KPI','Langage M','Mesure','Modèle en étoile','Power Query','RLS','Table de faits','Table de dates','Visuel'];
+const glossary = [
+  {t:'Actualisation', d:'Relancer les requêtes pour recharger le modèle avec les données les plus récentes. Elle peut être manuelle ou planifiée dans Power BI Service.'},
+  {t:'Agrégation', d:'Résumer plusieurs valeurs en un seul résultat. Exemples : SUM pour additionner, AVERAGE pour la moyenne, DISTINCTCOUNT pour les valeurs uniques.'},
+  {t:'Ajouter des requêtes', d:'Empiler des lignes de tables qui ont les mêmes colonnes : janvier + février + mars. À ne pas confondre avec Fusionner.'},
+  {t:'Application Power BI', d:'Regroupement web de rapports et pages validés, destiné à un public de lecteurs avec un accès simple.'},
+  {t:'Axe', d:'Zone d’un visuel qui accueille les catégories ou les dates. Exemple : les mois le long d’une courbe.'},
+  {t:'Business Intelligence (BI)', d:'Méthodes et outils qui transforment les données en informations utiles à la décision. Le tableau de bord n’est pas le décideur : il éclaire celui qui décide.'},
+  {t:'Cadrage', d:'Définir le besoin, le public, les décisions, les sources et la fréquence avant de construire. Une demande comme « un dashboard » devient une question précise.'},
+  {t:'CALCULATE', d:'Fonction centrale de DAX : évalue une mesure dans un contexte de filtre modifié. Exemple : le total des ventes mais seulement pour le segment Premium.'},
+  {t:'Carte KPI', d:'Visuel qui affiche une valeur clé, souvent avec une variation. Sert à attirer l’œil sur le niveau actuel d’un indicateur.'},
+  {t:'Colonne calculée', d:'Colonne ajoutée au modèle, calculée ligne par ligne à l’actualisation. Utile pour créer un libellé ou un segment stable.'},
+  {t:'Contexte de filtre', d:'Ensemble des filtres actifs autour d’une mesure (segments, page, visuel). La même mesure donne un résultat différent selon ce contexte.'},
+  {t:'Contexte de ligne', d:'Point de vue d’une formule de colonne sur une ligne donnée. Une colonne calculée s’évalue ligne par ligne ; une mesure s’évalue selon les filtres.'},
+  {t:'DAX', d:'Langage des formules de Power BI. Il ressemble à Excel mais travaille sur des tableaux entiers et réagit aux filtres du rapport.'},
+  {t:'Dimension', d:'Table de description qui répond à qui, quoi, quand, où : produit, client, date, région. Elle filtre la table de faits.'},
+  {t:'DirectQuery', d:'Mode de connexion qui interroge la source à la volée, sans copier les données. Utile pour la fraîcheur, au prix d’une dépendance à la source.'},
+  {t:'DIVIDE', d:'Division protégée contre le dénominateur nul. Préférée à « / » pour un taux : DIVIDE(a, b, 0) renvoie 0 si b vaut zéro.'},
+  {t:'Drill-through', d:'Passage d’une vue synthétique vers une page de détail en gardant le contexte sélectionné. Exemple : clic droit sur un produit → transactions détaillées.'},
+  {t:'Drill-down', d:'Descendre dans une hiérarchie d’un visuel : année → trimestre → mois, puis remonter.'},
+  {t:'Espace de travail', d:'Espace web partagé où une équipe publie et gouverne son contenu, avec des rôles (membre, contributeur, lecteur…).'},
+  {t:'Écart-type', d:'Mesure de dispersion autour de la moyenne. Un écart-type élevé signale des valeurs très hétérogènes.'},
+  {t:'Étapes appliquées', d:'Historique des transformations dans Power Query. Chaque étape est rejouée à la prochaine actualisation : c’est la recette de nettoyage.'},
+  {t:'Filtre de page', d:'Filtre qui s’applique à tous les visuels d’une page. Exemple : afficher uniquement le trimestre en cours.'},
+  {t:'Filtre de rapport', d:'Filtre qui s’applique à toutes les pages du rapport. Utile pour restreindre tout le rapport à une période ou une entité.'},
+  {t:'Fusionner des requêtes', d:'Rapprocher des colonnes de deux tables grâce à une clé commune, comme une jointure. Exemple : ajouter le nom du produit aux ventes.'},
+  {t:'Gateway (passerelle)', d:'Pont sécurisé entre Power BI Service et une source de données située sur le réseau local de l’organisation.'},
+  {t:'Granularité', d:'Ce qu’une ligne d’une table représente. Dans F_Ventes : une ligne de vente pour un produit, un client et une date. À écrire avant toute mesure.'},
+  {t:'Import (mode)', d:'Mode de connexion qui charge une copie des données dans le modèle. C’est le mode le plus courant et le plus rapide à l’affichage.'},
+  {t:'Info-bulle', d:'Détail affiché au survol d’un élément. Elle complète un visuel sans l’encombrer.'},
+  {t:'KPI', d:'Indicateur clé relié à une décision. Sans décision associée, un chiffre reste un simple affichage.'},
+  {t:'Langage M', d:'Langage des requêtes Power Query. L’interface génère le code : le lire suffit pour diagnostiquer une étape.'},
+  {t:'Médiane', d:'Valeur qui sépare la distribution en deux moitiés. Contrairement à la moyenne, elle résiste aux valeurs extrêmes.'},
+  {t:'Mesure', d:'Calcul dynamique évalué selon les filtres du visuel. Idéale pour les KPI : elle ne stocke pas de résultat dans le modèle.'},
+  {t:'Modèle en étoile', d:'Organisation avec une table de faits au centre et des dimensions autour. Simple à lire et aux filtres prévisibles.'},
+  {t:'Modèle sémantique', d:'Couche de données publiée dans Service qui alimente les rapports, les scores et les connections partagées.'},
+  {t:'N-1', d:'Période précédente : mois précédent, trimestre précédent ou année précédente. La référence d’une comparaison temporelle.'},
+  {t:'Percentile', d:'Seuil en dessous duquel se trouve une proportion d’observations. Le P90 d’un délai indique le délai dépassé par 10 % des cas.'},
+  {t:'Power BI Desktop', d:'Application locale où l’on connecte, modèle, calcule et dessine le rapport. Le fichier de travail s’appelle .pbix.'},
+  {t:'Power BI Service', d:'Plateforme web où l’on publie, partage, actualise et administre les rapports.'},
+  {t:'Power Query', d:'Moteur de connexion et de transformation : il nettoie et structure les données avant le modèle.'},
+  {t:'Requête', d:'Recette qui décrit le passage de la source à une table prête à l’emploi : quelles étapes, dans quel ordre.'},
+  {t:'RLS (Row-Level Security)', d:'Sécurité au niveau des lignes : chaque utilisateur ne voit que les lignes qui le concernent. Exemple : un responsable ne voit que sa région.'},
+  {t:'Segment', d:'Filtre visible et manipulable par le lecteur, posé sur un visuel ou une page.'},
+  {t:'Signet (bookmark)', d:'État d’un rapport enregistré (filtres, visibilité) auquel on peut revenir en un clic.'},
+  {t:'SWITCH(TRUE())', d:'Motif DAX lisible pour plusieurs conditions : les cas sont évalués dans l’ordre, comme une pile de règles.'},
+  {t:'Table calculée', d:'Table créée par une formule DAX, calculée à l’actualisation. À réserver aux besoins ciblés de modélisation.'},
+  {t:'Table de dates', d:'Table continue d’un jour à l’autre, reliée au fait et marquée comme table de dates. Indispensable pour N-1 et les cumuls.'},
+  {t:'Table de faits', d:'Table des événements mesurables : une ligne par vente, note ou commande. Elle contient les mesures et les clés étrangères.'},
+  {t:'Visuel', d:'Élément graphique du rapport : courbe, barres, carte, matrice. Chaque visuel répond à une question précise.'}
+];
 
 let completedModules = JSON.parse(localStorage.getItem('nexora-completed') || '[1]');
 let currentModule = Number(localStorage.getItem('nexora-current') || 2);
@@ -252,16 +301,49 @@ function renderLab(){
   const f=formulas[selectedFormula]; $('#formula-detail').innerHTML=`<p class="eyebrow">FONCTION DAX · ${f.tag.toUpperCase()}</p><h2>${f.name}</h2><p>${f.description}</p><div class="code-editor"><span class="var">${f.code.split('=')[0]}=</span><br><span class="fn">${f.code.includes('=')?f.code.split('=').slice(1).join('=').trim():f.code}</span></div><div class="formula-result"><span class="result-number">${f.result}</span><small>Résultat simulé sur le jeu Contoso<br>selon le contexte courant</small></div><div class="tip-box" style="margin-top:22px"><strong>Quand l’utiliser :</strong> ${f.use}<br><strong>Vigilance :</strong> ${f.error}</div>`;
 }
 function renderGlossary(query=''){
-  const result=glossary.filter(term=>term.toLowerCase().includes(query.toLowerCase())); $('#glossary-terms').innerHTML=result.map(term=>`<button class="glossary-term" data-term="${term}">${term}</button>`).join('')||'<small style="color:var(--muted)">Aucun terme trouvé.</small>';
+  const result=glossary.filter(item=>item.t.toLowerCase().includes(query.toLowerCase()));
+  $('#glossary-terms').innerHTML=result.map(item=>`<button class="glossary-term" data-term="${item.t}">${item.t}</button>`).join('')||'<small style="color:var(--muted)">Aucun terme trouvé.</small>';
+  $('#glossary-count').textContent=`${glossary.length} termes`;
+}
+function showTermDefinition(term){
+  const item=glossary.find(x=>x.t===term); if(!item) return;
+  $$('.glossary-term').forEach(b=>b.classList.toggle('active',b.dataset.term===term));
+  $('#glossary-definition').innerHTML=`<strong>${item.t}</strong><p>${item.d}</p>`;
 }
 function renderNotes(){
   const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]'); $('#saved-notes').innerHTML=notes.length?notes.map((n,i)=>`<div class="saved-note"><button class="delete-note" data-note="${i}" aria-label="Supprimer la note">×</button><p>${escapeHtml(n.text)}</p><small>${n.date}</small></div>`).join(''):'<div class="saved-note" style="grid-column:1/-1;background:#fff"><p style="color:var(--muted)">Aucune note pour le moment. Ajoutez votre première idée après une leçon.</p></div>';
 }
 function escapeHtml(text){return text.replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
 function downloadDataset(){
-  const csv='DateVente,IDProduit,Produit,Categorie,Region,IDClient,Quantite,Montant\n2026-01-05,P-001,Casque Studio,Audio,Nord,C-102,2,159.80\n2026-01-08,P-004,Clavier Meca,Accessoires,Est,C-087,1,89.00\n2026-02-14,P-002,Enceinte Nomade,Audio,Sud,C-215,3,299.70\n2026-03-02,P-005,Webcam HD,Video,Ouest,C-102,1,74.90\n2026-03-17,P-003,Micro USB,Audio,Nord,C-331,2,119.80\n2026-04-06,P-004,Clavier Meca,Accessoires,Est,C-087,2,178.00\n2026-05-21,P-006,Souris Ergo,Accessoires,Sud,C-451,4,196.00\n2026-06-11,P-001,Casque Studio,Audio,Ouest,C-215,1,79.90';
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='nexora_contoso_exercice.csv'; link.click(); URL.revokeObjectURL(link.href); showToast('Jeu de données téléchargé.');
+  const fallback='DateVente,IDProduit,Produit,Categorie,Region,IDClient,Quantite,Montant\n2026-01-05,P-001,Casque Studio,Audio,Nord,C-102,2,159.80\n2026-01-08,P-004,Clavier Meca,Accessoires,Est,C-087,1,89.00\n2026-02-14,P-002,Enceinte Nomade,Audio,Sud,C-215,3,299.70\n2026-03-02,P-005,Webcam HD,Video,Ouest,C-102,1,74.90\n2026-03-17,P-003,Micro USB,Audio,Nord,C-331,2,119.80\n2026-04-06,P-004,Clavier Meca,Accessoires,Est,C-087,2,178.00\n2026-05-21,P-006,Souris Ergo,Accessoires,Sud,C-451,4,196.00\n2026-06-11,P-001,Casque Studio,Audio,Ouest,C-215,1,79.90';
+  const save=(text,name)=>{const blob=new Blob([text],{type:'text/csv;charset=utf-8'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name;link.click();URL.revokeObjectURL(link.href);};
+  fetch('data/contoso_exercice.csv').then(r=>{if(!r.ok)throw 0;return r.text();}).then(t=>{save(t,'contoso_exercice.csv');showToast('Jeu de données téléchargé.');}).catch(()=>{save(fallback,'nexora_contoso_exercice.csv');showToast('Jeu de données téléchargé (version embarquée).');});
 }
+const checklistItems = [
+  'Le besoin, le public et la décision à éclairer sont écrits.',
+  'Chaque colonne possède le bon type de données.',
+  'Les doublons, valeurs nulles et erreurs ont été traités.',
+  'La granularité de la table de faits est connue et documentée.',
+  'Le modèle est en étoile et les relations sont testées.',
+  'Les mesures sont nommées, formatées et réutilisées.',
+  'Les totaux principaux ont été rapprochés d’une source.',
+  'Les titres portent un message, pas seulement un mot.',
+  'Les unités, dates et filtres actifs sont visibles.',
+  'Les couleurs ne sont pas le seul support d’information.',
+  'Le rapport reste lisible sur une fenêtre plus petite.',
+  'Une navigation claire existe entre les pages.',
+  'La page À propos indique source, propriétaire et actualisation.',
+  'Les rôles et accès ont été testés avec un compte lecteur (pas administrateur).',
+  'L’actualisation est planifiée et son échec est surveillé.',
+  'Aucune donnée personnelle réelle n’apparaît dans les captures.',
+  'Le nom du rapport et du fichier .pbix sont cohérents et versionnés.',
+  'Une reprise métier a validé le rapport avant la mise en ligne.'
+];
+function openChecklist(){
+  $('#modal-content').innerHTML=`<p class="eyebrow">CHECK-LIST · 18 POINTS</p><h2 id="modal-title">Avant de publier un dashboard</h2><ul class="checklist-list">${checklistItems.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  $('#modal-overlay').hidden=false;
+}
+function closeModal(){ $('#modal-overlay').hidden=true; }
 function handleSearch(value){
   const q=value.trim().toLowerCase(); if(!q){renderDashboardModules();renderPath();return;} const matches=modules.filter(m=>[m.title,m.short,m.kicker,...m.objectives].join(' ').toLowerCase().includes(q)); renderDashboardModules(matches);renderPath(matches); showToast(`${matches.length} module${matches.length>1?'s':''} trouvé${matches.length>1?'s':''}.`);
 }
@@ -278,16 +360,22 @@ document.addEventListener('click',e=>{
   const play=e.target.closest('.play-button'); if(play) openModule(play.dataset.module);
   const formula=e.target.closest('[data-formula]'); if(formula){selectedFormula=Number(formula.dataset.formula);renderLab();}
   const answer=e.target.closest('[data-answer]'); if(answer){const good=answer.dataset.answer==='right';$('#challenge-feedback').textContent=good?'✓ Exact. Une mesure respecte le contexte et se recalcule avec la période.':'À revoir : pensez à un calcul dynamique qui répond aux filtres du rapport.';$('#challenge-feedback').style.color=good?'var(--green)':'var(--coral)';}
-  const term=e.target.closest('[data-term]'); if(term) showToast(`${term.dataset.term} : retrouvez sa définition dans le module correspondant.`);
+  const term=e.target.closest('[data-term]'); if(term) showTermDefinition(term.dataset.term);
   const del=e.target.closest('[data-note]'); if(del){const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]');notes.splice(Number(del.dataset.note),1);localStorage.setItem('nexora-notes',JSON.stringify(notes));renderNotes();showToast('Note supprimée.');}
 });
 $('#complete-lesson').addEventListener('click',completeCurrent);
 $('#download-dataset').addEventListener('click',downloadDataset);
 $('#glossary-input').addEventListener('input',e=>renderGlossary(e.target.value));
-$('#checklist-button').addEventListener('click',()=>showToast('Checklist : source · propriétaire · KPI · filtres · accessibilité · actualisation · sécurité.'));
+$('#checklist-button').addEventListener('click',openChecklist);
+$('#modal-close').addEventListener('click',closeModal);
+$('#modal-overlay').addEventListener('click',e=>{if(e.target===$('#modal-overlay'))closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 $('#save-note').addEventListener('click',()=>{const text=$('#note-text').value.trim();if(!text){showToast('Écrivez une note avant de l’enregistrer.');return;}const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]');notes.unshift({text,date:new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium'}).format(new Date())});localStorage.setItem('nexora-notes',JSON.stringify(notes));$('#note-text').value='';renderNotes();showToast('Note enregistrée dans votre carnet.');});
 $('#add-note').addEventListener('click',()=>{$('#note-text').focus();});
 $$('[data-action="start"],[data-action="continue"]').forEach(btn=>btn.addEventListener('click',()=>openModule(currentModule)));
 
 // Initial render
+const dateEl=$('#dashboard-date');
+if(dateEl) dateEl.innerHTML=`${new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date()).toUpperCase()} <span class="dot"></span> BON RETOUR`;
+const labCount=$('#lab-function-count'); if(labCount) labCount.textContent=`${formulas.length} fonctions clés`;
 renderDashboardModules(); renderPath(); updateProgressUI(); renderGlossary(); renderNotes();

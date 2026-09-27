@@ -55,7 +55,7 @@
       <section id="view-dashboard" class="view active-view">
         <div class="welcome-row">
           <div>
-            <p class="eyebrow">MARDI 25 SEPTEMBRE 2026 <span class="dot"></span> BON RETOUR</p>
+            <p class="eyebrow" id="dashboard-date">BON RETOUR</p>
             <h1>Bonjour Alex <span class="wave">✦</span></h1>
             <p class="lead">Construisez des rapports qui aident vraiment à décider.</p>
           </div>
@@ -64,10 +64,10 @@
 
         <div class="hero-card">
           <div class="hero-copy">
-            <div class="pill light-pill"><span class="pulse-dot"></span> PARCOURS GUIDÉ · 42 HEURES</div>
+            <div class="pill light-pill"><span class="pulse-dot"></span> PARCOURS GUIDÉ · 17 HEURES DE PRATIQUE</div>
             <h2>Des données brutes<br><i>aux bonnes décisions.</i></h2>
             <p>Une formation pratique pour passer de zéro à concepteur de tableaux de bord professionnels, étape par étape.</p>
-            <div class="hero-meta"><span>◷ 12 modules</span><span>▣ 36 leçons</span><span>◒ Projets concrets</span></div>
+            <div class="hero-meta"><span>◷ 12 modules</span><span>▣ 48 leçons</span><span>◒ Projets concrets</span></div>
             <button class="button button-coral" data-action="start">Commencer le parcours <span>→</span></button>
           </div>
           <div class="hero-art" aria-hidden="true">
@@ -93,7 +93,7 @@
       </section>
 
       <section id="view-parcours" class="view">
-        <div class="page-intro"><div><p class="eyebrow">12 MODULES · 36 LEÇONS</p><h1>Mon parcours</h1><p class="lead">Une progression pensée pour apprendre, pratiquer et retenir.</p></div><div class="completion-badge"><span>◒</span><div><strong id="completion-badge-value">18%</strong><small>du parcours réalisé</small></div></div></div>
+        <div class="page-intro"><div><p class="eyebrow">12 MODULES · 48 LEÇONS</p><h1>Mon parcours</h1><p class="lead">Une progression pensée pour apprendre, pratiquer et retenir.</p></div><div class="completion-badge"><span>◒</span><div><strong id="completion-badge-value">18%</strong><small>du parcours réalisé</small></div></div></div>
         <div class="path-layout"><div class="path-list" id="path-list"></div><aside class="path-aside"><div class="side-panel next-panel"><p class="eyebrow">PROCHAINE ÉTAPE</p><div class="next-icon">02</div><h3>Premiers pas dans Power BI Desktop</h3><p>Découvrez l’interface et réalisez votre premier rapport en moins de 40 minutes.</p><button class="button button-dark full" data-module="2">Démarrer la leçon <span>→</span></button></div><div class="side-panel certificate-panel"><div class="certificate-icon">✦</div><h3>Votre objectif final</h3><p>Présenter un dashboard commercial complet, documenté et partageable.</p><div class="certificate-line"></div><small>Certification NEXORA · Power BI Foundations</small></div></aside></div>
       </section>
 
@@ -104,20 +104,21 @@
       </section>
 
       <section id="view-lab" class="view">
-        <div class="page-intro lab-intro"><div><p class="eyebrow">BAC À SABLE · DAX</p><h1>Atelier DAX</h1><p class="lead">Testez les formules essentielles et comprenez leur contexte de calcul.</p></div><div class="lab-badge">ƒx <span>12 fonctions clés</span></div></div>
+        <div class="page-intro lab-intro"><div><p class="eyebrow">BAC À SABLE · DAX</p><h1>Atelier DAX</h1><p class="lead">Testez les formules essentielles et comprenez leur contexte de calcul.</p></div><div class="lab-badge">ƒx <span id="lab-function-count">15 fonctions clés</span></div></div>
         <div class="lab-layout"><div class="formula-list" id="formula-list"></div><div class="formula-detail" id="formula-detail"></div></div>
         <div class="lab-challenge"><div><p class="eyebrow">DÉFI EXPRESS</p><h2>Quelle mesure choisir ?</h2><p>Votre direction veut comparer le chiffre d’affaires de 2026 à celui de 2025, quel que soit le filtre de date appliqué au rapport.</p></div><div class="challenge-options"><button data-answer="wrong">Une colonne calculée</button><button data-answer="right">Une mesure avec CALCULATE</button><button data-answer="wrong">Une table calculée</button><div class="challenge-feedback" id="challenge-feedback"></div></div></div>
       </section>
 
       <section id="view-ressources" class="view">
         <div class="page-intro"><div><p class="eyebrow">BOÎTE À OUTILS</p><h1>Ressources</h1><p class="lead">Les fichiers, pense-bêtes et repères pour progresser sans vous perdre.</p></div></div>
-        <div class="resource-grid"><div class="resource-card featured-resource"><div class="resource-icon coral">▦</div><div><p class="eyebrow">FICHIER D’EXERCICE</p><h3>Jeu de données Contoso</h3><p>Ventes, produits, clients et calendrier : le modèle utilisé dans tous les exercices du parcours.</p><button class="text-button" id="download-dataset">Télécharger le CSV <span>↓</span></button></div></div><div class="resource-card"><div class="resource-icon yellow">⌘</div><p class="eyebrow">MÉMO</p><h3>Les 20 fonctions DAX à connaître</h3><p>Une fiche synthétique avec syntaxe, cas d’usage et erreurs fréquentes.</p><button class="text-button" data-route="lab">Ouvrir l’atelier <span>→</span></button></div><div class="resource-card"><div class="resource-icon blue">▤</div><p class="eyebrow">CHECK-LIST</p><h3>Rapport professionnel</h3><p>18 points de contrôle avant de publier un dashboard.</p><button class="text-button" id="checklist-button">Afficher la checklist <span>→</span></button></div><div class="resource-card"><div class="resource-icon coral">▤</div><p class="eyebrow">MANUEL IMPRIMABLE</p><h3>Formation complète</h3><p>La version longue avec chapitres, exercices, corrections et annexes DAX.</p><a class="text-button" href="FORMATION_POWER_BI.md" target="_blank" rel="noopener">Ouvrir le manuel <span>↗</span></a></div></div>
-        <div class="resource-bottom"><div class="glossary-card"><div class="section-heading compact"><div><p class="eyebrow">LEXIQUE</p><h2>Un mot vous échappe ?</h2></div><span class="glossary-count">48 termes</span></div><div class="glossary-search"><span>⌕</span><input id="glossary-input" placeholder="Rechercher : mesure, dimension…"></div><div class="glossary-terms" id="glossary-terms"></div></div><div class="capture-board"><div class="capture-board-top"><p class="eyebrow">REPÈRES VISUELS</p><span>VERSION DESKTOP</span></div><div class="fake-powerbi"><div class="fake-pbi-bar"></div><div class="fake-pbi-side"></div><div class="fake-pbi-canvas"><div class="fake-pbi-title"></div><div class="fake-pbi-widgets"><i></i><i></i><i></i></div><div class="fake-pbi-chart"></div></div></div><p>Capture à insérer : vue Rapport de Power BI Desktop avec le volet Visualisations ouvert.</p></div></div>
+        <div class="resource-grid"><div class="resource-card featured-resource"><div class="resource-icon coral">▦</div><div><p class="eyebrow">FICHIER D’EXERCICE</p><h3>Jeu de données Contoso</h3><p>Ventes, produits, clients et calendrier : le modèle utilisé dans tous les exercices du parcours.</p><button class="text-button" id="download-dataset">Télécharger le CSV <span>↓</span></button></div></div><div class="resource-card"><div class="resource-icon yellow">⌘</div><p class="eyebrow">MÉMO</p><h3>Les 15 fonctions DAX à connaître</h3><p>Une fiche synthétique avec syntaxe, cas d’usage et erreurs fréquentes.</p><button class="text-button" data-route="lab">Ouvrir l’atelier <span>→</span></button></div><div class="resource-card"><div class="resource-icon blue">▤</div><p class="eyebrow">CHECK-LIST</p><h3>Rapport professionnel</h3><p>18 points de contrôle avant de publier un dashboard.</p><button class="text-button" id="checklist-button">Afficher la checklist <span>→</span></button></div><div class="resource-card"><div class="resource-icon coral">▤</div><p class="eyebrow">MANUEL IMPRIMABLE</p><h3>Formation complète</h3><p>La version longue avec chapitres, exercices, corrections et annexes DAX.</p><a class="text-button" href="FORMATION_POWER_BI.md" target="_blank" rel="noopener">Ouvrir le manuel <span>↗</span></a></div></div>
+        <div class="resource-bottom"><div class="glossary-card"><div class="section-heading compact"><div><p class="eyebrow">LEXIQUE</p><h2>Un mot vous échappe ?</h2></div><span class="glossary-count" id="glossary-count">48 termes</span></div><div class="glossary-search"><span>⌕</span><input id="glossary-input" placeholder="Rechercher : mesure, dimension…"></div><div class="glossary-terms" id="glossary-terms"></div><div class="glossary-definition" id="glossary-definition"><strong>Sélectionnez un terme</strong><p>Sa définition simple s’affichera ici.</p></div></div><div class="capture-board"><div class="capture-board-top"><p class="eyebrow">REPÈRES VISUELS</p><span>VERSION DESKTOP</span></div><div class="fake-powerbi"><div class="fake-pbi-bar"></div><div class="fake-pbi-side"></div><div class="fake-pbi-canvas"><div class="fake-pbi-title"></div><div class="fake-pbi-widgets"><i></i><i></i><i></i></div><div class="fake-pbi-chart"></div></div></div><p>Capture à insérer : vue Rapport de Power BI Desktop avec le volet Visualisations ouvert.</p></div></div>
       </section>
 
       <section id="view-notes" class="view"><div class="page-intro"><div><p class="eyebrow">VOTRE CARNET</p><h1>Mes notes</h1><p class="lead">Gardez ici les idées à revoir et les raccourcis qui vous servent.</p></div><button class="button button-dark" id="add-note">+ Nouvelle note</button></div><div class="notes-layout"><div class="note-editor"><textarea id="note-text" placeholder="Écrire une note…\n\nExemple : CALCULATE modifie le contexte de filtre."></textarea><div class="note-editor-footer"><span>Vos notes restent dans ce navigateur.</span><button class="button button-coral" id="save-note">Enregistrer</button></div></div><div class="saved-notes" id="saved-notes"></div></div></section>
     </main>
   </div>
+  <div class="modal-overlay" id="modal-overlay" hidden><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="modal-close" id="modal-close" aria-label="Fermer">×</button><div id="modal-content"></div></div></div>
   <div class="toast" id="toast" role="status"></div>
   <script src="app.js"></script>
 </body>
