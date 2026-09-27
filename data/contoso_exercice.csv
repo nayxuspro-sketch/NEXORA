@@ -1,0 +1,13 @@
+DateVente,IDVente,IDProduit,Produit,Categorie,Segment,Region,IDClient,Quantite,Montant,Cout
+2026-01-05,V-1001,P-001,Casque Studio,Audio,Premium,Nord,C-102,2,159.80,92.00
+2026-01-08,V-1002,P-004,Clavier Meca,Accessoires,Standard,Est,C-087,1,89.00,48.00
+2026-02-14,V-1003,P-002,Enceinte Nomade,Audio,Premium,Sud,C-215,3,299.70,174.00
+2026-03-02,V-1004,P-005,Webcam HD,Video,Standard,Ouest,C-102,1,74.90,41.00
+2026-03-17,V-1005,P-003,Micro USB,Audio,Standard,Nord,C-331,2,119.80,62.00
+2026-04-06,V-1006,P-004,Clavier Meca,Accessoires,Standard,Est,C-087,2,178.00,96.00
+2026-05-21,V-1007,P-006,Souris Ergo,Accessoires,Premium,Sud,C-451,4,196.00,104.00
+2026-06-11,V-1008,P-001,Casque Studio,Audio,Premium,Ouest,C-215,1,79.90,46.00
+2026-07-03,V-1009,P-002,Enceinte Nomade,Audio,Premium,Nord,C-102,2,199.80,116.00
+2026-07-19,V-1010,P-005,Webcam HD,Video,Standard,Est,C-555,3,224.70,123.00
+2026-08-09,V-1011,P-006,Souris Ergo,Accessoires,Premium,Ouest,C-331,1,49.00,26.00
+2026-09-22,V-1012,P-003,Micro USB,Audio,Standard,Sud,C-451,2,119.80,62.00
