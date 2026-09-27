@@ -40,6 +40,17 @@ python3 -m http.server 4173 --bind 0.0.0.0
 
 Puis ouvrir `http://localhost:4173`.
 
+## Tests
+
+Un test de fumée (navigation, modules, lexique, checklist, notes, progression) est fouri :
+
+```bash
+npm install --no-save jsdom
+node test/smoke.mjs
+```
+
+Il vérifie 29 contrôles d’interface sans nécessiter de navigateur.
+
 ## Notes pédagogiques
 
 Les captures d’écran Power BI réelles dépendent de la version de Desktop, du système et de la langue installée. L’interface utilise donc des repères clairement marqués **Capture à insérer**, avec une description précise de l’écran attendu plutôt que des images susceptibles d’être trompeuses.
