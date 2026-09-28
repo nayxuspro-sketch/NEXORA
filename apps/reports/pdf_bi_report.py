@@ -11,8 +11,9 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from apps.companies.models import Company
 from apps.sales.models import Sale, SaleItem, SaleStatus
-from apps.inventory.models import StockLevel
+from apps.inventory.models import StockLevel, Store
 from apps.partners.models import Partner
+from apps.common.pdf_header import get_store_logo_flowable, create_header_with_logo
 
 
 class BiReportPdfExportView(APIView):
@@ -200,16 +201,25 @@ class BiReportPdfExportView(APIView):
         )
 
         company_name = company.name if company else "NEXORA ENTERPRISE"
+        store_logo_str = ""
+        if hasattr(request.user, 'managed_stores') and request.user.managed_stores.exists():
+            store_logo_str = getattr(request.user.managed_stores.first(), 'logo', '')
+        elif Store.objects.filter(company=company).exists():
+            store_logo_str = getattr(Store.objects.filter(company=company).first(), 'logo', '')
+
+        logo_flowable = get_store_logo_flowable(store_logo_str, max_width=85, max_height=45)
 
         # =============================================================
         # PAGE 1 : SCORECARD DE DIRECTION & ANALYSE DE LA PERFORMANCE
         # =============================================================
-        elements.append(Paragraph(f"<b>{company_name} — RAPPORT BUSINESS INTELLIGENCE & DÉCISION</b>", title_style))
+        title_p = Paragraph(f"<b>{company_name} — RAPPORT BUSINESS INTELLIGENCE & DÉCISION</b>", title_style)
         period_label = f"{days} derniers jours (du {start_date.strftime('%d/%m/%Y')} au {now.strftime('%d/%m/%Y')})"
-        elements.append(Paragraph(
+        subtitle_p = Paragraph(
             f"Cycle analytique de Direction : <b>Données → Information → Compréhension → Décision</b> | Période : <b>{period_label}</b> | Devise : <b>FCFA (XOF)</b>",
             subtitle_style
-        ))
+        )
+        elements.extend(create_header_with_logo(title_p, subtitle_p, logo_flowable, total_width=543))
+        elements.append(Spacer(1, 8))
 
         # KPI Scorecard (4 Cards)
         kpi_data = [

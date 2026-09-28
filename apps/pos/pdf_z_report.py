@@ -12,6 +12,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from apps.companies.models import Company
 from apps.pos.models import CashRegister, RegisterSession
 from apps.sales.models import Sale, Payment
+from apps.common.pdf_header import get_store_logo_flowable, create_header_with_logo
 
 
 class CashRegisterZReportPdfExportView(APIView):
@@ -130,10 +131,20 @@ class CashRegisterZReportPdfExportView(APIView):
         company_name = company.name if company else "NEXORA BURKINA COMMERCIAL GROUP"
         reg_name = register.name if register else "Caisse Comptoir Principal"
 
-        elements.append(Paragraph(f"<b>{company_name}</b>", title_style))
-        elements.append(Paragraph("<b>RAPPORT Z — TICKET OFFICIEL DE CLÔTURE DE CAISSE FISCALE</b>", ParagraphStyle('SubZ', parent=title_style, fontSize=12, leading=15, textColor=colors.HexColor('#dc2626'))))
-        elements.append(Paragraph(f"Émis le {now.strftime('%d/%m/%Y à %H:%M:%S')} | Identifiant Caisse : <b>{reg_name}</b> | Réf Z : <b>Z-{now.strftime('%Y%m%d%H%M')}</b>", subtitle_style))
-        elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#cbd5e1'), spaceBefore=0, spaceAfter=14))
+        store_logo_str = ""
+        if register and register.store:
+            store_logo_str = getattr(register.store, 'logo', '')
+        elif hasattr(request.user, 'managed_stores') and request.user.managed_stores.exists():
+            st = request.user.managed_stores.first()
+            store_logo_str = getattr(st, 'logo', '')
+
+        logo_flowable = get_store_logo_flowable(store_logo_str, max_width=80, max_height=45)
+
+        title_p = Paragraph(f"<b>{company_name}</b><br/><font color='#dc2626' size='11'><b>RAPPORT Z — TICKET OFFICIEL DE CLÔTURE DE CAISSE FISCALE</b></font>", title_style)
+        sub_p = Paragraph(f"Émis le {now.strftime('%d/%m/%Y à %H:%M:%S')} | Identifiant Caisse : <b>{reg_name}</b> | Réf Z : <b>Z-{now.strftime('%Y%m%d%H%M')}</b>", subtitle_style)
+
+        elements.extend(create_header_with_logo(title_p, sub_p, logo_flowable, total_width=523))
+        elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#cbd5e1'), spaceBefore=4, spaceAfter=14))
 
         # 1. SYNTHÈSE DES ENCAISSEMENTS & CHIFFRE DU JOUR
         encaissements_data = [

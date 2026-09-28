@@ -1118,8 +1118,19 @@ export default function PosPage() {
           {/* Printable Ticket Shape */}
           <div className="p-4 rounded-xl border bg-card font-mono text-xs space-y-3 shadow-inner">
             <div className="text-center border-b pb-2">
-              <h3 className="font-bold text-sm tracking-widest text-foreground">NEXORA RETAIL</h3>
-              <p className="text-[10px] text-muted-foreground">Alpha Dépôt Principal</p>
+              {activeRegister?.store_logo && (
+                <div className="flex justify-center mb-2">
+                  <img
+                    src={activeRegister.store_logo}
+                    alt="Logo Magasin"
+                    className="h-10 max-w-[120px] object-contain"
+                  />
+                </div>
+              )}
+              <h3 className="font-bold text-sm tracking-widest text-foreground">
+                {activeRegister?.store_name || 'NEXORA RETAIL'}
+              </h3>
+              <p className="text-[10px] text-muted-foreground">{activeRegister?.name}</p>
               <p className="text-[10px] text-muted-foreground">{completedSale?.date}</p>
               <p className="font-bold text-primary mt-1">Ticket #{completedSale?.reference}</p>
             </div>

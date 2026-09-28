@@ -12,6 +12,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from apps.companies.models import Company
 from apps.inventory.models import Store, StockLevel, StockMovement
 from apps.catalog.models import Product
+from apps.common.pdf_header import get_store_logo_flowable, create_header_with_logo
 
 
 class StockLevelPdfExportView(APIView):
@@ -184,9 +185,26 @@ class StockLevelPdfExportView(APIView):
 
         # Header Title
         company_name = company.name if company else "NEXORA ENTERPRISE"
-        elements.append(Paragraph(f"<b>{company_name} — ÉTAT ET NIVEAU DES STOCKS PAR PÉRIODE</b>", title_style))
+        # Determine store logo if filtered by store or from first store
+        store_logo_str = ""
+        if store_id and stores_qs.filter(id=store_id).exists():
+            st = stores_qs.filter(id=store_id).first()
+            store_logo_str = getattr(st, 'logo', '')
+        elif stores_qs.count() == 1:
+            st = stores_qs.first()
+            store_logo_str = getattr(st, 'logo', '')
+        elif hasattr(request.user, 'managed_stores') and request.user.managed_stores.exists():
+            st = request.user.managed_stores.first()
+            store_logo_str = getattr(st, 'logo', '')
+
+        logo_flowable = get_store_logo_flowable(store_logo_str, max_width=90, max_height=45)
+
+        title_p = Paragraph(f"<b>{company_name} — ÉTAT ET NIVEAU DES STOCKS PAR PÉRIODE</b>", title_style)
         period_text = f"Période analysée : du <b>{start_date.strftime('%d/%m/%Y')}</b> au <b>{end_date.strftime('%d/%m/%Y')}</b> | Devise : <b>FCFA (XOF)</b> | Édité le : {now.strftime('%d/%m/%Y à %H:%M')}"
-        elements.append(Paragraph(period_text, subtitle_style))
+        subtitle_p = Paragraph(period_text, subtitle_style)
+
+        elements.extend(create_header_with_logo(title_p, subtitle_p, logo_flowable, total_width=790))
+        elements.append(Spacer(1, 10))
 
         # KPI Summary box Table
         kpi_data = [
@@ -391,9 +409,23 @@ class StockMovementPdfExportView(APIView):
         )
 
         company_name = company.name if company else "NEXORA ENTERPRISE"
-        elements.append(Paragraph(f"<b>{company_name} — GRAND LIVRE DES MOUVEMENTS DE STOCKS</b>", title_style))
+        store_logo_str = ""
+        if store_id:
+            st = Store.objects.filter(id=store_id).first()
+            if st:
+                store_logo_str = getattr(st, 'logo', '')
+        elif hasattr(request.user, 'managed_stores') and request.user.managed_stores.exists():
+            st = request.user.managed_stores.first()
+            store_logo_str = getattr(st, 'logo', '')
+
+        logo_flowable = get_store_logo_flowable(store_logo_str, max_width=90, max_height=45)
+
+        title_p = Paragraph(f"<b>{company_name} — GRAND LIVRE DES MOUVEMENTS DE STOCKS</b>", title_style)
         period_text = f"Période auditée : du <b>{start_date.strftime('%d/%m/%Y')}</b> au <b>{end_date.strftime('%d/%m/%Y')}</b> | {len(movements)} écriture(s) trouvée(s) | Édité le : {now.strftime('%d/%m/%Y à %H:%M')}"
-        elements.append(Paragraph(period_text, subtitle_style))
+        subtitle_p = Paragraph(period_text, subtitle_style)
+
+        elements.extend(create_header_with_logo(title_p, subtitle_p, logo_flowable, total_width=790))
+        elements.append(Spacer(1, 10))
 
         # KPI Summary box
         kpi_data = [
@@ -653,9 +685,23 @@ class InventoryDiscrepanciesPdfExportView(APIView):
         )
 
         company_name = company.name if company else "NEXORA ENTERPRISE"
-        elements.append(Paragraph(f"<b>{company_name} — RAPPORT DES INVENTAIRES PHYSIQUES & ANALYSE DES ÉCARTS</b>", title_style))
+        store_logo_str = ""
+        if store_id:
+            st = Store.objects.filter(id=store_id).first()
+            if st:
+                store_logo_str = getattr(st, 'logo', '')
+        elif hasattr(request.user, 'managed_stores') and request.user.managed_stores.exists():
+            st = request.user.managed_stores.first()
+            store_logo_str = getattr(st, 'logo', '')
+
+        logo_flowable = get_store_logo_flowable(store_logo_str, max_width=90, max_height=45)
+
+        title_p = Paragraph(f"<b>{company_name} — RAPPORT DES INVENTAIRES PHYSIQUES & ANALYSE DES ÉCARTS</b>", title_style)
         period_text = f"Période auditée : du <b>{start_date.strftime('%d/%m/%Y')}</b> au <b>{end_date.strftime('%d/%m/%Y')}</b> | {total_sessions} session(s) d'inventaire | {total_counted_lines} référence(s) comptée(s) | Édité le : {now.strftime('%d/%m/%Y à %H:%M')}"
-        elements.append(Paragraph(period_text, subtitle_style))
+        subtitle_p = Paragraph(period_text, subtitle_style)
+
+        elements.extend(create_header_with_logo(title_p, subtitle_p, logo_flowable, total_width=790))
+        elements.append(Spacer(1, 10))
 
         # KPI Summary box
         net_diff_color = '#059669' if total_valuation_diff_cost >= 0 else '#dc2626'

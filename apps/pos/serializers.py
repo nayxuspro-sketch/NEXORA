@@ -4,12 +4,13 @@ from .models import CashRegister, RegisterSession
 
 class CashRegisterSerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source='store.name', read_only=True)
+    store_logo = serializers.CharField(source='store.logo', read_only=True)
     cashier_name = serializers.CharField(source='current_cashier.email', read_only=True)
 
     class Meta:
         model = CashRegister
         fields = [
-            'id', 'company', 'store', 'store_name', 'name', 'code',
+            'id', 'company', 'store', 'store_name', 'store_logo', 'name', 'code',
             'status', 'current_cashier', 'cashier_name', 'opening_balance',
             'current_balance', 'created_at'
         ]

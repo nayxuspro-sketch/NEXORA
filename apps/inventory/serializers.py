@@ -7,7 +7,7 @@ class StoreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Store
-        fields = ['id', 'company', 'name', 'code', 'address', 'phone', 'manager', 'manager_name', 'is_active', 'created_at']
+        fields = ['id', 'company', 'name', 'code', 'address', 'phone', 'logo', 'manager', 'manager_name', 'is_active', 'created_at']
         read_only_fields = ['id', 'company', 'created_at']
 
     def get_manager_name(self, obj):

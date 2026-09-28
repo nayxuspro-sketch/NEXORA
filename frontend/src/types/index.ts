@@ -137,6 +137,7 @@ export interface CashRegister {
   id: string;
   store: string;
   store_name: string;
+  store_logo?: string;
   name: string;
   code: string;
   status: 'OPEN' | 'CLOSED';

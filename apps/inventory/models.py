@@ -7,6 +7,7 @@ class Store(TenantModel):
     code = models.CharField(max_length=50)
     address = models.TextField(blank=True, default='')
     phone = models.CharField(max_length=50, blank=True, default='')
+    logo = models.TextField(blank=True, default='', help_text="Image logo du magasin encodée en Base64 ou URL")
     manager = models.ForeignKey(
         'accounts.User',
         null=True,

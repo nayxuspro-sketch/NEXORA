@@ -10,7 +10,8 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from apps.companies.models import Company
 from apps.catalog.models import Product, Category
-from apps.inventory.models import StockLevel
+from apps.inventory.models import StockLevel, Store
+from apps.common.pdf_header import get_store_logo_flowable, create_header_with_logo
 
 
 class ProductCatalogPdfExportView(APIView):
@@ -145,11 +146,22 @@ class ProductCatalogPdfExportView(APIView):
         )
 
         company_name = company.name if company else "NEXORA ENTERPRISE"
-        elements.append(Paragraph(f"<b>{company_name} — CATALOGUE DES PRODUITS PAR STATUT</b>", title_style))
-        elements.append(Paragraph(
+        store_logo_str = ""
+        if hasattr(request.user, 'managed_stores') and request.user.managed_stores.exists():
+            store_logo_str = getattr(request.user.managed_stores.first(), 'logo', '')
+        elif Store.objects.filter(company=company).exists():
+            store_logo_str = getattr(Store.objects.filter(company=company).first(), 'logo', '')
+
+        logo_flowable = get_store_logo_flowable(store_logo_str, max_width=90, max_height=45)
+
+        title_p = Paragraph(f"<b>{company_name} — CATALOGUE DES PRODUITS PAR STATUT</b>", title_style)
+        subtitle_p = Paragraph(
             f"Filtre appliqué : <b>{current_status_label}</b> | {total_items} référence(s) répertoriée(s) | Devise : <b>FCFA (XOF)</b> | Édité le : {now.strftime('%d/%m/%Y à %H:%M')}",
             subtitle_style
-        ))
+        )
+
+        elements.extend(create_header_with_logo(title_p, subtitle_p, logo_flowable, total_width=790))
+        elements.append(Spacer(1, 10))
 
         # KPI Box
         kpi_data = [

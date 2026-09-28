@@ -12,6 +12,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from apps.companies.models import Company
 from apps.accounts.models import User
 from apps.sales.models import Sale, SaleItem, Payment
+from apps.inventory.models import Store
+from apps.common.pdf_header import get_store_logo_flowable, create_header_with_logo
 
 
 class SellerSalesReportPdfView(APIView):
@@ -262,11 +264,25 @@ class SellerSalesReportPdfView(APIView):
         seller_email = seller_user.email if seller_user else ""
         seller_role = seller_user.get_role_display() if (seller_user and hasattr(seller_user, 'get_role_display')) else "Vendeur / Caissier"
 
-        elements.append(Paragraph(f"<b>{company_name} — ÉTAT DE VENTE INDIVIDUEL DU VENDEUR</b>", title_style))
-        elements.append(Paragraph(
+        # Determine seller's store logo
+        store_logo_str = ""
+        if seller_user and hasattr(seller_user, 'managed_stores') and seller_user.managed_stores.exists():
+            store_logo_str = getattr(seller_user.managed_stores.first(), 'logo', '')
+        elif sales and hasattr(sales[0], 'cash_register') and sales[0].cash_register and sales[0].cash_register.store:
+            store_logo_str = getattr(sales[0].cash_register.store, 'logo', '')
+        elif Store.objects.filter(company=company).exists():
+            store_logo_str = getattr(Store.objects.filter(company=company).first(), 'logo', '')
+
+        logo_flowable = get_store_logo_flowable(store_logo_str, max_width=80, max_height=45)
+
+        title_p = Paragraph(f"<b>{company_name} — ÉTAT DE VENTE INDIVIDUEL DU VENDEUR</b>", title_style)
+        subtitle_p = Paragraph(
             f"Vendeur : <b>{seller_name}</b> ({seller_email} — {seller_role}) | Période du : <b>{start_date.strftime('%d/%m/%Y')}</b> au <b>{end_date.strftime('%d/%m/%Y')}</b> | Devise : <b>FCFA (XOF)</b>",
             subtitle_style
-        ))
+        )
+
+        elements.extend(create_header_with_logo(title_p, subtitle_p, logo_flowable, total_width=539))
+        elements.append(Spacer(1, 8))
 
         # KPI Cards (Page 1)
         kpi_table_data = [

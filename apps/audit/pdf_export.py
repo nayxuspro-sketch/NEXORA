@@ -10,6 +10,8 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from apps.companies.models import Company
 from apps.audit.models import AuditLog
+from apps.inventory.models import Store
+from apps.common.pdf_header import get_store_logo_flowable, create_header_with_logo
 
 
 class AuditLogPdfExportView(APIView):
@@ -143,12 +145,23 @@ class AuditLogPdfExportView(APIView):
         )
 
         company_name = company.name if company else "NEXORA ENTERPRISE"
-        elements.append(Paragraph(f"<b>{company_name} — REGISTRE OFFICIEL DU JOURNAL D'AUDIT & SÉCURITÉ</b>", title_style))
+        store_logo_str = ""
+        if hasattr(request.user, 'managed_stores') and request.user.managed_stores.exists():
+            store_logo_str = getattr(request.user.managed_stores.first(), 'logo', '')
+        elif Store.objects.filter(company=company).exists():
+            store_logo_str = getattr(Store.objects.filter(company=company).first(), 'logo', '')
+
+        logo_flowable = get_store_logo_flowable(store_logo_str, max_width=90, max_height=45)
+
+        title_p = Paragraph(f"<b>{company_name} — REGISTRE OFFICIEL DU JOURNAL D'AUDIT & SÉCURITÉ</b>", title_style)
         period_text = (
             f"Période auditée définie : du <b>{start_date.strftime('%d/%m/%Y')}</b> au <b>{end_date.strftime('%d/%m/%Y')}</b> | "
             f"<b>{total_logs} événement(s) de traçabilité</b> certifié(s) | Édité le : {now.strftime('%d/%m/%Y à %H:%M')}"
         )
-        elements.append(Paragraph(period_text, subtitle_style))
+        subtitle_p = Paragraph(period_text, subtitle_style)
+
+        elements.extend(create_header_with_logo(title_p, subtitle_p, logo_flowable, total_width=790))
+        elements.append(Spacer(1, 10))
 
         # KPI Summary box
         kpi_data = [
