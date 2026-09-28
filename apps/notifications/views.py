@@ -22,8 +22,10 @@ class NotificationViewSet(TenantModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Notification.objects.none()
         qs = super().get_queryset()
-        # Restrict notifications to the current authenticated user
-        return qs.filter(user=self.request.user)
+        # Restrict notifications to the current authenticated user if authenticated, else empty or all tenant
+        if self.request.user and self.request.user.is_authenticated:
+            return qs.filter(user=self.request.user)
+        return qs
 
     @action(detail=True, methods=['post'])
     def mark_read(self, request, pk=None):
