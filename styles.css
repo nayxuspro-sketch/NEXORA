@@ -53,3 +53,30 @@
 .quiz-score strong{font-size:14px}
 .resource-actions{display:flex;gap:18px;align-items:center;margin-top:6px}
 .import-label{cursor:pointer;margin:0}
+
+/* Certificate, learner identity and honest activity */
+.certificate-banner{display:flex;align-items:center;gap:18px;background:linear-gradient(120deg,var(--navy),var(--navy-2));color:#fff;border-radius:var(--radius);padding:20px 24px;margin-bottom:26px;box-shadow:var(--shadow)}
+.certificate-banner[hidden]{display:none}
+.certificate-banner .eyebrow{color:var(--yellow);margin-bottom:4px}
+.certificate-banner h3{margin:0 0 3px;font-size:17px}
+.certificate-banner p{margin:0;font-size:12px;color:#c9d1e8}
+.certificate-banner .button{margin-left:auto;flex-shrink:0}
+.cert-banner-icon{width:46px;height:46px;border-radius:14px;background:rgba(247,201,95,.15);border:1px solid rgba(247,201,95,.4);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--yellow)}
+.certificate-doc{border:2px solid var(--navy);border-radius:14px;padding:30px 26px;text-align:center;margin-top:14px;background:#fff}
+.certificate-doc .cert-mark{font-size:12px;letter-spacing:.18em;color:var(--coral);font-weight:700;margin-bottom:18px}
+.certificate-doc p{margin:6px 0;font-size:13px;color:var(--muted)}
+.certificate-doc h3{font-size:24px;margin:8px 0;color:var(--ink)}
+.certificate-doc .cert-claim{line-height:1.6}
+.certificate-doc .cert-claim strong{color:var(--ink)}
+.cert-foot{display:flex;justify-content:space-between;gap:12px;margin-top:20px;padding-top:14px;border-top:1px dashed var(--line);font-size:11px;color:var(--muted)}
+.activity-bars>div.empty span{opacity:.3}
+.activity-bars>div.today:not(.empty) span{background:var(--coral)}
+@media (max-width:640px){.certificate-banner{flex-wrap:wrap}.certificate-banner .button{margin-left:0}}
+@media print{
+  body.modal-open .app-shell{display:none!important}
+  .modal-overlay:not([hidden]){position:static;background:none;display:block;padding:0}
+  .modal-overlay[hidden]{display:none!important}
+  .modal-card{box-shadow:none;max-height:none;overflow:visible;padding:0;border-radius:0}
+  .modal-close,#print-certificate,.resource-actions{display:none!important}
+  body{background:#fff}
+}

@@ -129,6 +129,30 @@ check('import : module courant', window.localStorage.getItem('nexora-current') =
 check('import : notes remplacées', JSON.parse(window.localStorage.getItem('nexora-notes'))[0].text === 'note import');
 check('import : progression visible', $('#sidebar-progress-value').textContent === '25%', $('#sidebar-progress-value').textContent);
 
+// Profil, activité réelle et certificat
+check('prénom par défaut', $('#greeting-name').textContent === 'Alex', $('#greeting-name').textContent);
+try { window.prompt = () => 'Marie Dupont'; } catch (e) { Object.defineProperty(window, 'prompt', { value: () => 'Marie Dupont' }); }
+$('#rename-profile').click();
+check('renomage appliqué', $('#greeting-name').textContent === 'Marie' && $('#profile-name').textContent === 'Marie Dupont', $('#greeting-name').textContent + ' / ' + $('#profile-name').textContent);
+check('initiales mises à jour', $('#profile-initials').textContent === 'MD', $('#profile-initials').textContent);
+check('nom persisté', window.localStorage.getItem('nexora-name') === 'Marie Dupont');
+check('barres activité : 7 jours', $$('#activity-bars > div').length === 7, String($$('#activity-bars > div').length));
+const todayBar = $$('#activity-bars > div').pop();
+check('activité du jour tracée', !todayBar.classList.contains('empty') && todayBar.querySelector('span').style.height !== '6%', todayBar.querySelector('span').style.height);
+check('total activité honnête', /action/.test($('#activity-total').textContent), $('#activity-total').textContent.trim());
+check('certificat masqué à 12/12', $('#certificate-banner').hidden === true);
+const fullPayload = JSON.stringify({ version: 1, completed: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], current: 12, notes: [], quizzes: {} });
+window.importProgress(new window.File([fullPayload], 'nexora_progression.json', { type: 'application/json' }));
+await new Promise(r => setTimeout(r, 100));
+check('certificat visible à 12/12', $('#certificate-banner').hidden === false);
+check('progression 100 %', $('#sidebar-progress-value').textContent === '100%', $('#sidebar-progress-value').textContent);
+$('#open-certificate').click();
+check('modale certificat ouverte', !$('#modal-overlay').hidden && $('#modal-content').textContent.includes('Marie Dupont'));
+check('certificat : bouton imprimer', !!$('#print-certificate'));
+$('#print-certificate').click();
+$('#modal-close').click();
+check('modale certificat fermée', $('#modal-overlay').hidden);
+
 console.log(results.join('\n'));
 const fails = results.filter(r => r.startsWith('FAIL'));
 if (warnings.length) console.log('\nAvertissements jsdom (attendus) : ' + warnings.length);

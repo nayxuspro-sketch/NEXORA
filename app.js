@@ -294,6 +294,7 @@ const quizzes = {
 let completedModules = JSON.parse(localStorage.getItem('nexora-completed') || '[1]');
 let currentModule = Number(localStorage.getItem('nexora-current') || 2);
 let currentRoute = 'dashboard';
+let learnerName=(localStorage.getItem('nexora-name')||'Alex Martin').trim()||'Alex Martin';
 let selectedFormula = 0;
 
 const $ = (selector, parent=document) => parent.querySelector(selector);
@@ -334,7 +335,7 @@ function handleQuizChoice(btn){
   const qs=quizzes[mod]; if(!qs) return;
   const sv=savedQuiz(mod); if(sv[qi]!=null) return;
   while(sv.length<qs.length) sv.push(null);
-  sv[qi]=ch; saveQuiz(mod,sv);
+  sv[qi]=ch; saveQuiz(mod,sv); logActivity(1);
   const block=btn.closest('.quiz-question'), q=qs[qi], correct=ch===q.a;
   block.querySelectorAll('.quiz-option').forEach((b,ci)=>{ b.disabled=true; if(ci===q.a) b.classList.add('correct'); else if(ci===ch) b.classList.add('wrong'); });
   const fb=document.createElement('p'); fb.className='quiz-feedback '+(correct?'ok':'ko');
@@ -345,6 +346,50 @@ function handleQuizChoice(btn){
     if(st.answered===st.total){ scoreEl.className='quiz-score done'; scoreEl.innerHTML=`Score final : <strong>${st.score}/${st.total}</strong> ${st.score===st.total?'— parfait !':st.score>=2?'— module validé, relisez la question manquée.':'— relisez les parties indiquées.'}`; showToast(`Quiz terminé : ${st.score}/${st.total}.`); }
     else scoreEl.innerHTML=`Répondues : <strong>${st.answered}/${st.total}</strong>`;
   }
+}
+function localDayKey(d=new Date()){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function getActivity(){ try{ const a=JSON.parse(localStorage.getItem('nexora-activity')||'{}'); return a&&typeof a==='object'?a:{}; }catch(e){ return {}; } }
+function logActivity(step=1){
+  const a=getActivity(), key=localDayKey();
+  a[key]=(a[key]||0)+step;
+  localStorage.setItem('nexora-activity',JSON.stringify(a));
+  renderActivity();
+}
+function renderActivity(){
+  const bars=$('#activity-bars'), total=$('#activity-total'); if(!bars||!total) return;
+  const act=getActivity();
+  const days=[];
+  for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); days.push(d); }
+  const labels=['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+  let sum=0;
+  bars.innerHTML=days.map((d,i)=>{
+    const n=act[localDayKey(d)]||0; sum+=n;
+    const h=n?Math.min(100,25+n*25):6;
+    return `<div class="${i===6?'today':''}${n?'':' empty'}"><span style="height:${h}%"></span><small>${labels[d.getDay()]}</small></div>`;
+  }).join('');
+  total.innerHTML=`<strong>${sum}</strong><span>action${sum>1?'s':''} cette semaine</span>`;
+}
+function applyName(){
+  const first=learnerName.split(/\s+/)[0]||'Alex';
+  const g=$('#greeting-name'); if(g) g.textContent=first;
+  const pn=$('#profile-name'); if(pn) pn.textContent=learnerName;
+  const ini=(learnerName.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('')||'AM').toUpperCase();
+  const a=$('#profile-initials'); if(a) a.textContent=ini;
+  const m=$('#mini-avatar'); if(m) m.textContent=ini;
+}
+function renameProfile(){
+  const next=(window.prompt('Votre prénom et nom :',learnerName)||'').trim();
+  if(!next) return;
+  learnerName=next; localStorage.setItem('nexora-name',next); applyName();
+  showToast(`Bonjour ${next.split(/\s+/)[0]} ! Profil mis à jour.`);
+}
+function showModal(){ const o=$('#modal-overlay'); if(o){ o.hidden=false; document.body.classList.add('modal-open'); } }
+function openCertificate(){
+  const quizDone=modules.filter(m=>{const st=quizScore(m.id);return st.total&&st.answered===st.total;}).length;
+  const date=new Intl.DateTimeFormat('fr-FR',{dateStyle:'long'}).format(new Date());
+  $('#modal-content').innerHTML=`<p class="eyebrow">CERTIFICAT NEXORA</p><h2 id="modal-title">Power BI — Foundations</h2><div class="certificate-doc"><div class="cert-mark">✦ NEXORA · DATA ACADEMY</div><p>Ce certificat atteste que</p><h3>${escapeHtml(learnerName)}</h3><p class="cert-claim">a validé les 12 modules de la formation<br><strong>Power BI — de zéro à dashboard professionnel</strong></p><div class="cert-foot"><span>Délivré le ${date}</span><span>48 leçons · ${quizDone} quiz validés</span></div></div><div class="resource-actions"><button class="button button-dark" id="print-certificate">Imprimer le certificat</button></div>`;
+  showModal();
+  const pb=$('#print-certificate'); if(pb) pb.addEventListener('click',()=>window.print());
 }
 function savedQuiz(id){ let all={}; try{ all=JSON.parse(localStorage.getItem('nexora-quizzes')||'{}')||{}; }catch(e){} const arr=Array.isArray(all[id])?all[id]:[]; return arr; }
 function saveQuiz(id,arr){ let all={}; try{ all=JSON.parse(localStorage.getItem('nexora-quizzes')||'{}')||{}; }catch(e){} all[id]=arr; localStorage.setItem('nexora-quizzes',JSON.stringify(all)); }
@@ -389,6 +434,7 @@ function updateProgressUI(){
   $('#sidebar-progress-value').textContent=value+'%'; $('#sidebar-progress-bar').style.width=value+'%'; $('#completion-badge-value').textContent=value+'%';
   const small=$('.sidebar-progress small'); if(small) small.textContent=`${completedModules.length} module${completedModules.length>1?'s':''} sur 12 terminé${completedModules.length>1?'s':''}`;
   renderDashboardModules(); renderPath();
+  const cert=$('#certificate-banner'); if(cert) cert.hidden=completedModules.length<modules.length;
 }
 
 function navigate(route){
@@ -426,7 +472,7 @@ function renderLesson(m){
   const headings=$$('h2', $('#lesson-article')); $('#lesson-toc-links').innerHTML=headings.map((h,i)=>`<a class="toc-link" href="#section-${i}">${h.textContent}</a>`).join(''); headings.forEach((h,i)=>h.id=`section-${i}`);
 }
 function completeCurrent(){
-  if(!completedModules.includes(currentModule)){ completedModules.push(currentModule); completedModules.sort((a,b)=>a-b); localStorage.setItem('nexora-completed',JSON.stringify(completedModules)); showToast('Module validé — bravo, votre progression est enregistrée.'); }
+  if(!completedModules.includes(currentModule)){ completedModules.push(currentModule); logActivity(1); completedModules.sort((a,b)=>a-b); localStorage.setItem('nexora-completed',JSON.stringify(completedModules)); showToast('Module validé — bravo, votre progression est enregistrée.'); }
   updateProgressUI(); renderLesson(getModule(currentModule));
 }
 
@@ -475,9 +521,9 @@ const checklistItems = [
 ];
 function openChecklist(){
   $('#modal-content').innerHTML=`<p class="eyebrow">CHECK-LIST · 18 POINTS</p><h2 id="modal-title">Avant de publier un dashboard</h2><ul class="checklist-list">${checklistItems.map(x=>`<li>${x}</li>`).join('')}</ul>`;
-  $('#modal-overlay').hidden=false;
+  showModal();
 }
-function closeModal(){ $('#modal-overlay').hidden=true; }
+function closeModal(){ const o=$('#modal-overlay'); if(o) o.hidden=true; document.body.classList.remove('modal-open'); }
 function handleSearch(value){
   const q=value.trim().toLowerCase(); if(!q){renderDashboardModules();renderPath();return;} const matches=modules.filter(m=>[m.title,m.short,m.kicker,...m.objectives].join(' ').toLowerCase().includes(q)); renderDashboardModules(matches);renderPath(matches); showToast(`${matches.length} module${matches.length>1?'s':''} trouvé${matches.length>1?'s':''}.`);
 }
@@ -505,7 +551,9 @@ $('#checklist-button').addEventListener('click',openChecklist);
 $('#modal-close').addEventListener('click',closeModal);
 $('#modal-overlay').addEventListener('click',e=>{if(e.target===$('#modal-overlay'))closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
-$('#save-note').addEventListener('click',()=>{const text=$('#note-text').value.trim();if(!text){showToast('Écrivez une note avant de l’enregistrer.');return;}const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]');notes.unshift({text,date:new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium'}).format(new Date())});localStorage.setItem('nexora-notes',JSON.stringify(notes));$('#note-text').value='';renderNotes();showToast('Note enregistrée dans votre carnet.');});
+$('#save-note').addEventListener('click',()=>{const text=$('#note-text').value.trim();if(!text){showToast('Écrivez une note avant de l’enregistrer.');return;}const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]');notes.unshift({text,date:new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium'}).format(new Date())});localStorage.setItem('nexora-notes',JSON.stringify(notes));$('#note-text').value='';renderNotes();logActivity(1);showToast('Note enregistrée dans votre carnet.');});
+$('#rename-profile').addEventListener('click',renameProfile);
+$('#open-certificate').addEventListener('click',openCertificate);
 $('#export-progress').addEventListener('click',exportProgress);
 $('#import-progress').addEventListener('change',e=>{if(e.target.files[0])importProgress(e.target.files[0]);e.target.value='';});
 $('#add-note').addEventListener('click',()=>{$('#note-text').focus();});
@@ -515,4 +563,4 @@ $$('[data-action="start"],[data-action="continue"]').forEach(btn=>btn.addEventLi
 const dateEl=$('#dashboard-date');
 if(dateEl) dateEl.innerHTML=`${new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date()).toUpperCase()} <span class="dot"></span> BON RETOUR`;
 const labCount=$('#lab-function-count'); if(labCount) labCount.textContent=`${formulas.length} fonctions clés`;
-renderDashboardModules(); renderPath(); updateProgressUI(); renderGlossary(); renderNotes();
+applyName(); renderActivity(); renderDashboardModules(); renderPath(); updateProgressUI(); renderGlossary(); renderNotes();

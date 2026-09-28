@@ -16,9 +16,9 @@
       </div>
 
       <div class="profile-chip">
-        <div class="avatar">AM</div>
-        <div><strong>Alex Martin</strong><small>Parcours débutant</small></div>
-        <button class="icon-button" aria-label="Ouvrir le menu du profil">•••</button>
+        <div class="avatar" id="profile-initials">AM</div>
+        <div><strong id="profile-name">Alex Martin</strong><small>Parcours débutant</small></div>
+        <button class="icon-button" id="rename-profile" aria-label="Changer de nom">•••</button>
       </div>
 
       <nav class="main-nav" aria-label="Navigation principale">
@@ -48,7 +48,7 @@
         <div class="topbar-actions">
           <label class="search-box" aria-label="Rechercher dans la formation"><span>⌕</span><input id="search-input" type="search" placeholder="Rechercher une notion, une formule…"><kbd>⌘ K</kbd></label>
           <button class="round-action" aria-label="Notifications">♧<i></i></button>
-          <div class="mini-avatar">AM</div>
+          <div class="mini-avatar" id="mini-avatar">AM</div>
         </div>
       </header>
 
@@ -56,7 +56,7 @@
         <div class="welcome-row">
           <div>
             <p class="eyebrow" id="dashboard-date">BON RETOUR</p>
-            <h1>Bonjour Alex <span class="wave">✦</span></h1>
+            <h1>Bonjour <span id="greeting-name">Alex</span> <span class="wave">✦</span></h1>
             <p class="lead">Construisez des rapports qui aident vraiment à décider.</p>
           </div>
           <button class="button button-dark" data-action="continue"><span>▶</span> Reprendre ma formation</button>
@@ -78,6 +78,7 @@
           </div>
         </div>
 
+        <div class="certificate-banner" id="certificate-banner" hidden><div class="cert-banner-icon">✦</div><div><p class="eyebrow">PARCOURS TERMINÉ</p><h3>Votre certificat est disponible</h3><p>12 modules validés — félicitations !</p></div><button class="button button-coral" id="open-certificate">Ouvrir mon certificat <span>→</span></button></div>
         <div class="section-heading"><div><p class="eyebrow">VOTRE PROGRESSION</p><h2>Continuez là où vous vous êtes arrêté</h2></div><button class="text-button" data-route="parcours">Voir le parcours complet <span>→</span></button></div>
         <div class="continue-card">
           <div class="module-number big-number">02</div><div class="continue-info"><div class="module-kicker"><span class="status-dot active"></span> MODULE 02 <span class="sep">•</span> 3 LEÇONS <span class="time">◷ 38 MIN RESTANTES</span></div><h3>Vos premiers pas dans Power BI Desktop</h3><p>Explorez l’interface, importez votre premier fichier Excel et créez votre premier visuel.</p><div class="small-progress"><span style="width:38%"></span></div></div><button class="play-button" data-module="2" aria-label="Reprendre le module 2">▶</button>
@@ -88,7 +89,7 @@
 
         <div class="bottom-grid">
           <div class="quote-card"><div class="quote-mark">“</div><blockquote>Un bon rapport ne montre pas tout.<br><strong>Il montre ce qui compte.</strong></blockquote><div class="quote-foot"><div class="quote-avatar">SL</div><div><strong>Sarah Lemaire</strong><small>Lead Data Analyst · Mentor</small></div></div></div>
-          <div class="weekly-card"><div class="section-heading compact"><div><p class="eyebrow">CETTE SEMAINE</p><h3>Votre activité</h3></div><button class="more-button">•••</button></div><div class="activity-bars"><div><span style="height:33%"></span><small>L</small></div><div><span style="height:58%"></span><small>M</small></div><div><span style="height:45%"></span><small>M</small></div><div class="today"><span style="height:80%"></span><small>J</small></div><div><span style="height:68%"></span><small>V</small></div><div><span style="height:28%"></span><small>S</small></div><div><span style="height:15%"></span><small>D</small></div></div><div class="activity-total"><strong>2h 45</strong><span>de pratique <em>+24%</em></span></div></div>
+          <div class="weekly-card"><div class="section-heading compact"><div><p class="eyebrow">CETTE SEMAINE</p><h3>Votre activité</h3></div><button class="more-button">•••</button></div><div class="activity-bars" id="activity-bars"></div><div class="activity-total" id="activity-total"></div></div>
         </div>
       </section>
 
