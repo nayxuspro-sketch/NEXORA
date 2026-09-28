@@ -496,6 +496,15 @@ function renderLesson(m){
   html+=`<h2>Exercices</h2><div class="exercise-card"><h3>Exercice guidé</h3><p>${m.guided}</p><details><summary>Ouvrir les indications</summary><p>Avancez une étape à la fois, notez le résultat observé et comparez-le à la source. Si un résultat semble faux, revenez au type de données, au modèle puis au contexte de filtre.</p></details></div><div class="exercise-card" style="background:#fff;border-color:var(--line)"><h3 style="color:var(--ink)">Exercice autonome</h3><p>${m.autonomous}</p><details><summary>Voir la correction</summary><p>${m.correction}</p></details></div>`;
   html+=renderQuiz(m);
   html+=`<div class="mini-project"><p class="eyebrow">MINI-PROJET DU MODULE</p><h3>${m.project}</h3><p>Conservez votre livrable dans un dossier projet avec une convention de nommage et une note de contrôle. Vous pourrez le réutiliser dans votre portfolio.</p></div>`;
+  const prev=m.id>1?getModule(m.id-1):null, next=m.id<modules.length?getModule(m.id+1):null;
+  const nextUnlocked=next?isUnlocked(next):false;
+  const cell=(mod,dir,unlocked)=>{ if(!mod) return '<span class="page-nav-empty"></span>'; const locked=dir==='next'&&!unlocked;
+    return `<button class="page-nav ${dir}${locked?' locked':''}" data-open-module="${mod.id}" ${locked?'disabled aria-disabled="true"':''}>
+      ${dir==='prev'?'<span class="page-nav-arrow">←</span>':''}<span class="page-nav-text"><small>MODULE ${String(mod.id).padStart(2,'0')}${dir==='next'&&!unlocked?' · VERROUILLÉ':''}</small><strong>${mod.title}</strong></span>${dir==='next'?'<span class="page-nav-arrow">→</span>':''}</button>`; };
+  const endCell=m.id===modules.length
+    ?'<button class="page-nav next" data-dyn-route="parcours"><span class="page-nav-text"><small>FIN DU PARCOURS</small><strong>Retour à mon parcours</strong></span><span class="page-nav-arrow">✓</span></button>'
+    :cell(next,'next',nextUnlocked);
+  html+=`<nav class="lesson-pagination" aria-label="Navigation entre modules">${cell(prev,'prev',true)}${endCell}</nav>`;
   $('#lesson-article').innerHTML=html;
   const headings=$$('h2', $('#lesson-article')); $('#lesson-toc-links').innerHTML=headings.map((h,i)=>`<a class="toc-link" href="#section-${i}" data-goto="section-${i}">${h.textContent}</a>`).join(''); headings.forEach((h,i)=>h.id=`section-${i}`);
 }
@@ -594,6 +603,8 @@ document.addEventListener('click',e=>{
   const card=e.target.closest('[data-module]'); if(card && !e.target.closest('.play-button,button[data-route]')) openModule(card.dataset.module);
   const play=e.target.closest('.play-button'); if(play) openModule(play.dataset.module);
   const formula=e.target.closest('[data-formula]'); if(formula){selectedFormula=Number(formula.dataset.formula);renderLab();}
+  const dr=e.target.closest('[data-dyn-route]'); if(dr){ navigate(dr.dataset.dynRoute); return; }
+  const om=e.target.closest('[data-open-module]'); if(om&&!om.disabled){ openModule(Number(om.dataset.openModule)); return; }
   const goto=e.target.closest('[data-goto]'); if(goto){ e.preventDefault(); const el=document.getElementById(goto.dataset.goto); if(el&&typeof el.scrollIntoView==='function') el.scrollIntoView({behavior:'smooth',block:'start'}); }
   const sr=e.target.closest('[data-sr]'); if(sr){ handleSearchResult(sr); return; }
   if(e.target.closest('#reset-quiz')){ saveQuiz(currentModule,[]); renderLesson(getModule(currentModule)); showToast('Quiz réinitialisé — répondez à nouveau.'); return; }

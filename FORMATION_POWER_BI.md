@@ -835,6 +835,10 @@ La direction veut comprendre pourquoi le chiffre d’affaires du dernier trimest
 5. **Récit :** synthèse, analyse, détail et navigation.
 6. **Contrôle :** chiffres, filtres, accessibilité, partage.
 
+### Capture à insérer — vue dirigeant du cockpit
+
+Afficher la page « Vue dirigeant » : trois cartes KPI en haut (chiffre d’affaires, variation N-1, marge %), une courbe mensuelle à gauche, des barres comparant les régions à droite, un segment Période en haut à droite et une annotation sur le point saillant.
+
 ## Contrôles minimum
 
 - total des ventes comparé à la source ;
@@ -868,6 +872,10 @@ Choisissez ventes, stocks, RH, éducation, finance, agriculture ou un projet d�
 | DAX et qualité | Mesures justes et contrôles | 25 % |
 | Design et usage | Hiérarchie, interactions, accessibilité | 20 % |
 | Gouvernance | Source, sécurité, actualisation, limites | 10 % |
+
+### Capture à insérer — dashboard final de la soutenance
+
+Montrer le dashboard final (3 à 4 pages visibles dans l’onglet de pages) avec, en incrustation, une capture de la vue Modèle en étoile. Utiliser un compte de démonstration : aucune donnée nominative ne doit apparaître.
 
 ## Checklist finale
 

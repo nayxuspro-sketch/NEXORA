@@ -92,6 +92,14 @@ check('vue leçon active', $('#view-lesson').classList.contains('active-view'));
 check('titre module 2', $('#lesson-title').textContent.includes('Power BI Desktop'), $('#lesson-title').textContent);
 check('sections leçon', $$('#lesson-article h2').length >= 8, String($$('#lesson-article h2').length));
 
+// Pagination précédent / suivant en fin de leçon
+check('pagination présente', $$('#lesson-article .lesson-pagination .page-nav').length === 2, String($$('#lesson-article .lesson-pagination .page-nav').length));
+check('suivant verrouillé avant validation', $('#lesson-article .page-nav.next').disabled === true);
+$('#lesson-article .page-nav.prev').click();
+check('pagination → module 1', $('#view-lesson').classList.contains('active-view') && $('#lesson-title').textContent.includes('Business Intelligence'), $('#lesson-title').textContent);
+$$('#path-list .path-row')[1].click();
+check('retour au module 2', $('#lesson-title').textContent.includes('Desktop'), $('#lesson-title').textContent);
+
 // Quiz du module (3 questions)
 check('quiz : 3 questions', $$('#lesson-article .quiz-question').length === 3, String($$('#lesson-article .quiz-question').length));
 check('quiz : zone score', !!$('#lesson-article .quiz-score'));
@@ -111,6 +119,7 @@ check('TOC ne casse pas le hash', !window.location.hash.includes('section'), win
 $('#complete-lesson').click();
 check('toast de validation', $('#toast').textContent.includes('Module validé'), $('#toast').textContent);
 check('progression mise à jour', $('#sidebar-progress-value').textContent !== '12%', $('#sidebar-progress-value').textContent);
+check('suivant déverrouillé après validation', $('#lesson-article .page-nav.next').disabled === false);
 
 // Module verrouillé
 const locked = $$('#path-list .path-row .path-body[aria-disabled="true"]');

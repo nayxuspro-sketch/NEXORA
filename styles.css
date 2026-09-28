@@ -150,3 +150,16 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 /* Exercise dataset downloads */
 .dataset-list{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px}
 .dataset-list .text-button{font-size:12px}
+
+/* Lesson pagination (previous / next module) */
+.lesson-pagination{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}
+.page-nav{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px 17px;cursor:pointer;font-family:inherit;text-align:left;transition:.15s}
+.page-nav:hover:not(:disabled){border-color:var(--navy);box-shadow:var(--shadow);transform:translateY(-1px)}
+.page-nav.next{justify-content:flex-end;text-align:right}
+.page-nav.locked,.page-nav:disabled{opacity:.55;cursor:not-allowed;background:var(--paper);transform:none;box-shadow:none}
+.page-nav-arrow{font-size:17px;color:var(--coral);flex-shrink:0}
+.page-nav-text{display:grid;gap:3px;min-width:0}
+.page-nav-text small{font-size:9.5px;letter-spacing:.1em;color:var(--muted-2);font-weight:700}
+.page-nav-text strong{font-size:12.5px;color:var(--ink)}
+.page-nav-empty{min-height:20px}
+@media (max-width:640px){.lesson-pagination{grid-template-columns:1fr}}
