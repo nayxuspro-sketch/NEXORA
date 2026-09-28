@@ -16,6 +16,8 @@ NEXORA est un parcours de formation interactif en français, conçu pour accompa
 - **profil personnalisable** (prénom et initiales affichés partout) ;
 - **activité hebdomadaire réelle** tracée depuis vos actions (quiz, modules, notes) ;
 - **certificat imprimable** débloqué à 12 modules validés ;
+- **navigation par URL** : chaque vue a son lien (`#parcours`, `#module/3`) — le bouton retour du navigateur et les favoris fonctionnent ;
+- **manuel HTML lisible et imprimable** : `manuel.html` (généré depuis `FORMATION_POWER_BI.md`) avec sommaire et bouton Imprimer ;
 - parcours responsive, utilisable sur desktop et mobile ;
 - manuel imprimable complet dans `FORMATION_POWER_BI.md` ;
 - jeu de données versionné dans `data/contoso_exercice.csv`.
@@ -54,7 +56,16 @@ npm install --no-save jsdom
 node test/smoke.mjs
 ```
 
-Il vérifie 56 contrôles d’interface sans nécessiter de navigateur.
+Il vérifie 64 contrôles d’interface sans nécessiter de navigateur.
+
+## Régénérer le manuel HTML
+
+`manuel.html` est généré à partir de `FORMATION_POWER_BI.md` :
+
+```bash
+npm install --no-save marked
+node tools/build_manual.mjs
+```
 
 ## Notes pédagogiques
 

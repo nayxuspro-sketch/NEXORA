@@ -153,6 +153,26 @@ $('#print-certificate').click();
 $('#modal-close').click();
 check('modale certificat fermée', $('#modal-overlay').hidden);
 
+// Routage par URL : bouton retour, favoris et liens profonds
+$('.nav-item[data-route="dashboard"]').click();
+check('hash → dashboard', window.location.hash === '#dashboard' && $('#view-dashboard').classList.contains('active-view'), window.location.hash);
+$('.nav-item[data-route="lab"]').click();
+check('hash → lab', window.location.hash === '#lab' && $('#view-lab').classList.contains('active-view'), window.location.hash);
+window.location.hash = '#dashboard';
+await new Promise(r => setTimeout(r, 30));
+check('bouton retour navigateur', $('#view-dashboard').classList.contains('active-view'));
+window.location.hash = '#module/1';
+await new Promise(r => setTimeout(r, 30));
+check('lien profond module', $('#view-lesson').classList.contains('active-view') && $('#lesson-title').textContent.includes('Business Intelligence'), $('#lesson-title').textContent);
+window.location.hash = '#module/99';
+await new Promise(r => setTimeout(r, 30));
+check('route invalide → dashboard', $('#view-dashboard').classList.contains('active-view'));
+
+// Page manuel et balises de tête
+check('lien manuel HTML', $('.resource-card a[href="manuel.html"]') !== null);
+check('favicon en tête', $('link[rel="icon"]') !== null);
+check('meta description', ($('meta[name="description"]')?.content || '').includes('Power BI'));
+
 console.log(results.join('\n'));
 const fails = results.filter(r => r.startsWith('FAIL'));
 if (warnings.length) console.log('\nAvertissements jsdom (attendus) : ' + warnings.length);

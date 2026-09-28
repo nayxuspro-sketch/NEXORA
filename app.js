@@ -437,7 +437,7 @@ function updateProgressUI(){
   const cert=$('#certificate-banner'); if(cert) cert.hidden=completedModules.length<modules.length;
 }
 
-function navigate(route){
+function navigateView(route){
   currentRoute=route;
   $$('.view').forEach(v=>v.classList.remove('active-view'));
   const target=$(`#view-${route}`); if(target) target.classList.add('active-view');
@@ -451,10 +451,35 @@ function navigate(route){
   window.scrollTo({top:0,behavior:'smooth'});
   $('#sidebar').classList.remove('open');
 }
+let lastRouteKey=null;
+const validRoutes=['dashboard','parcours','lab','ressources','notes'];
+function applyRouteKey(key){
+  if(key.startsWith('module/')){
+    const m=modules.find(x=>x.id===Number(key.split('/')[1]));
+    if(m&&isUnlocked(m)){ currentModule=m.id; localStorage.setItem('nexora-current',m.id); renderLesson(m); navigateView('lesson'); return; }
+    showToast('Ce module est indisponible ou encore verrouillé.');
+    navigateView('dashboard'); return;
+  }
+  navigateView(validRoutes.includes(key)?key:'dashboard');
+}
+function setRouteKey(key){
+  lastRouteKey=key;
+  if((location.hash||'').replace(/^#\/?/,'')!==key) location.hash='#'+key;
+  applyRouteKey(key);
+}
+function applyLocation(){
+  const key=(location.hash||'').replace(/^#\/?/,'')||'dashboard';
+  if(key===lastRouteKey) return;
+  lastRouteKey=key;
+  applyRouteKey(key);
+}
+window.addEventListener('hashchange',applyLocation);
+
+function navigate(route){ setRouteKey(String(route)); }
 
 function openModule(id){
   const m=getModule(id); if(!isUnlocked(m)){showToast('Terminez le module précédent pour déverrouiller celui-ci.');return;}
-  currentModule=m.id; localStorage.setItem('nexora-current',m.id); renderLesson(m); navigate('lesson');
+  currentModule=m.id; localStorage.setItem('nexora-current',m.id); setRouteKey('module/'+m.id);
 }
 function renderLesson(m){
   $('#lesson-header-module').textContent=`MODULE ${String(m.id).padStart(2,'0')}`; $('#lesson-header-time').textContent=m.time.toUpperCase(); $('#lesson-eyebrow').textContent=`MODULE ${String(m.id).padStart(2,'0')} · ${m.kicker}`; $('#lesson-title').textContent=m.title; $('#lesson-subtitle').textContent=m.subtitle;
@@ -532,6 +557,7 @@ function handleSearch(value){
 $$('.nav-item').forEach(btn=>btn.addEventListener('click',()=>navigate(btn.dataset.route)));
 $$('[data-route]').forEach(btn=>{if(!btn.classList.contains('nav-item')) btn.addEventListener('click',()=>navigate(btn.dataset.route));});
 $('#mobile-menu').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
+document.addEventListener('click',e=>{const sb=$('#sidebar');if(sb.classList.contains('open')&&!e.target.closest('#sidebar')&&!e.target.closest('#mobile-menu'))sb.classList.remove('open');});
 $('#search-input').addEventListener('input',e=>handleSearch(e.target.value));
 $('#search-input').addEventListener('keydown',e=>{if(e.key==='Enter'){navigate('parcours');}});
 document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#search-input').focus();}});
@@ -564,3 +590,4 @@ const dateEl=$('#dashboard-date');
 if(dateEl) dateEl.innerHTML=`${new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date()).toUpperCase()} <span class="dot"></span> BON RETOUR`;
 const labCount=$('#lab-function-count'); if(labCount) labCount.textContent=`${formulas.length} fonctions clés`;
 applyName(); renderActivity(); renderDashboardModules(); renderPath(); updateProgressUI(); renderGlossary(); renderNotes();
+applyLocation();

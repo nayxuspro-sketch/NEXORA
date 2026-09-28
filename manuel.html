@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Manuel — Formation Power BI NEXORA</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23111b38'/%3E%3Crect x='24' y='54' width='14' height='24' rx='3' fill='%23f46b4f'/%3E%3Crect x='44' y='40' width='14' height='38' rx='3' fill='%23f7c95f'/%3E%3Crect x='64' y='26' width='14' height='52' rx='3' fill='%2352bc94'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="manual-body">
+  <header class="manual-topbar">
+    <a class="manual-brand" href="index.html">✦ <strong>NEXORA</strong> · MANUEL</a>
+    <div class="manual-actions"><a href="index.html">Retour à l’academy</a><button id="manual-print">Imprimer</button></div>
+  </header>
+  <div class="manual-layout">
+    <aside class="manual-toc"><p class="eyebrow">SOMMAIRE</p><a class="manual-toc-link" href="#chapitre-1">Chapitre 1 — Comprendre la Business Intelligence</a><a class="manual-toc-link" href="#chapitre-2">Chapitre 2 — Power BI Desktop et premier rapport</a><a class="manual-toc-link" href="#chapitre-3">Chapitre 3 — Sources, Excel, SQL et Power Query</a><a class="manual-toc-link" href="#chapitre-4">Chapitre 4 — Relations et modèle en étoile</a><a class="manual-toc-link" href="#chapitre-5">Chapitre 5 — Mesures, colonnes calculées et agrégations DAX</a><a class="manual-toc-link" href="#chapitre-6">Chapitre 6 — DAX : logique, contexte, filtres et temps</a><a class="manual-toc-link" href="#chapitre-7">Chapitre 7 — Statistiques descriptives et choix des visuels</a><a class="manual-toc-link" href="#chapitre-8">Chapitre 8 — Filtres, segments, drill-through et expérience utilisateur</a><a class="manual-toc-link" href="#chapitre-9">Chapitre 9 — Power BI Service, publication et actualisation</a><a class="manual-toc-link" href="#chapitre-10">Chapitre 10 — Sécurité et gouvernance</a><a class="manual-toc-link" href="#chapitre-11">Chapitre 11 — Projet guidé : cockpit commercial</a><a class="manual-toc-link" href="#chapitre-12">Chapitre 12 — Projet final et portfolio</a><a class="manual-toc-link" href="#chapitre-13">Annexe A — Référence DAX essentielle</a><a class="manual-toc-link" href="#chapitre-14">Annexe B — Checklist avant publication</a></aside>
+    <article class="manual-article">
+<h1>Formation Power BI — de zéro à dashboard professionnel</h1>
+<blockquote>
+<p>Manuel compagnon de l’academy NEXORA. Ce document peut être lu seul ou utilisé avec <code>index.html</code> pour suivre les exercices interactifs.</p>
+</blockquote>
+<h2>Comment utiliser ce manuel</h2>
+<p>La progression suit toujours le même mouvement : <strong>comprendre → observer → manipuler → pratiquer → appliquer → approfondir</strong>. Ne sautez pas directement aux formules DAX. Un calcul juste sur un mauvais modèle reste un mauvais résultat.</p>
+<p>Dans l’application NEXORA, chaque module se termine par un <strong>quiz auto-corrigé de 3 questions</strong> avec explications : validez le quiz avant de marquer le module terminé, puis exportez votre progression depuis l’onglet Ressources si vous changez de navigateur.</p>
+<p>Chaque chapitre contient : objectifs, prérequis, notions, démonstration, formules, erreurs fréquentes, bonnes pratiques, exercices et mini-projet. Les mentions <strong>Capture à insérer</strong> décrivent précisément l’image à réaliser dans la version de Power BI Desktop utilisée.</p>
+<hr>
+<h2>Parcours et projet fil rouge</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Sujet</th>
+<th>Livrable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Business Intelligence</td>
+<td>Fiche de cadrage</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Power BI Desktop</td>
+<td>Premier rapport</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Sources et Power Query</td>
+<td>Requête nettoyée</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Modèle en étoile</td>
+<td>Modèle relationnel</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Mesures et agrégations DAX</td>
+<td>Socle de KPI</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Contexte, filtres et temps</td>
+<td>Analyse N / N-1</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Statistiques et visualisation</td>
+<td>Page d’analyse</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Interactions et UX</td>
+<td>Rapport navigable</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Power BI Service</td>
+<td>Rapport publié</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Sécurité et gouvernance</td>
+<td>Matrice des habilitations</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Projet guidé commercial</td>
+<td>Cockpit de direction</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Projet final</td>
+<td>Dashboard de portfolio</td>
+</tr>
+</tbody></table>
+<h3>Jeu de données fil rouge</h3>
+<p>Le projet utilise une table de faits <code>F_Ventes</code> et quatre dimensions :</p>
+<ul>
+<li><code>F_Ventes</code> : <code>IDVente</code>, <code>DateVente</code>, <code>IDProduit</code>, <code>IDClient</code>, <code>IDRegion</code>, <code>Quantite</code>, <code>Montant</code>, <code>Cout</code> ;</li>
+<li><code>D_Produit</code> : <code>IDProduit</code>, <code>Produit</code>, <code>Categorie</code>, <code>Segment</code>, <code>PrixUnitaire</code> ;</li>
+<li><code>D_Client</code> : <code>IDClient</code>, <code>Client</code>, <code>Secteur</code>, <code>Ville</code> ;</li>
+<li><code>D_Region</code> : <code>IDRegion</code>, <code>Region</code>, <code>Pays</code> ;</li>
+<li><code>D_Date</code> : <code>Date</code>, <code>Année</code>, <code>Mois</code>, <code>NumMois</code>, <code>Trimestre</code>.</li>
+</ul>
+<p><strong>Granularité de <code>F_Ventes</code> : une ligne représente une ligne de vente pour un produit, un client et une date.</strong> Cette phrase doit être écrite avant toute mesure.</p>
+<hr>
+<h1 id="chapitre-1">Chapitre 1 — Comprendre la Business Intelligence</h1>
+<h2>Objectifs</h2>
+<p>À la fin du chapitre, vous saurez définir donnée, information, indicateur et décision ; expliquer le rôle de Power BI ; et décrire les étapes d’un projet analytique.</p>
+<h2>Prérequis</h2>
+<p>Aucun. Le chapitre s’adresse à une personne qui n’a jamais ouvert Power BI.</p>
+<h2>Introduction</h2>
+<p>Une organisation produit des données lorsqu’elle vend un produit, enregistre une absence, reçoit une note ou paie une facture. Une donnée isolée est une trace. La Business Intelligence, ou <strong>BI</strong>, organise ces traces afin d’aider quelqu’un à prendre une décision.</p>
+<p>La différence peut se résumer ainsi :</p>
+<ul>
+<li><strong>Donnée :</strong> <code>120 unités vendues le 12/09/2026</code> ;</li>
+<li><strong>Information :</strong> <code>les ventes de la gamme A progressent de 18 %</code> ;</li>
+<li><strong>Décision :</strong> <code>renforcer le stock de la gamme A dans la région Nord</code>.</li>
+</ul>
+<p>Power BI n’est pas un décideur automatique. C’est un ensemble d’outils qui prépare, modélise, analyse et présente la donnée.</p>
+<h2>Notions fondamentales</h2>
+<h3>Les trois briques de Power BI</h3>
+<ol>
+<li><strong>Power BI Desktop</strong> est l’atelier local : connexion aux sources, Power Query, modèle, DAX et rapport.</li>
+<li><strong>Power BI Service</strong> est l’espace web : publication, partage, actualisation, applications et gouvernance.</li>
+<li><strong>Power BI Mobile</strong> permet de consulter les rapports sur téléphone ou tablette.</li>
+</ol>
+<p>Une comparaison simple : Desktop est la cuisine, le Service est le restaurant et le rapport est le menu servi au bon public.</p>
+<h3>Le cycle d’un projet BI</h3>
+<ol>
+<li>Partir d’une décision à améliorer.</li>
+<li>Identifier les sources et leur propriétaire.</li>
+<li>Nettoyer et transformer les données.</li>
+<li>Construire un modèle fiable.</li>
+<li>Créer des mesures et vérifier les résultats.</li>
+<li>Concevoir une expérience de lecture.</li>
+<li>Publier, sécuriser, actualiser et maintenir.</li>
+</ol>
+<h2>Démonstration pratique</h2>
+<p>Prenez la phrase « Je veux un dashboard des ventes » et transformez-la en cahier des charges :</p>
+<ol>
+<li>Qui consultera le rapport ?</li>
+<li>Quelle décision doit être prise chaque semaine ?</li>
+<li>Quels produits, régions et périodes doivent être comparés ?</li>
+<li>Quelle source fait foi ?</li>
+<li>À quelle fréquence la donnée doit-elle être actualisée ?</li>
+</ol>
+<h3>Capture à insérer</h3>
+<p>Un schéma en cinq blocs : <strong>Sources → Power Query → Modèle → Rapport → Power BI Service</strong>, avec une courte légende sous chaque bloc.</p>
+<h2>Formule / indicateur clé</h2>
+<pre><code class="language-DAX">Variation % = DIVIDE([Ventes N] - [Ventes N-1], [Ventes N-1], 0)
+</code></pre>
+<p><code>DIVIDE</code> protège le calcul lorsque la valeur de référence vaut zéro. Le troisième argument <code>0</code> est la valeur de remplacement.</p>
+<h2>Erreurs fréquentes</h2>
+<ul>
+<li>Construire des graphiques avant d’identifier les décisions à éclairer.</li>
+<li>Utiliser un KPI sans définition écrite.</li>
+<li>Présenter une donnée comme certaine sans vérifier sa source, sa date ou sa couverture.</li>
+</ul>
+<h2>Bonnes pratiques</h2>
+<ul>
+<li>Écrire un mini-dictionnaire métier avant de commencer.</li>
+<li>Limiter la page principale aux indicateurs utiles à la décision.</li>
+<li>Afficher la source et la date d’actualisation.</li>
+</ul>
+<h2>Exercices</h2>
+<p><strong>Guidé :</strong> choisissez une activité réelle et écrivez trois décisions, trois questions d’analyse et un indicateur pour chaque question.</p>
+<p><strong>Autonome :</strong> une direction d’école demande « un rapport des élèves ». Proposez quatre indicateurs, leur définition et la décision associée.</p>
+<p><strong>Correction indicative :</strong> taux d’assiduité → contacter les élèves à risque ; effectif par niveau → anticiper les classes ; moyenne par matière → organiser le soutien ; évolution des inscriptions → ajuster la communication.</p>
+<h2>Mini-projet</h2>
+<p>Rédigez une fiche de cadrage d’une page : contexte, public, décisions, indicateurs, sources, fréquence, confidentialité et résultat attendu.</p>
+<hr>
+<h1 id="chapitre-2">Chapitre 2 — Power BI Desktop et premier rapport</h1>
+<h2>Objectifs</h2>
+<p>Installer Desktop, repérer les vues Rapport / Données / Modèle, importer un fichier Excel ou CSV et produire un premier visuel.</p>
+<h2>Prérequis</h2>
+<p>Chapitre 1 et un fichier de données. Aucun prérequis en programmation.</p>
+<h2>Notions fondamentales</h2>
+<p>Dans la <strong>vue Rapport</strong>, on place les visuels. Dans la <strong>vue Données</strong>, on inspecte les lignes et les types. Dans la <strong>vue Modèle</strong>, on voit les relations. Le fichier <code>.pbix</code> conserve le modèle, les requêtes, les mesures et les pages de rapport.</p>
+<p>Une colonne déposée dans un visuel peut être agrégée par Somme, Moyenne, Nombre, Nombre distinct ou ne pas être résumée. Le choix doit correspondre à la question.</p>
+<h2>Démonstration : Excel vers Power BI</h2>
+<ol>
+<li>Ouvrir Power BI Desktop.</li>
+<li>Choisir <strong>Accueil → Obtenir les données → Excel</strong>.</li>
+<li>Sélectionner <code>Contoso.xlsx</code>.</li>
+<li>Dans le navigateur, cocher <code>Ventes</code> puis choisir <strong>Transformer les données</strong> si la source doit être nettoyée, ou <strong>Charger</strong> si elle est déjà propre.</li>
+<li>Dans la vue Rapport, choisir un histogramme.</li>
+<li>Déposer <code>Categorie</code> dans l’axe et <code>Montant</code> dans les valeurs.</li>
+<li>Ajouter un titre et activer les étiquettes de données.</li>
+<li>Enregistrer sous <code>Contoso_Premier_Rapport.pbix</code>.</li>
+</ol>
+<p><strong>Résultat attendu :</strong> les barres représentent le chiffre d’affaires de chaque catégorie et une infobulle indique la valeur au survol.</p>
+<h3>Capture à insérer</h3>
+<p>L’interface Desktop : ruban en haut, icônes Rapport / Données / Modèle à gauche, canevas au centre, volets Données, Visualisations et Filtres à droite.</p>
+<h2>Formule</h2>
+<pre><code class="language-DAX">Total Ventes = SUM(F_Ventes[Montant])
+</code></pre>
+<ul>
+<li><code>Total Ventes</code> est le nom de la mesure.</li>
+<li><code>=</code> affecte le calcul au nom.</li>
+<li><code>SUM</code> additionne.</li>
+<li><code>F_Ventes[Montant]</code> désigne la colonne Montant de la table F_Ventes.</li>
+</ul>
+<h2>Erreurs fréquentes</h2>
+<ul>
+<li>Importer une feuille Excel avec plusieurs titres, sous-totaux et cellules fusionnées.</li>
+<li>Mettre une colonne texte dans Valeurs et obtenir un comptage inattendu.</li>
+<li>Oublier d’enregistrer le <code>.pbix</code>.</li>
+</ul>
+<h2>Bonnes pratiques</h2>
+<p>Nommer les tables, contrôler les types, préférer les tables Excel nommées aux plages libres et masquer les colonnes techniques qui ne servent pas au lecteur.</p>
+<h2>Exercices</h2>
+<p><strong>Guidé :</strong> créez une carte <code>Total Ventes</code>, un histogramme par région et un tableau des ventes récentes. Vérifiez le total avec Excel.</p>
+<p><strong>Autonome :</strong> importez un fichier de dépenses et produisez une carte du total, un visuel par catégorie et un tableau des dix dernières dépenses.</p>
+<p><strong>Correction :</strong> <code>Montant</code> doit être numérique, <code>Date</code> doit être de type Date et le visuel par catégorie doit appliquer une agrégation cohérente.</p>
+<h2>Mini-projet</h2>
+<p>Livrez une page « Première lecture » : trois cartes KPI, deux visuels, un titre, une période et une note indiquant la source.</p>
+<hr>
+<h1 id="chapitre-3">Chapitre 3 — Sources, Excel, SQL et Power Query</h1>
+<h2>Objectifs</h2>
+<p>Importer différentes sources, nettoyer une table, comprendre les étapes appliquées, distinguer Ajouter et Fusionner et lire le langage M.</p>
+<h2>Prérequis</h2>
+<p>Savoir importer un fichier et reconnaître une colonne numérique, texte ou date.</p>
+<h2>Comprendre Power Query</h2>
+<p>Power Query agit <strong>avant</strong> le modèle. Chaque clic crée une étape enregistrée et rejouable : c’est une recette de nettoyage. Une requête n’est pas seulement un résultat ; c’est la description de la transformation entre la source et la table finale.</p>
+<h3>Sources courantes</h3>
+<ul>
+<li><strong>Excel :</strong> idéal pour un prototype ou une petite source structurée ; utiliser des tables nommées.</li>
+<li><strong>CSV :</strong> vérifier séparateur, encodage, décimales et en-têtes.</li>
+<li><strong>Dossier :</strong> pratique pour empiler des fichiers mensuels de même structure.</li>
+<li><strong>SQL Server :</strong> adapté aux volumes, aux sources partagées et aux requêtes contrôlées.</li>
+<li><strong>SharePoint, API, services cloud :</strong> documenter identifiants, propriétaire et fréquence.</li>
+</ul>
+<h3>Ajouter ou Fusionner ?</h3>
+<ul>
+<li><strong>Ajouter des requêtes</strong> empile des lignes ayant les mêmes colonnes : janvier + février.</li>
+<li><strong>Fusionner des requêtes</strong> rapproche des colonnes grâce à une clé : ventes + nom du produit.</li>
+</ul>
+<h2>Démonstration : nettoyer les ventes</h2>
+<ol>
+<li><strong>Accueil → Transformer les données</strong>.</li>
+<li>Sélectionner <code>Montant</code> → Type → Nombre décimal.</li>
+<li>Sélectionner <code>DateVente</code> → Type → Date.</li>
+<li>Supprimer les doublons sur <code>IDVente</code>.</li>
+<li>Appliquer <code>Format → Supprimer les espaces</code> sur <code>Produit</code>.</li>
+<li>Remplacer les valeurs nulles de <code>Quantite</code> par zéro uniquement si cette règle est validée par le métier.</li>
+<li>Renommer les étapes importantes dans le volet <strong>Étapes appliquées</strong>.</li>
+<li><strong>Fermer et appliquer</strong>.</li>
+</ol>
+<h3>Exemple SQL</h3>
+<p>Une sélection limitée à la source peut réduire les données transférées :</p>
+<pre><code class="language-SQL">SELECT DateVente, IDProduit, IDClient, Montant
+FROM dbo.Ventes
+WHERE DateVente &gt;= &#39;2026-01-01&#39;;
+</code></pre>
+<p>Ne sélectionnez pas <code>*</code> par habitude. Importer uniquement les colonnes utiles simplifie le modèle.</p>
+<h3>Exemple M</h3>
+<pre><code class="language-powerquery">Table.Propre = Table.TransformColumns(
+    Source,
+    {{&quot;Produit&quot;, Text.Trim, type text}}
+)
+</code></pre>
+<p><code>Table.TransformColumns</code> reçoit une table, la colonne à modifier, la fonction <code>Text.Trim</code> puis le type attendu. Il n’est pas nécessaire de devenir programmeur : savoir lire les fonctions générées aide à diagnostiquer une erreur.</p>
+<h3>Capture à insérer</h3>
+<p>L’éditeur Power Query avec l’aperçu central et le volet <strong>Étapes appliquées</strong> affichant <code>Source</code>, <code>Type modifié</code>, <code>Doublons supprimés</code> et <code>Texte nettoyé</code>.</p>
+<h2>Erreurs fréquentes</h2>
+<ul>
+<li>Corriger manuellement le fichier source au lieu de rendre la transformation reproductible.</li>
+<li>Changer les types après des calculs qui dépendent déjà de ces types.</li>
+<li>Utiliser Fusionner pour empiler des mois, ou Ajouter pour enrichir une ligne.</li>
+</ul>
+<h2>Bonnes pratiques</h2>
+<p>Renommer les requêtes, désactiver le chargement des requêtes intermédiaires, conserver une étape par intention et documenter les hypothèses de nettoyage.</p>
+<h2>Exercices</h2>
+<p><strong>Guidé :</strong> normalisez une colonne Ville contenant <code>Paris</code>, <code>paris</code> et <code>Paris </code> ; remplacez les vides de Quantité et contrôlez le nombre de lignes.</p>
+<p><strong>Autonome :</strong> combinez trois fichiers mensuels, extraire le mois du nom de fichier et comparez le total avant / après.</p>
+<p><strong>Correction :</strong> utiliser Ajouter pour empiler les fichiers ; contrôler les types et conserver une colonne Mois ; écrire dans une note le total attendu et le total obtenu.</p>
+<h2>Mini-projet</h2>
+<p>Créez un pipeline de qualité sur une table volontairement imparfaite : dates mixtes, espaces, doublons, nulls et erreurs. Livrez la requête propre et la liste des règles.</p>
+<hr>
+<h1 id="chapitre-4">Chapitre 4 — Relations et modèle en étoile</h1>
+<h2>Objectifs</h2>
+<p>Distinguer faits et dimensions, définir la granularité, créer une relation <code>1:*</code> et éviter les chemins ambigus.</p>
+<h2>Prérequis</h2>
+<p>Plusieurs tables propres et une clé d’identification.</p>
+<h2>Notions fondamentales</h2>
+<p>La <strong>table de faits</strong> contient les événements mesurables. La <strong>dimension</strong> décrit ces événements. Dans un modèle en étoile, la table de faits est au centre et les dimensions sont autour.</p>
+<p>Une relation <code>1:*</code> signifie qu’une ligne unique de la dimension correspond à plusieurs lignes dans le fait. Par exemple, un produit peut apparaître dans de nombreuses ventes, mais une vente référence un seul produit.</p>
+<h2>Démonstration</h2>
+<ol>
+<li>Ouvrir la vue Modèle.</li>
+<li>Relier <code>D_Produit[IDProduit]</code> à <code>F_Ventes[IDProduit]</code>.</li>
+<li>Vérifier Cardinalité : <strong>Un à plusieurs (1:*)</strong>.</li>
+<li>Vérifier Direction de filtrage : <strong>Unique</strong>, de la dimension vers le fait.</li>
+<li>Relier <code>D_Date[Date]</code> à <code>F_Ventes[DateVente]</code>.</li>
+<li>Créer une table calendrier si nécessaire et la marquer comme table de dates.</li>
+<li>Tester : le segment <code>Categorie</code> doit modifier <code>Total Ventes</code>.</li>
+</ol>
+<h3>Table calendrier</h3>
+<pre><code class="language-DAX">D_Date = CALENDAR(DATE(2025,1,1), DATE(2026,12,31))
+</code></pre>
+<p>On ajoute ensuite des colonnes d’année, de mois, de trimestre et de numéro de mois. Triez le nom du mois par <code>NumMois</code> pour éviter l’ordre alphabétique.</p>
+<h3>Capture à insérer</h3>
+<p>La vue Modèle avec <code>F_Ventes</code> au centre, reliée à <code>D_Date</code>, <code>D_Produit</code>, <code>D_Client</code> et <code>D_Region</code>, chaque relation affichant <code>1</code> du côté dimension et <code>*</code> du côté fait.</p>
+<h2>Erreurs fréquentes</h2>
+<ul>
+<li>Relier deux tables sur une colonne non unique.</li>
+<li>Créer des relations bidirectionnelles partout.</li>
+<li>Mélanger les descriptions et les faits dans une table géante.</li>
+<li>Oublier d’indiquer la granularité d’une table.</li>
+</ul>
+<h2>Bonnes pratiques</h2>
+<p>Préfixer <code>D_</code> et <code>F_</code>, masquer les clés techniques, conserver un modèle simple et utiliser une vraie dimension Date pour toutes les analyses temporelles.</p>
+<h2>Exercices</h2>
+<p><strong>Guidé :</strong> dessinez le modèle d’une école avec <code>F_Notes</code>, <code>D_Etudiant</code>, <code>D_Matiere</code>, <code>D_Classe</code> et <code>D_Date</code>.</p>
+<p><strong>Autonome :</strong> repérez les relations nécessaires dans un modèle d’achats : commandes, fournisseurs, articles, dates et entrepôts.</p>
+<p><strong>Correction :</strong> les dimensions sont du côté <code>1</code>, les événements du côté <code>*</code>; une commande peut contenir plusieurs lignes, un article peut figurer dans plusieurs lignes.</p>
+<h2>Mini-projet</h2>
+<p>Livrez un modèle de ventes sans relation ambiguë, avec calendrier marqué et document de granularité des tables.</p>
+<hr>
+<h1 id="chapitre-5">Chapitre 5 — Mesures, colonnes calculées et agrégations DAX</h1>
+<h2>Objectifs</h2>
+<p>Choisir le bon objet de calcul, créer un socle de mesures et utiliser les fonctions d’agrégation.</p>
+<h2>Prérequis</h2>
+<p>Un modèle en étoile correctement relié.</p>
+<h2>Mesure ou colonne calculée ?</h2>
+<p>Une <strong>mesure</strong> est calculée à l’affichage selon les filtres ; elle est idéale pour un KPI. Une <strong>colonne calculée</strong> est évaluée ligne par ligne lors de l’actualisation ; elle sert à créer une catégorie stable. Une <strong>table calculée</strong> crée une table dans le modèle ; elle est utile pour des besoins ciblés de modélisation.</p>
+<h3>Fonctions d’agrégation</h3>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Rôle</th>
+<th>Exemple</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SUM</code></td>
+<td>Additionner une colonne numérique</td>
+<td><code>SUM(F_Ventes[Montant])</code></td>
+</tr>
+<tr>
+<td><code>AVERAGE</code></td>
+<td>Moyenne des valeurs</td>
+<td><code>AVERAGE(F_Notes[Note])</code></td>
+</tr>
+<tr>
+<td><code>MIN</code> / <code>MAX</code></td>
+<td>Plus petite / plus grande valeur</td>
+<td><code>MAX(F_Ventes[DateVente])</code></td>
+</tr>
+<tr>
+<td><code>COUNT</code></td>
+<td>Compter des valeurs numériques</td>
+<td><code>COUNT(F_Ventes[IDCommande])</code></td>
+</tr>
+<tr>
+<td><code>COUNTA</code></td>
+<td>Compter les valeurs non vides</td>
+<td><code>COUNTA(D_Client[Client])</code></td>
+</tr>
+<tr>
+<td><code>DISTINCTCOUNT</code></td>
+<td>Compter les valeurs uniques</td>
+<td><code>DISTINCTCOUNT(F_Ventes[IDClient])</code></td>
+</tr>
+<tr>
+<td><code>COUNTROWS</code></td>
+<td>Compter les lignes d’une table</td>
+<td><code>COUNTROWS(F_Ventes)</code></td>
+</tr>
+</tbody></table>
+<h2>Démonstration : créer un socle de KPI</h2>
+<p>Dans le volet Données, clic droit sur <code>F_Ventes</code> → <strong>Nouvelle mesure</strong> :</p>
+<pre><code class="language-DAX">Total Ventes = SUM(F_Ventes[Montant])
+Quantité Totale = SUM(F_Ventes[Quantite])
+Clients Uniques = DISTINCTCOUNT(F_Ventes[IDClient])
+Commandes = DISTINCTCOUNT(F_Ventes[IDCommande])
+Panier Moyen = DIVIDE([Total Ventes], [Commandes], 0)
+</code></pre>
+<p>Déposez les trois premières mesures dans des cartes. Filtrez par région et vérifiez que les résultats changent.</p>
+<h3>Lire une formule</h3>
+<p>Dans <code>Clients Uniques = DISTINCTCOUNT(F_Ventes[IDClient])</code> : le nom est à gauche, la fonction indique l’opération et la référence entre crochets indique la colonne concernée. Une mesure doit être nommée comme un résultat métier, pas comme un détail technique.</p>
+<h3>Capture à insérer</h3>
+<p>Le clic droit sur la table <code>F_Ventes</code>, le choix <strong>Nouvelle mesure</strong> et la barre de formule affichant <code>Total Ventes = SUM(...)</code>.</p>
+<h2>Erreurs fréquentes</h2>
+<ul>
+<li>Créer une colonne calculée pour un total global.</li>
+<li>Utiliser <code>COUNT</code> sur une colonne texte.</li>
+<li>Compter les lignes au lieu des clients uniques.</li>
+<li>Laisser Power BI choisir une agrégation sans la vérifier.</li>
+</ul>
+<h2>Bonnes pratiques</h2>
+<p>Créer des mesures atomiques puis les réutiliser, formater les devises et pourcentages, classer les mesures dans un dossier d’affichage et masquer les colonnes techniques.</p>
+<h2>Exercices</h2>
+<p><strong>Guidé :</strong> créez Total Ventes, Panier Moyen, Clients Uniques et Produits Vendus. Testez-les par mois.</p>
+<p><strong>Autonome :</strong> avec <code>F_Notes</code>, créez Moyenne Générale, Note Max, Nombre d’Évaluations et Étudiants Uniques.</p>
+<p><strong>Correction :</strong> <code>AVERAGE(F_Notes[Note])</code>, <code>MAX(F_Notes[Note])</code>, <code>COUNTROWS(F_Notes)</code> et <code>DISTINCTCOUNT(F_Notes[IDEtudiant])</code>.</p>
+<h2>Mini-projet</h2>
+<p>Construisez une page KPI commercial avec chiffre d’affaires, commandes, panier moyen, marge et clients uniques, accompagnés d’une table de contrôle par région.</p>
+<hr>
+<h1 id="chapitre-6">Chapitre 6 — DAX : logique, contexte, filtres et temps</h1>
+<h2>Objectifs</h2>
+<p>Comprendre le contexte de filtre, utiliser <code>CALCULATE</code>, <code>FILTER</code>, <code>ALL</code>, les fonctions logiques et les comparaisons temporelles.</p>
+<h2>Prérequis</h2>
+<p>Chapitre 5 et table de dates continue et reliée.</p>
+<h2>Le contexte de filtre</h2>
+<p>Une mesure ne calcule pas forcément tout le modèle. Dans une carte filtrée sur la région Nord et le mois de mars, elle s’évalue dans ce contexte. Le même calcul peut donc produire une valeur différente selon le visuel.</p>
+<h2>Fonctions de filtrage</h2>
+<h3><code>CALCULATE</code></h3>
+<pre><code class="language-DAX">Ventes Premium =
+CALCULATE(
+    [Total Ventes],
+    D_Produit[Segment] = &quot;Premium&quot;
+)
+</code></pre>
+<p><code>CALCULATE</code> reçoit une expression puis ajoute ou modifie un contexte. C’est la fonction centrale de DAX pour les analyses conditionnelles.</p>
+<h3><code>FILTER</code></h3>
+<pre><code class="language-DAX">Ventes Positives =
+CALCULATE(
+    [Total Ventes],
+    FILTER(F_Ventes, F_Ventes[Montant] &gt; 0)
+)
+</code></pre>
+<p><code>FILTER</code> renvoie une table qui respecte une condition. Utilisez-le lorsque le filtre nécessite une logique plus détaillée.</p>
+<h3><code>ALL</code></h3>
+<pre><code class="language-DAX">Part du Total =
+DIVIDE(
+    [Total Ventes],
+    CALCULATE([Total Ventes], ALL(D_Produit[Categorie])),
+    0
+)
+</code></pre>
+<p><code>ALL</code> retire le filtre indiqué. Il est utile pour une part du total ou un rang, mais peut ignorer un filtre attendu.</p>
+<h2>Fonctions logiques</h2>
+<pre><code class="language-DAX">Statut =
+SWITCH(
+    TRUE(),
+    [Variation %] &gt; 0.1, &quot;Dépassé&quot;,
+    [Variation %] &gt;= -0.1, &quot;Stable&quot;,
+    &quot;À surveiller&quot;
+)
+</code></pre>
+<p><code>IF</code> traite deux cas. <code>SWITCH</code> rend plusieurs cas plus lisibles. <code>AND</code> exige deux conditions vraies, <code>OR</code> une seule et <code>NOT</code> inverse une condition.</p>
+<pre><code class="language-DAX">Risque =
+IF(
+    AND([Marge %] &lt; 0.1, [Variation %] &lt; 0),
+    &quot;Oui&quot;,
+    &quot;Non&quot;
+)
+</code></pre>
+<h2>Analyse temporelle</h2>
+<pre><code class="language-DAX">Ventes N-1 =
+CALCULATE(
+    [Total Ventes],
+    DATEADD(D_Date[Date], -1, YEAR)
+)
+
+Variation % =
+DIVIDE([Total Ventes] - [Ventes N-1], [Ventes N-1], 0)
+
+Ventes Cumulées =
+TOTALYTD([Total Ventes], D_Date[Date])
+</code></pre>
+<h3>Démonstration</h3>
+<ol>
+<li>Créer <code>Ventes N-1</code>.</li>
+<li>Créer <code>Variation %</code>.</li>
+<li>Placer Année et Mois sur un graphique.</li>
+<li>Ajouter les deux mesures.</li>
+<li>Ajouter une carte de variation et la formater en pourcentage.</li>
+<li>Tester une année et un mois précis.</li>
+</ol>
+<h3>Capture à insérer</h3>
+<p>La barre de formule avec autocomplétion sur <code>CALCULATE</code>, puis un visuel montrant les courbes N et N-1.</p>
+<h2>Erreurs fréquentes</h2>
+<ul>
+<li>Utiliser <code>ALL</code> sans mesurer l’effet sur les segments.</li>
+<li>Filtrer la table de faits alors qu’une dimension convient.</li>
+<li>Comparer des périodes de longueurs différentes.</li>
+<li>Construire des <code>IF</code> imbriqués impossibles à relire.</li>
+</ul>
+<h2>Bonnes pratiques</h2>
+<p>Décomposer les calculs, tester chaque mesure dans une carte et un tableau, utiliser <code>DIVIDE</code>, et documenter le contexte attendu.</p>
+<h2>Exercices</h2>
+<p><strong>Guidé :</strong> créez la part du total par catégorie et vérifiez que les catégories totalisent 100 %.</p>
+<p><strong>Autonome :</strong> créez un statut <code>Fort</code>, <code>Stable</code> ou <code>À surveiller</code> avec <code>SWITCH(TRUE())</code>.</p>
+<p><strong>Correction :</strong> <code>SWITCH(TRUE(), [Variation %] &gt; 0.1, &quot;Fort&quot;, [Variation %] &gt;= -0.1, &quot;Stable&quot;, &quot;À surveiller&quot;)</code>.</p>
+<h2>Mini-projet</h2>
+<p>Livrez une page d’analyse temporelle avec N, N-1, variation, cumul annuel et alerte sur les régions sous -10 %.</p>
+<hr>
+<h1 id="chapitre-7">Chapitre 7 — Statistiques descriptives et choix des visuels</h1>
+<h2>Objectifs</h2>
+<p>Décrire une distribution, distinguer moyenne et médiane, choisir un visuel adapté et construire une page lisible.</p>
+<h2>Prérequis</h2>
+<p>Mesures DAX fonctionnelles et données contrôlées.</p>
+<h2>Statistiques descriptives</h2>
+<ul>
+<li><strong>Effectif :</strong> nombre d’observations.</li>
+<li><strong>Somme :</strong> total des valeurs.</li>
+<li><strong>Moyenne :</strong> total divisé par le nombre d’observations ; sensible aux valeurs extrêmes.</li>
+<li><strong>Médiane :</strong> valeur qui sépare les observations en deux groupes ; plus robuste aux extrêmes.</li>
+<li><strong>Minimum / maximum :</strong> bornes observées.</li>
+<li><strong>Étendue :</strong> maximum moins minimum.</li>
+<li><strong>Écart-type :</strong> dispersion autour de la moyenne.</li>
+<li><strong>Percentile :</strong> seuil en dessous duquel se trouve une proportion d’observations.</li>
+</ul>
+<p>Pour un délai de livraison, une moyenne de 9 jours peut cacher quelques commandes à 90 jours. La médiane et le percentile 90 complètent l’analyse.</p>
+<h3>Formules utiles</h3>
+<pre><code class="language-DAX">Moyenne Délai = AVERAGE(F_Commandes[DelaiJours])
+Médiane Délai = MEDIAN(F_Commandes[DelaiJours])
+Ecart Type = STDEV.P(F_Commandes[DelaiJours])
+P90 Délai = PERCENTILEX.INC(F_Commandes, F_Commandes[DelaiJours], 0.9)
+</code></pre>
+<p>Toujours préciser l’unité et le périmètre : « médiane des délais livrés, commandes de 2026 ».</p>
+<h2>Choisir un visuel</h2>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Visuel</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Comment cela évolue ?</td>
+<td>Courbe</td>
+</tr>
+<tr>
+<td>Que compare-t-on ?</td>
+<td>Barres triées</td>
+</tr>
+<tr>
+<td>Quelle est la répartition ?</td>
+<td>Histogramme ou boîte à moustaches</td>
+</tr>
+<tr>
+<td>Où se situe l’écart ?</td>
+<td>Carte, si les données géographiques sont fiables</td>
+</tr>
+<tr>
+<td>Quel est le niveau actuel ?</td>
+<td>Carte KPI avec cible</td>
+</tr>
+<tr>
+<td>Quel détail faut-il vérifier ?</td>
+<td>Tableau ou matrice</td>
+</tr>
+</tbody></table>
+<p>Un camembert ne convient que pour quelques parts d’un même total. Les visuels 3D et les jauges décoratives sont généralement à éviter.</p>
+<h2>Démonstration</h2>
+<ol>
+<li>Placer trois cartes : Total Ventes, Variation %, Marge %.</li>
+<li>Ajouter une courbe des ventes par mois.</li>
+<li>Ajouter des barres horizontales par région, triées décroissantes.</li>
+<li>Ajouter un segment Année.</li>
+<li>Utiliser une couleur neutre pour le contexte et une couleur d’accent pour l’alerte.</li>
+<li>Rédiger des titres qui portent un message : « Le Nord accélère au T3 » plutôt que « Ventes ».</li>
+</ol>
+<h3>Capture à insérer</h3>
+<p>Le volet Visualisations avec Axe X, Axe Y, Légende, Valeurs et le panneau Format ouvert sur les titres et étiquettes.</p>
+<h2>Erreurs fréquentes</h2>
+<ul>
+<li>Confondre moyenne et médiane.</li>
+<li>Mettre trop de visuels sur une page.</li>
+<li>Utiliser le rouge et le vert comme seules informations.</li>
+<li>Tronquer un axe et exagérer visuellement une variation.</li>
+</ul>
+<h2>Bonnes pratiques</h2>
+<p>Limiter une page à une intention, aligner les objets, conserver trois couleurs principales, ajouter des unités et tester la lisibilité à 100 %.</p>
+<h2>Exercices</h2>
+<p><strong>Guidé :</strong> remplacez huit visuels redondants par cinq visuels hiérarchisés et reformulez leurs titres.</p>
+<p><strong>Autonome :</strong> pour un suivi de stock, choisissez cinq visuels et justifiez chacun.</p>
+<p><strong>Correction indicative :</strong> KPI stock critique, barres des produits à réapprovisionner, courbe de l’évolution, matrice par entrepôt et tableau de contrôle.</p>
+<h2>Mini-projet</h2>
+<p>Refondez la page de votre premier rapport en une page « Vue dirigeant ». Ajoutez une annotation sur le fait le plus important.</p>
+<hr>
+<h1 id="chapitre-8">Chapitre 8 — Filtres, segments, drill-through et expérience utilisateur</h1>
+<h2>Objectifs</h2>
+<p>Configurer les interactions, créer une page de détail, organiser la navigation et prendre en compte l’accessibilité.</p>
+<h2>Notions</h2>
+<ul>
+<li><strong>Filtre de page :</strong> s’applique à une page.</li>
+<li><strong>Filtre de rapport :</strong> s’applique au rapport entier.</li>
+<li><strong>Segment :</strong> filtre visible et manipulable par le lecteur.</li>
+<li><strong>Info-bulle :</strong> détail au survol.</li>
+<li><strong>Drill-through :</strong> passage vers une page détaillée en conservant un contexte.</li>
+<li><strong>Signet et bouton :</strong> navigation ou état enregistré d’une page.</li>
+</ul>
+<h2>Démonstration : détail Produit</h2>
+<ol>
+<li>Créer une page <code>Détail Produit</code>.</li>
+<li>Déposer <code>D_Produit[NomProduit]</code> dans la zone Drill-through.</li>
+<li>Ajouter une carte Total Ventes et un tableau de transactions.</li>
+<li>Depuis la page d’analyse, clic droit sur un produit → Drill-through.</li>
+<li>Ajouter un bouton Retour.</li>
+<li>Utiliser <strong>Format → Modifier les interactions</strong> pour vérifier quels visuels filtrent ou surlignent les autres.</li>
+</ol>
+<h3>Capture à insérer</h3>
+<p>Le ruban <strong>Modifier les interactions</strong> avec les icônes Filtrer, Surligner et Aucun au-dessus des visuels.</p>
+<h2>Bonnes pratiques UX</h2>
+<p>Afficher la période et les filtres actifs, limiter les segments aux questions fréquentes, prévoir une navigation claire et des textes alternatifs. Un rapport doit fonctionner au clavier et conserver un contraste suffisant.</p>
+<h2>Exercices</h2>
+<p><strong>Guidé :</strong> ajoutez un segment Année, un segment Catégorie, une info-bulle avec Marge et un drill-through Client.</p>
+<p><strong>Autonome :</strong> concevez une navigation de trois pages avec boutons Accueil, Analyse et Détail.</p>
+<p><strong>Correction :</strong> chaque page doit pouvoir être quittée sans utiliser le bouton Retour du navigateur ; les filtres doivent agir uniquement sur les visuels attendus.</p>
+<h2>Mini-projet</h2>
+<p>Dessinez le parcours d’un utilisateur depuis un KPI en alerte jusqu’à la transaction expliquant l’écart.</p>
+<hr>
+<h1 id="chapitre-9">Chapitre 9 — Power BI Service, publication et actualisation</h1>
+<h2>Objectifs</h2>
+<p>Publier, distinguer rapport / modèle sémantique / tableau de bord / application, configurer l’actualisation et partager avec méthode.</p>
+<h2>Notions fondamentales</h2>
+<p>Desktop construit, Service diffuse. Un espace de travail est un environnement d’équipe avec des rôles et un cycle de publication. Une application regroupe du contenu validé destiné à des lecteurs.</p>
+<p>Une actualisation relance les requêtes et recharge le modèle. Une source locale peut nécessiter une <strong>passerelle</strong>, tandis qu’une source cloud nécessite des identifiants et une fréquence correctement configurés.</p>
+<h2>Démonstration</h2>
+<ol>
+<li>Enregistrer le <code>.pbix</code>.</li>
+<li>Cliquer sur <strong>Publier</strong> et sélectionner l’espace de travail de test.</li>
+<li>Ouvrir le rapport dans Service.</li>
+<li>Comparer trois KPI avec Desktop.</li>
+<li>Ouvrir les paramètres du modèle sémantique.</li>
+<li>Vérifier les identifiants et l’historique d’actualisation.</li>
+<li>Tester un rafraîchissement manuel.</li>
+<li>Partager uniquement avec un utilisateur ou groupe autorisé.</li>
+</ol>
+<h3>Capture à insérer</h3>
+<p>Le bouton <strong>Publier</strong> de Desktop, la sélection de l’espace de travail et le message de publication réussie dans Service.</p>
+<h2>Erreurs fréquentes</h2>
+<ul>
+<li>Partager « toute personne ayant le lien » sans validation.</li>
+<li>Publier dans un espace personnel un rapport destiné à une équipe.</li>
+<li>Ne pas tester l’actualisation après publication.</li>
+</ul>
+<h2>Bonnes pratiques</h2>
+<p>Nommer l’espace, le rapport, le propriétaire et la fréquence ; ajouter une page À propos ; documenter la date et vérifier Service, pas seulement Desktop.</p>
+<h2>Exercices</h2>
+<p><strong>Guidé :</strong> publiez un rapport de test et rédigez sa fiche : propriétaire, URL, source, fréquence, résultat d’actualisation.</p>
+<p><strong>Autonome :</strong> définissez les rôles d’une équipe de 25 commerciaux : construction, validation, lecture et alerte.</p>
+<p><strong>Correction indicative :</strong> analystes contributeurs, responsable BI propriétaire, commerciaux lecteurs, direction validatrice, alerte au propriétaire et à l’administrateur.</p>
+<h2>Mini-projet</h2>
+<p>Livrez une version en ligne contrôlée, un accès lecteur et une fiche de mise à disposition.</p>
+<hr>
+<h1 id="chapitre-10">Chapitre 10 — Sécurité et gouvernance</h1>
+<h2>Objectifs</h2>
+<p>Comprendre les droits, mettre en place une sécurité au niveau des lignes, documenter les données sensibles et construire une checklist de confiance.</p>
+<h2>Sécurité au niveau des lignes</h2>
+<p>La <strong>RLS</strong> limite les lignes visibles selon l’utilisateur connecté. Un responsable régional peut voir sa région sans créer une copie du rapport.</p>
+<p>Une table d’habilitation dynamique peut contenir <code>Email</code> et <code>Region</code>. Elle se relie au modèle et utilise l’identité de l’utilisateur :</p>
+<pre><code class="language-DAX">UtilisateurCourant = USERPRINCIPALNAME()
+</code></pre>
+<p>Pour un prototype, un rôle statique peut filtrer ainsi :</p>
+<pre><code class="language-DAX">D_Region[Region] = &quot;Nord&quot;
+</code></pre>
+<p>Dans Service, testez un compte lecteur réel. Un administrateur peut avoir un comportement différent et ne doit pas être votre seul test.</p>
+<h3>Capture à insérer</h3>
+<p><strong>Modélisation → Gérer les rôles</strong>, avec un rôle <code>Region_Nord</code> et l’expression de filtre visible.</p>
+<h2>Gouvernance</h2>
+<p>La gouvernance couvre les droits, mais aussi le propriétaire, le glossaire, la qualité, la traçabilité, la durée de conservation et le cycle de revue.</p>
+<h3>Checklist</h3>
+<ul>
+<li>Source et fréquence visibles.</li>
+<li>KPI définis et validés.</li>
+<li>Droits minimaux nécessaires.</li>
+<li>Données personnelles minimisées ou protégées.</li>
+<li>Propriétaire identifié.</li>
+<li>Plan en cas d’échec d’actualisation.</li>
+<li>Revue des habilitations programmée.</li>
+</ul>
+<h2>Erreurs fréquentes</h2>
+<ul>
+<li>Tester la RLS avec un compte administrateur qui voit tout.</li>
+<li>Protéger le rapport sans protéger le fichier source.</li>
+<li>Oublier les changements de poste et les départs.</li>
+</ul>
+<h2>Exercices</h2>
+<p><strong>Guidé :</strong> créez la matrice d’accès d’un rapport RH pour direction, managers, RH et collaborateurs.</p>
+<p><strong>Autonome :</strong> concevez une RLS pour quatre régions avec deux responsables par région. Expliquez le risque d’un filtre codé en dur.</p>
+<p><strong>Correction :</strong> une table d’habilitations et <code>USERPRINCIPALNAME()</code> évitent de multiplier les rôles et permettent une gestion dynamique.</p>
+<h2>Mini-projet</h2>
+<p>Réalisez l’audit de confiance de votre rapport et ajoutez une page Méthode avec source, date, définitions, limites et contact.</p>
+<hr>
+<h1 id="chapitre-11">Chapitre 11 — Projet guidé : cockpit commercial</h1>
+<h2>Brief</h2>
+<p>La direction veut comprendre pourquoi le chiffre d’affaires du dernier trimestre varie selon les régions. Elle attend une vue synthétique, une analyse par produit et un détail exportable.</p>
+<h2>Livrables</h2>
+<ul>
+<li>modèle en étoile documenté ;</li>
+<li>mesures <code>Total Ventes</code>, <code>Marge</code>, <code>Marge %</code>, <code>Clients Uniques</code>, <code>Ventes N-1</code>, <code>Variation %</code> ;</li>
+<li>page Vue dirigeant ;</li>
+<li>page Analyse produit ;</li>
+<li>page À propos ;</li>
+<li>note avec cinq contrôles de cohérence.</li>
+</ul>
+<h2>Plan de livraison</h2>
+<ol>
+<li><strong>Cadrage :</strong> définir chaque KPI.</li>
+<li><strong>Données :</strong> nettoyer et typer.</li>
+<li><strong>Modèle :</strong> relations et calendrier.</li>
+<li><strong>Calculs :</strong> mesures atomiques, puis indicateurs dérivés.</li>
+<li><strong>Récit :</strong> synthèse, analyse, détail et navigation.</li>
+<li><strong>Contrôle :</strong> chiffres, filtres, accessibilité, partage.</li>
+</ol>
+<h2>Contrôles minimum</h2>
+<ul>
+<li>total des ventes comparé à la source ;</li>
+<li>nombre de lignes avant / après nettoyage ;</li>
+<li>filtre d’une région vérifié manuellement ;</li>
+<li>période sans donnée testée ;</li>
+<li>valeur de N-1 contrôlée sur un mois connu.</li>
+</ul>
+<h2>Exercice</h2>
+<p>Présentez le rapport en cinq minutes : problème, message principal, preuve, action recommandée et limites.</p>
+<h2>Correction attendue</h2>
+<p>La présentation doit commencer par une conclusion et non par une description de chaque graphique. Exemple : « La région Sud décroche sur la catégorie X au T3 ». Montrez ensuite la preuve et proposez une action.</p>
+<hr>
+<h1 id="chapitre-12">Chapitre 12 — Projet final et portfolio</h1>
+<h2>Mission</h2>
+<p>Choisissez ventes, stocks, RH, éducation, finance, agriculture ou un projet d’activité personnelle. Le sujet importe moins que la qualité de la démarche.</p>
+<h2>Grille d’évaluation</h2>
+<table>
+<thead>
+<tr>
+<th>Critère</th>
+<th>Attendu</th>
+<th align="right">Poids</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Besoin et récit</td>
+<td>Public et décisions explicites</td>
+<td align="right">20 %</td>
+</tr>
+<tr>
+<td>Données et modèle</td>
+<td>Power Query et étoile fiables</td>
+<td align="right">25 %</td>
+</tr>
+<tr>
+<td>DAX et qualité</td>
+<td>Mesures justes et contrôles</td>
+<td align="right">25 %</td>
+</tr>
+<tr>
+<td>Design et usage</td>
+<td>Hiérarchie, interactions, accessibilité</td>
+<td align="right">20 %</td>
+</tr>
+<tr>
+<td>Gouvernance</td>
+<td>Source, sécurité, actualisation, limites</td>
+<td align="right">10 %</td>
+</tr>
+</tbody></table>
+<h2>Checklist finale</h2>
+<ol>
+<li>Le besoin tient en une phrase.</li>
+<li>Chaque relation et mesure a une raison d’être.</li>
+<li>Les résultats ont été comparés à une source.</li>
+<li>Les filtres ne créent pas de surprise.</li>
+<li>La date de rafraîchissement est visible.</li>
+<li>Le rapport peut être repris par quelqu’un d’autre.</li>
+<li>Aucune donnée personnelle réelle n’est exposée dans le portfolio.</li>
+</ol>
+<h2>Soutenance en sept minutes</h2>
+<ul>
+<li>Minute 1 : contexte et décision.</li>
+<li>Minutes 2–3 : vue d’ensemble et message principal.</li>
+<li>Minutes 4–5 : exploration d’un écart.</li>
+<li>Minute 6 : modèle, mesure ou contrôle qui rend le résultat fiable.</li>
+<li>Minute 7 : recommandation, limites et prochaine étape.</li>
+</ul>
+<h2>Mini-projet final</h2>
+<p>Publiez le dashboard, sa documentation et votre présentation. Ajoutez les captures au portfolio en anonymisant les données et en indiquant clairement ce qui est réel, simulé ou confidentiel.</p>
+<hr>
+<h1 id="chapitre-13">Annexe A — Référence DAX essentielle</h1>
+<pre><code class="language-DAX">-- Agrégations
+Total = SUM(F_Ventes[Montant])
+Moyenne = AVERAGE(F_Ventes[Montant])
+Minimum = MIN(F_Ventes[Montant])
+Maximum = MAX(F_Ventes[Montant])
+Valeurs = COUNT(F_Ventes[IDCommande])
+NonVides = COUNTA(D_Client[Client])
+Uniques = DISTINCTCOUNT(F_Ventes[IDClient])
+Lignes = COUNTROWS(F_Ventes)
+
+-- Logique
+Alerte = IF([Stock] &lt; [Seuil], &quot;Réapprovisionner&quot;, &quot;OK&quot;)
+Statut = SWITCH(TRUE(), [Variation %] &gt; .1, &quot;Fort&quot;, [Variation %] &gt;= -.1, &quot;Stable&quot;, &quot;Faible&quot;)
+Test Composé = IF(AND([Marge %] &lt; .1, [Variation %] &lt; 0), &quot;Risque&quot;, &quot;Normal&quot;)
+
+-- Filtres
+Ventes Premium = CALCULATE([Total], D_Produit[Segment] = &quot;Premium&quot;)
+Ventes Positives = CALCULATE([Total], FILTER(F_Ventes, F_Ventes[Montant] &gt; 0))
+Part Total = DIVIDE([Total], CALCULATE([Total], ALL(D_Produit)), 0)
+
+-- Temps
+N-1 = CALCULATE([Total], DATEADD(D_Date[Date], -1, YEAR))
+Cumul Annuel = TOTALYTD([Total], D_Date[Date])
+</code></pre>
+<h3>Règles de lecture</h3>
+<ul>
+<li>Une mesure dynamique répond au contexte du visuel.</li>
+<li><code>CALCULATE</code> modifie ce contexte.</li>
+<li><code>FILTER</code> renvoie une table filtrée.</li>
+<li><code>ALL</code> retire des filtres.</li>
+<li><code>DIVIDE</code> est plus sûr que <code>/</code> lorsque zéro est possible.</li>
+<li>Les fonctions temporelles exigent une table Date continue et reliée.</li>
+</ul>
+<h1 id="chapitre-14">Annexe B — Checklist avant publication</h1>
+<ul>
+<li><input disabled="" type="checkbox"> Le besoin, le public et la décision sont écrits.</li>
+<li><input disabled="" type="checkbox"> Les colonnes ont les bons types.</li>
+<li><input disabled="" type="checkbox"> Les doublons, valeurs nulles et erreurs sont traités.</li>
+<li><input disabled="" type="checkbox"> La granularité des faits est connue.</li>
+<li><input disabled="" type="checkbox"> Le modèle est en étoile.</li>
+<li><input disabled="" type="checkbox"> Les relations sont testées.</li>
+<li><input disabled="" type="checkbox"> Les mesures sont nommées et formatées.</li>
+<li><input disabled="" type="checkbox"> Les totaux ont été rapprochés d’une source.</li>
+<li><input disabled="" type="checkbox"> Les titres portent un message.</li>
+<li><input disabled="" type="checkbox"> Les unités, dates et filtres sont visibles.</li>
+<li><input disabled="" type="checkbox"> Le rapport est lisible au clavier et avec un contraste suffisant.</li>
+<li><input disabled="" type="checkbox"> La page À propos indique source, propriétaire et actualisation.</li>
+<li><input disabled="" type="checkbox"> Les rôles et accès ont été testés avec un compte lecteur.</li>
+<li><input disabled="" type="checkbox"> L’actualisation est planifiée et son échec est surveillé.</li>
+</ul>
+<blockquote>
+<p>Un dashboard professionnel n’est pas celui qui montre le plus de choses. C’est celui qui permet à la bonne personne de prendre une meilleure décision, avec confiance.</p>
+</blockquote>
+
+      <footer class="manual-footer">Source : <a href="FORMATION_POWER_BI.md">FORMATION_POWER_BI.md</a> · Régénéré avec <code>node tools/build_manual.mjs</code></footer>
+    </article>
+  </div>
+  <script>document.getElementById('manual-print').addEventListener('click',()=>window.print());</script>
+</body>
+</html>
