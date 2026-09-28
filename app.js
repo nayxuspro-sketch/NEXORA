@@ -294,8 +294,11 @@ const quizzes = {
   ]
 };
 
-let completedModules = JSON.parse(localStorage.getItem('nexora-completed') || '[1]');
-let currentModule = Number(localStorage.getItem('nexora-current') || 2);
+function readJSON(key, fallback){ try{ const v=JSON.parse(localStorage.getItem(key)); return v==null?fallback:v; }catch(e){ return fallback; } }
+function readNotes(){ const v=readJSON('nexora-notes',[]); return Array.isArray(v)?v:[]; }
+let completedModules=(()=>{ const v=readJSON('nexora-completed',[1]); const arr=Array.isArray(v)?v.map(Number).filter(n=>Number.isInteger(n)&&n>=1&&n<=modules.length):[]; return arr.length?arr:[1]; })();
+let currentModule=Number(localStorage.getItem('nexora-current'));
+if(!Number.isInteger(currentModule)||currentModule<1||currentModule>modules.length) currentModule=2;
 let currentRoute = 'dashboard';
 let learnerName=(localStorage.getItem('nexora-name')||'Alex Martin').trim()||'Alex Martin';
 let selectedFormula = 0;
@@ -399,7 +402,7 @@ function savedQuiz(id){ let all={}; try{ all=JSON.parse(localStorage.getItem('ne
 function saveQuiz(id,arr){ let all={}; try{ all=JSON.parse(localStorage.getItem('nexora-quizzes')||'{}')||{}; }catch(e){} all[id]=arr; localStorage.setItem('nexora-quizzes',JSON.stringify(all)); }
 function exportProgress(){
   const data={version:1,exportedAt:new Date().toISOString(),completed:completedModules,current:currentModule,
-    notes:JSON.parse(localStorage.getItem('nexora-notes')||'[]'),quizzes:JSON.parse(localStorage.getItem('nexora-quizzes')||'{}')};
+    notes:readNotes(),quizzes:readJSON('nexora-quizzes',{})};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='nexora_progression.json'; link.click(); URL.revokeObjectURL(link.href);
   showToast('Progression exportée (modules, quiz et notes).');
@@ -531,7 +534,7 @@ function showTermDefinition(term){
   $('#glossary-definition').innerHTML=`<strong>${item.t}</strong><p>${item.d}</p>`;
 }
 function renderNotes(){
-  const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]'); $('#saved-notes').innerHTML=notes.length?notes.map((n,i)=>`<div class="saved-note"><button class="delete-note" data-note="${i}" aria-label="Supprimer la note">×</button><p>${escapeHtml(n.text)}</p><small>${n.date}</small></div>`).join(''):'<div class="saved-note" style="grid-column:1/-1;background:#fff"><p style="color:var(--muted)">Aucune note pour le moment. Ajoutez votre première idée après une leçon.</p></div>';
+  const notes=readNotes(); $('#saved-notes').innerHTML=notes.length?notes.map((n,i)=>`<div class="saved-note"><button class="delete-note" data-note="${i}" aria-label="Supprimer la note">×</button><p>${escapeHtml(n.text)}</p><small>${n.date}</small></div>`).join(''):'<div class="saved-note" style="grid-column:1/-1;background:#fff"><p style="color:var(--muted)">Aucune note pour le moment. Ajoutez votre première idée après une leçon.</p></div>';
 }
 function escapeHtml(text){return text.replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
 function downloadDataset(path='data/contoso_exercice.csv'){
@@ -615,7 +618,7 @@ document.addEventListener('click',e=>{
   const qchoice=e.target.closest('[data-quiz-choice]'); if(qchoice&&!qchoice.disabled) handleQuizChoice(qchoice);
   const answer=e.target.closest('[data-answer]'); if(answer){const good=answer.dataset.answer==='right';$('#challenge-feedback').textContent=good?'✓ Exact. Une mesure respecte le contexte et se recalcule avec la période.':'À revoir : pensez à un calcul dynamique qui répond aux filtres du rapport.';$('#challenge-feedback').style.color=good?'var(--green)':'var(--coral)';}
   const term=e.target.closest('[data-term]'); if(term) showTermDefinition(term.dataset.term);
-  const del=e.target.closest('[data-note]'); if(del){const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]');notes.splice(Number(del.dataset.note),1);localStorage.setItem('nexora-notes',JSON.stringify(notes));renderNotes();showToast('Note supprimée.');}
+  const del=e.target.closest('[data-note]'); if(del){const notes=readNotes();notes.splice(Number(del.dataset.note),1);localStorage.setItem('nexora-notes',JSON.stringify(notes));renderNotes();showToast('Note supprimée.');}
 });
 $('#complete-lesson').addEventListener('click',completeCurrent);
 document.addEventListener('click',e=>{const dl=e.target.closest('[data-download]');if(dl)downloadDataset(dl.dataset.download);});
@@ -624,14 +627,14 @@ $('#checklist-button').addEventListener('click',openChecklist);
 $('#modal-close').addEventListener('click',closeModal);
 $('#modal-overlay').addEventListener('click',e=>{if(e.target===$('#modal-overlay'))closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
-$('#save-note').addEventListener('click',()=>{const text=$('#note-text').value.trim();if(!text){showToast('Écrivez une note avant de l’enregistrer.');return;}const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]');notes.unshift({text,date:new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium'}).format(new Date())});localStorage.setItem('nexora-notes',JSON.stringify(notes));$('#note-text').value='';renderNotes();logActivity(1);showToast('Note enregistrée dans votre carnet.');});
+$('#save-note').addEventListener('click',()=>{const text=$('#note-text').value.trim();if(!text){showToast('Écrivez une note avant de l’enregistrer.');return;}const notes=readNotes();notes.unshift({text,date:new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium'}).format(new Date())});localStorage.setItem('nexora-notes',JSON.stringify(notes));$('#note-text').value='';renderNotes();logActivity(1);showToast('Note enregistrée dans votre carnet.');});
 $('#rename-profile').addEventListener('click',renameProfile);
 $('#open-certificate').addEventListener('click',openCertificate);
 $('#export-progress').addEventListener('click',exportProgress);
 $('#import-progress').addEventListener('change',e=>{if(e.target.files[0])importProgress(e.target.files[0]);e.target.value='';});
 $('#add-note').addEventListener('click',()=>{$('#note-text').focus();});
 $('#export-notes').addEventListener('click',()=>{
-  const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]');
+  const notes=readNotes();
   if(!notes.length){ showToast('Aucune note à exporter pour le moment.'); return; }
   const md='# Mes notes — NEXORA\n\n'+notes.map(n=>`## ${n.date}\n\n${n.text}\n`).join('\n---\n\n');
   try{

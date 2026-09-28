@@ -240,6 +240,28 @@ const lessonIds = [...window.document.querySelectorAll('[id]')].map(e => e.id);
 const dupLesson = lessonIds.filter((v, i) => lessonIds.indexOf(v) !== i);
 check('aucun id dupliqué (leçon)', dupLesson.length === 0, dupLesson.join(','));
 
+// Résilience : démarre même avec un localStorage corrompu
+{
+  const errs2 = [];
+  const vc2 = new VirtualConsole();
+  vc2.on('jsdomError', e => { if (!e.message.includes('Not implemented')) errs2.push(e.message); });
+  const dom2 = new JSDOM(readFileSync(new URL('../index.html', import.meta.url), 'utf8'), { url: 'http://localhost:4173/', runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole: vc2 });
+  const w2 = dom2.window;
+  w2.localStorage.setItem('nexora-completed', '{broken json');
+  w2.localStorage.setItem('nexora-current', 'NaN');
+  w2.localStorage.setItem('nexora-notes', '"pas un tableau"');
+  w2.localStorage.setItem('nexora-quizzes', 'xyz');
+  w2.fetch = () => Promise.resolve({ ok: true, text: () => Promise.resolve('a,b\n1,2') });
+  let threw = null;
+  try { w2.eval(readFileSync(new URL('../app.js', import.meta.url), 'utf8')); } catch (e) { threw = e.message; }
+  check('démarrage avec stockage corrompu', threw === null && errs2.length === 0, threw || errs2.join(' | '));
+  check('modules restaurés par défaut', w2.document.querySelectorAll('#dashboard-module-grid .module-card').length === 12, String(w2.document.querySelectorAll('#dashboard-module-grid .module-card').length));
+  check('progression par défaut saine', w2.document.querySelector('#sidebar-progress-value').textContent === '12%', w2.document.querySelector('#sidebar-progress-value').textContent);
+  w2.document.querySelector('#note-text').value = 'note de récupération';
+  w2.document.querySelector('#save-note').click();
+  check('note enregistrable malgré corruption', w2.document.querySelector('#saved-notes').textContent.includes('note de récupération'));
+}
+
 // Intégrité des fichiers, téléchargements et ancres
 const { existsSync } = await import('node:fs');
 const dlPaths = $$('[data-download]').map(b => b.dataset.download);

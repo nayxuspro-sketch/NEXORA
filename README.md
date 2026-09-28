@@ -13,6 +13,7 @@ NEXORA est un parcours de formation interactif en français, conçu pour accompa
 - lexique, carnet de notes local et progression persistante dans le navigateur ;
 - **quiz auto-corrigés de 3 questions à la fin de chaque module** (36 questions avec explications) ;
 - **export / import de la progression** (modules, quiz et notes) au format JSON ;
+- **résilience** : l’application démarre toujours, même si le stockage local est corrompu (valeurs réinitialisées proprement) ;
 - **profil personnalisable** (prénom et initiales affichés partout) ;
 - **activité hebdomadaire réelle** tracée depuis vos actions (quiz, modules, notes) ;
 - **certificat imprimable** débloqué à 12 modules validés ;
@@ -75,7 +76,7 @@ npm install --no-save jsdom
 node test/smoke.mjs
 ```
 
-Il vérifie 96 contrôles d’interface (dont l’intégrité des fichiers, téléchargements et ancres du manuel) sans nécessiter de navigateur.
+Il vérifie 100 contrôles d’interface (dont l’intégrité des fichiers, téléchargements et ancres du manuel) sans nécessiter de navigateur.
 
 ## Régénérer le manuel HTML
 
