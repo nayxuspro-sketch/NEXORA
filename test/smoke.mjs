@@ -87,6 +87,11 @@ check('quiz : feedback incorrect', !!$('#lesson-article .quiz-feedback.ko'));
 $('[data-quiz-mod="2"][data-quiz-q="2"][data-quiz-choice="1"]').click();
 check('quiz : score final 2/3', $('#lesson-article .quiz-score').textContent.includes('2/3'), $('#lesson-article .quiz-score').textContent.trim());
 check('quiz : choix verrouillés', $$('#lesson-article .quiz-option[disabled]').length === 9, String($$('#lesson-article .quiz-option[disabled]').length));
+
+// Sommaire de leçon : les ancres ne doivent pas déclencher le routage
+$('#lesson-toc-links .toc-link').click();
+check('TOC reste sur la leçon', $('#view-lesson').classList.contains('active-view'));
+check('TOC ne casse pas le hash', !window.location.hash.includes('section'), window.location.hash);
 $('#complete-lesson').click();
 check('toast de validation', $('#toast').textContent.includes('Module validé'), $('#toast').textContent);
 check('progression mise à jour', $('#sidebar-progress-value').textContent !== '12%', $('#sidebar-progress-value').textContent);
@@ -95,15 +100,32 @@ check('progression mise à jour', $('#sidebar-progress-value').textContent !== '
 const locked = $$('#path-list .path-row .path-body[aria-disabled="true"]');
 check('modules verrouillés présents', locked.length >= 9, String(locked.length));
 
-// Recherche
+// Recherche globale : dropdown groupé
 const si = $('#search-input');
 si.value = 'DAX';
 si.dispatchEvent(new window.Event('input', { bubbles: true }));
-const found = $$('#dashboard-module-grid .module-card').length;
-check('recherche DAX', found >= 2 && found < 12, String(found));
+check('dropdown recherche ouvert', !$('#search-results').hidden);
+check('résultats : modules DAX', $$('#search-results [data-sr="module"]').length >= 2, String($$('#search-results [data-sr="module"]').length));
+check('résultats : formules DAX', $$('#search-results [data-sr="formula"]').length >= 2, String($$('#search-results [data-sr="formula"]').length));
+si.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+check('Entrée → parcours filtré', $('#view-parcours').classList.contains('active-view') && $$('#dashboard-module-grid .module-card').length === 2, String($$('#dashboard-module-grid .module-card').length));
 si.value = '';
 si.dispatchEvent(new window.Event('input', { bubbles: true }));
-check('recherche réinitialisée', $$('#dashboard-module-grid .module-card').length === 12);
+check('recherche réinitialisée', $$('#dashboard-module-grid .module-card').length === 12 && $('#search-results').hidden);
+si.value = 'CALCUL';
+si.dispatchEvent(new window.Event('input', { bubbles: true }));
+const termBtn = $('#search-results [data-sr="term"]');
+check('résultat lexique présent', !!termBtn);
+termBtn.click();
+check('lexique ouvert sur terme', $('#view-ressources').classList.contains('active-view') && $('#glossary-definition').textContent.includes('CALCULATE'), $('#glossary-definition').textContent.slice(0, 45));
+si.value = 'SWITCH';
+si.dispatchEvent(new window.Event('input', { bubbles: true }));
+const fBtn = $('#search-results [data-sr="formula"]');
+check('résultat formule présent', !!fBtn);
+fBtn.click();
+check('atelier ouvert sur la formule', $('#view-lab').classList.contains('active-view') && $('#formula-detail').textContent.includes('SWITCH'));
+si.value = '';
+si.dispatchEvent(new window.Event('input', { bubbles: true }));
 
 // Notes
 $('.nav-item[data-route="notes"]').click();
@@ -141,7 +163,7 @@ const todayBar = $$('#activity-bars > div').pop();
 check('activité du jour tracée', !todayBar.classList.contains('empty') && todayBar.querySelector('span').style.height !== '6%', todayBar.querySelector('span').style.height);
 check('total activité honnête', /action/.test($('#activity-total').textContent), $('#activity-total').textContent.trim());
 check('certificat masqué à 12/12', $('#certificate-banner').hidden === true);
-const fullPayload = JSON.stringify({ version: 1, completed: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], current: 12, notes: [], quizzes: {} });
+const fullPayload = JSON.stringify({ version: 1, completed: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], current: 12, notes: [], quizzes: { 2: [1, 1, 1] } });
 window.importProgress(new window.File([fullPayload], 'nexora_progression.json', { type: 'application/json' }));
 await new Promise(r => setTimeout(r, 100));
 check('certificat visible à 12/12', $('#certificate-banner').hidden === false);
@@ -172,6 +194,14 @@ check('route invalide → dashboard', $('#view-dashboard').classList.contains('a
 check('lien manuel HTML', $('.resource-card a[href="manuel.html"]') !== null);
 check('favicon en tête', $('link[rel="icon"]') !== null);
 check('meta description', ($('meta[name="description"]')?.content || '').includes('Power BI'));
+
+// Recommencer le quiz (à la fin : efface le score du module 2)
+$$('#dashboard-module-grid .module-card')[1].click();
+check('réouverture module 2', $('#view-lesson').classList.contains('active-view') && $('#lesson-title').textContent.includes('Desktop'));
+check('bouton recommencer visible', !!$('#reset-quiz'));
+$('#reset-quiz').click();
+check('quiz réinitialisé', !$('#reset-quiz') && $('#lesson-article .quiz-score').textContent.includes('0/3'), $('#lesson-article .quiz-score').textContent.trim());
+check('options de nouveau actives', $$('#lesson-article .quiz-option:not([disabled])').length === 9, String($$('#lesson-article .quiz-option:not([disabled])').length));
 
 console.log(results.join('\n'));
 const fails = results.filter(r => r.startsWith('FAIL'));

@@ -328,7 +328,8 @@ function renderQuiz(m){
   const scoreLine=st.answered===st.total
     ?`<div class="quiz-score done">Score final : <strong>${st.score}/${st.total}</strong> ${st.score===st.total?'— parfait !':st.score>=2?'— module validé, relisez la question manquée.':'— relisez les parties indiquées avant d’aller plus loin.'}</div>`
     :`<div class="quiz-score">Répondues : <strong>${st.answered}/${st.total}</strong></div>`;
-  return `<h2>Vérifiez votre compréhension</h2><div class="quiz-block">${questions}${scoreLine}</div>`;
+  const retry=st.answered===st.total?'<button class="text-button quiz-retry" id="reset-quiz">Recommencer le quiz <span>↺</span></button>':'';
+  return `<h2>Vérifiez votre compréhension</h2><div class="quiz-block">${questions}${scoreLine}${retry}</div>`;
 }
 function handleQuizChoice(btn){
   const mod=Number(btn.dataset.quizMod), qi=Number(btn.dataset.quizQ), ch=Number(btn.dataset.quizChoice);
@@ -454,6 +455,7 @@ function navigateView(route){
 let lastRouteKey=null;
 const validRoutes=['dashboard','parcours','lab','ressources','notes'];
 function applyRouteKey(key){
+  if(key.startsWith('section-')) return; // ancre interne de lecon : on ne change pas de vue
   if(key.startsWith('module/')){
     const m=modules.find(x=>x.id===Number(key.split('/')[1]));
     if(m&&isUnlocked(m)){ currentModule=m.id; localStorage.setItem('nexora-current',m.id); renderLesson(m); navigateView('lesson'); return; }
@@ -469,6 +471,7 @@ function setRouteKey(key){
 }
 function applyLocation(){
   const key=(location.hash||'').replace(/^#\/?/,'')||'dashboard';
+  if(key.startsWith('section-')) return; // lien d'ancre : ni rendu ni changement de cle
   if(key===lastRouteKey) return;
   lastRouteKey=key;
   applyRouteKey(key);
@@ -494,7 +497,7 @@ function renderLesson(m){
   html+=renderQuiz(m);
   html+=`<div class="mini-project"><p class="eyebrow">MINI-PROJET DU MODULE</p><h3>${m.project}</h3><p>Conservez votre livrable dans un dossier projet avec une convention de nommage et une note de contrôle. Vous pourrez le réutiliser dans votre portfolio.</p></div>`;
   $('#lesson-article').innerHTML=html;
-  const headings=$$('h2', $('#lesson-article')); $('#lesson-toc-links').innerHTML=headings.map((h,i)=>`<a class="toc-link" href="#section-${i}">${h.textContent}</a>`).join(''); headings.forEach((h,i)=>h.id=`section-${i}`);
+  const headings=$$('h2', $('#lesson-article')); $('#lesson-toc-links').innerHTML=headings.map((h,i)=>`<a class="toc-link" href="#section-${i}" data-goto="section-${i}">${h.textContent}</a>`).join(''); headings.forEach((h,i)=>h.id=`section-${i}`);
 }
 function completeCurrent(){
   if(!completedModules.includes(currentModule)){ completedModules.push(currentModule); logActivity(1); completedModules.sort((a,b)=>a-b); localStorage.setItem('nexora-completed',JSON.stringify(completedModules)); showToast('Module validé — bravo, votre progression est enregistrée.'); }
@@ -550,7 +553,29 @@ function openChecklist(){
 }
 function closeModal(){ const o=$('#modal-overlay'); if(o) o.hidden=true; document.body.classList.remove('modal-open'); }
 function handleSearch(value){
-  const q=value.trim().toLowerCase(); if(!q){renderDashboardModules();renderPath();return;} const matches=modules.filter(m=>[m.title,m.short,m.kicker,...m.objectives].join(' ').toLowerCase().includes(q)); renderDashboardModules(matches);renderPath(matches); showToast(`${matches.length} module${matches.length>1?'s':''} trouvé${matches.length>1?'s':''}.`);
+  const q=value.trim().toLowerCase(); if(!q){renderDashboardModules();renderPath();return;} const matches=modules.filter(m=>[m.title,m.short,m.kicker,...m.objectives].join(' ').toLowerCase().includes(q)); renderDashboardModules(matches);renderPath(matches);
+}
+function renderSearchResults(raw){
+  const box=$('#search-results'); if(!box) return;
+  const q=raw.trim().toLowerCase();
+  if(q.length<2){ closeSearchResults(); return; }
+  const mods=modules.filter(m=>[m.title,m.short,m.kicker,...m.objectives].join(' ').toLowerCase().includes(q)).slice(0,5);
+  const terms=glossary.filter(g=>(g.t+' '+g.d).toLowerCase().includes(q)).slice(0,5);
+  const fs=formulas.filter(f=>(f.name+' '+f.code+' '+f.tag+' DAX').toLowerCase().includes(q)).slice(0,5);
+  let html='';
+  if(mods.length) html+='<p class="sr-group">MODULES</p>'+mods.map(m=>`<button class="sr-item" data-sr="module" data-id="${m.id}"><b>${String(m.id).padStart(2,'0')}</b><span>${m.title}</span><small>◷ ${m.time}</small></button>`).join('');
+  if(terms.length) html+='<p class="sr-group">LEXIQUE</p>'+terms.map(t=>`<button class="sr-item" data-sr="term"><span>${t.t}</span></button>`).join('');
+  if(fs.length) html+='<p class="sr-group">DAX</p>'+fs.map(f=>`<button class="sr-item" data-sr="formula" data-idx="${formulas.indexOf(f)}"><code>${f.name}</code><small>${f.tag}</small></button>`).join('');
+  box.innerHTML=html||'<p class="sr-empty">Aucun résultat. Essayez « CALCULATE », « étoile » ou « DAX ».</p>';
+  box.hidden=false;
+}
+function closeSearchResults(){ const b=$('#search-results'); if(b){ b.hidden=true; b.innerHTML=''; } }
+function handleSearchResult(btn){
+  const kind=btn.dataset.sr;
+  closeSearchResults();
+  if(kind==='module'){ openModule(Number(btn.dataset.id)); return; }
+  if(kind==='term'){ const t=btn.querySelector('span')?.textContent||''; navigate('ressources'); showTermDefinition(t); const def=$('#glossary-definition'); if(def&&typeof def.scrollIntoView==='function') def.scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
+  if(kind==='formula'){ selectedFormula=Number(btn.dataset.idx); navigate('lab'); }
 }
 
 // Navigation and delegated interactions
@@ -558,13 +583,17 @@ $$('.nav-item').forEach(btn=>btn.addEventListener('click',()=>navigate(btn.datas
 $$('[data-route]').forEach(btn=>{if(!btn.classList.contains('nav-item')) btn.addEventListener('click',()=>navigate(btn.dataset.route));});
 $('#mobile-menu').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
 document.addEventListener('click',e=>{const sb=$('#sidebar');if(sb.classList.contains('open')&&!e.target.closest('#sidebar')&&!e.target.closest('#mobile-menu'))sb.classList.remove('open');});
-$('#search-input').addEventListener('input',e=>handleSearch(e.target.value));
-$('#search-input').addEventListener('keydown',e=>{if(e.key==='Enter'){navigate('parcours');}});
+$('#search-input').addEventListener('input',e=>{ const v=e.target.value; renderSearchResults(v); if(!v.trim()) handleSearch(''); });
+$('#search-input').addEventListener('keydown',e=>{if(e.key==='Enter'){handleSearch(e.target.value); navigate('parcours'); closeSearchResults();}});
 document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#search-input').focus();}});
 document.addEventListener('click',e=>{
   const card=e.target.closest('[data-module]'); if(card && !e.target.closest('.play-button,button[data-route]')) openModule(card.dataset.module);
   const play=e.target.closest('.play-button'); if(play) openModule(play.dataset.module);
   const formula=e.target.closest('[data-formula]'); if(formula){selectedFormula=Number(formula.dataset.formula);renderLab();}
+  const goto=e.target.closest('[data-goto]'); if(goto){ e.preventDefault(); const el=document.getElementById(goto.dataset.goto); if(el&&typeof el.scrollIntoView==='function') el.scrollIntoView({behavior:'smooth',block:'start'}); }
+  const sr=e.target.closest('[data-sr]'); if(sr){ handleSearchResult(sr); return; }
+  if(e.target.closest('#reset-quiz')){ saveQuiz(currentModule,[]); renderLesson(getModule(currentModule)); showToast('Quiz réinitialisé — répondez à nouveau.'); return; }
+  if(!e.target.closest('.topbar-search')) closeSearchResults();
   const qchoice=e.target.closest('[data-quiz-choice]'); if(qchoice&&!qchoice.disabled) handleQuizChoice(qchoice);
   const answer=e.target.closest('[data-answer]'); if(answer){const good=answer.dataset.answer==='right';$('#challenge-feedback').textContent=good?'✓ Exact. Une mesure respecte le contexte et se recalcule avec la période.':'À revoir : pensez à un calcul dynamique qui répond aux filtres du rapport.';$('#challenge-feedback').style.color=good?'var(--green)':'var(--coral)';}
   const term=e.target.closest('[data-term]'); if(term) showTermDefinition(term.dataset.term);
