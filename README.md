@@ -42,6 +42,17 @@ NEXORA est un parcours de formation interactif en français, conçu pour accompa
 11. Projet guidé : cockpit commercial
 12. Projet final : votre dashboard de référence
 
+## Jeux de données d’exercice
+
+| Fichier | Contenu | Exercices |
+|---|---|---|
+| `data/contoso_exercice.csv` | Ventes Contoso (12 lignes) | Modules 1–9, 11 |
+| `data/notes_exercice.csv` | Notes scolaires (30 lignes) | Modules 5, 7 |
+| `data/commandes_exercice.csv` | Commandes et délais (24 lignes, retards extrêmes inclus) | Modules 6, 7 |
+| `data/habilitations_exercice.csv` | Habilitations RLS (10 utilisateurs) | Module 10 |
+
+Téléchargeables depuis l’onglet **Ressources** de l’application.
+
 ## Lancer localement
 
 Le projet est statique et ne nécessite aucune dépendance :
@@ -61,7 +72,7 @@ npm install --no-save jsdom
 node test/smoke.mjs
 ```
 
-Il vérifie 83 contrôles d’interface sans nécessiter de navigateur.
+Il vérifie 86 contrôles d’interface sans nécessiter de navigateur.
 
 ## Régénérer le manuel HTML
 

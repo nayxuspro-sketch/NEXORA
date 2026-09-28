@@ -1,0 +1,25 @@
+IDCommande,DateCommande,IDClient,Client,Ville,DelaiJours,Statut,Montant
+C-2001,2026-07-03,CL-031,Groupe Leroy,Lyon,4,Livrée,1240.00
+C-2002,2026-07-05,CL-018,SARL Diallo,Marseille,6,Livrée,430.50
+C-2003,2026-07-09,CL-044,Atelier Vinci,Toulouse,3,Livrée,88.00
+C-2004,2026-07-12,CL-031,Groupe Leroy,Lyon,5,Livrée,2150.75
+C-2005,2026-07-15,CL-052,MediTech SAS,Paris,2,Livrée,3490.00
+C-2006,2026-07-18,CL-067,Boulangerie Martin,Nantes,7,Livrée,64.90
+C-2007,2026-07-22,CL-018,SARL Diallo,Marseille,38,Retard,1780.00
+C-2008,2026-07-25,CL-073,Coop Émeraude,Lille,5,Livrée,920.40
+C-2009,2026-07-29,CL-044,Atelier Vinci,Toulouse,6,Livrée,310.00
+C-2010,2026-08-01,CL-052,MediTech SAS,Paris,4,Livrée,5600.00
+C-2011,2026-08-05,CL-088,Librairie du Port,Bordeaux,8,Livrée,145.60
+C-2012,2026-08-08,CL-031,Groupe Leroy,Lyon,47,Retard,4320.00
+C-2013,2026-08-12,CL-067,Boulangerie Martin,Nantes,2,Livrée,52.30
+C-2014,2026-08-15,CL-073,Coop Émeraude,Lille,6,Livrée,1105.00
+C-2015,2026-08-19,CL-095,Fleury & Associés,Paris,3,Livrée,2750.00
+C-2016,2026-08-22,CL-018,SARL Diallo,Marseille,9,Livrée,690.20
+C-2017,2026-08-26,CL-044,Atelier Vinci,Toulouse,5,Livrée,415.00
+C-2018,2026-08-29,CL-052,MediTech SAS,Paris,4,Livrée,1890.00
+C-2019,2026-09-02,CL-088,Librairie du Port,Bordeaux,7,Livrée,230.80
+C-2020,2026-09-05,CL-095,Fleury & Associés,Paris,12,En cours,3100.00
+C-2021,2026-09-09,CL-067,Boulangerie Martin,Nantes,5,Livrée,78.40
+C-2022,2026-09-12,CL-073,Coop Émeraude,Lille,6,Livrée,1340.00
+C-2023,2026-09-16,CL-031,Groupe Leroy,Lyon,8,Livrée,1675.50
+C-2024,2026-09-19,CL-095,Fleury & Associés,Paris,4,En cours,980.00

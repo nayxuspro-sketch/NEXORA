@@ -22,7 +22,11 @@ const dom = new JSDOM(html, {
   virtualConsole: vc
 });
 const { window } = dom;
-window.fetch = () => Promise.reject(new Error('no network in test'));
+window.fetch = () => Promise.resolve({ ok: true, text: () => Promise.resolve('ColonneA,ColonneB\n1,2\n') });
+try {
+  if (!window.URL.createObjectURL) window.URL.createObjectURL = () => 'blob:nexora';
+  if (!window.URL.revokeObjectURL) window.URL.revokeObjectURL = () => {};
+} catch (e) { /* noop */ }
 try {
   window.eval(appJs);
 } catch (e) {
@@ -74,6 +78,13 @@ check('modale ouverte', !$('#modal-overlay').hidden);
 check('18 points checklist', $$('#modal-content .checklist-list li').length === 18, String($$('#modal-content .checklist-list li').length));
 $('#modal-close').click();
 check('modale fermée', $('#modal-overlay').hidden);
+
+// Jeux de données d'exercice
+check('4 fichiers d’exercice', $$('[data-download]').length === 4, String($$('[data-download]').length));
+check('bouton contoso présent', !!$('#download-dataset'));
+$('[data-download="data/notes_exercice.csv"]').click();
+await new Promise(r => setTimeout(r, 60));
+check('téléchargement multi-fichiers', /Fichier téléchargé : notes_exercice\.csv/.test($('#toast').textContent), $('#toast').textContent);
 
 // Ouverture module 2 puis validation
 $$('#dashboard-module-grid .module-card')[1].click();

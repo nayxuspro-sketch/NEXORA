@@ -41,6 +41,17 @@ Le projet utilise une table de faits `F_Ventes` et quatre dimensions :
 
 **Granularité de `F_Ventes` : une ligne représente une ligne de vente pour un produit, un client et une date.** Cette phrase doit être écrite avant toute mesure.
 
+### Fichiers d’exercice fournis (dossier `data/`)
+
+| Fichier | Contenu | Exercices concernés |
+|---|---|---|
+| `contoso_exercice.csv` | `F_Ventes` — 12 ventes Contoso (produits, régions, montants) | Modules 1 à 9 et 11 |
+| `notes_exercice.csv` | `F_Notes` — 30 notes d’élèves (classes, matières, dates) | Modules 5 et 7 (agrégations, médiane) |
+| `commandes_exercice.csv` | `F_Commandes` — 24 commandes avec `DelaiJours` et statuts, dont deux retards extrêmes (38 et 47 jours) | Modules 6 et 7 (statut, P90, écart-type) |
+| `habilitations_exercice.csv` | Table `Habilitations` — e-mail, rôle et région de 10 utilisateurs | Module 10 (RLS dynamique) |
+
+Les deux retards extrêmes de `commandes_exercice.csv` sont volontaires : ils servent à observer l’écart entre moyenne et médiane, puis à calculer un percentile 90.
+
 ---
 
 # Chapitre 1 — Comprendre la Business Intelligence

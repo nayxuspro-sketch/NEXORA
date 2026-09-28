@@ -522,10 +522,14 @@ function renderNotes(){
   const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]'); $('#saved-notes').innerHTML=notes.length?notes.map((n,i)=>`<div class="saved-note"><button class="delete-note" data-note="${i}" aria-label="Supprimer la note">×</button><p>${escapeHtml(n.text)}</p><small>${n.date}</small></div>`).join(''):'<div class="saved-note" style="grid-column:1/-1;background:#fff"><p style="color:var(--muted)">Aucune note pour le moment. Ajoutez votre première idée après une leçon.</p></div>';
 }
 function escapeHtml(text){return text.replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
-function downloadDataset(){
-  const fallback='DateVente,IDProduit,Produit,Categorie,Region,IDClient,Quantite,Montant\n2026-01-05,P-001,Casque Studio,Audio,Nord,C-102,2,159.80\n2026-01-08,P-004,Clavier Meca,Accessoires,Est,C-087,1,89.00\n2026-02-14,P-002,Enceinte Nomade,Audio,Sud,C-215,3,299.70\n2026-03-02,P-005,Webcam HD,Video,Ouest,C-102,1,74.90\n2026-03-17,P-003,Micro USB,Audio,Nord,C-331,2,119.80\n2026-04-06,P-004,Clavier Meca,Accessoires,Est,C-087,2,178.00\n2026-05-21,P-006,Souris Ergo,Accessoires,Sud,C-451,4,196.00\n2026-06-11,P-001,Casque Studio,Audio,Ouest,C-215,1,79.90';
-  const save=(text,name)=>{const blob=new Blob([text],{type:'text/csv;charset=utf-8'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name;link.click();URL.revokeObjectURL(link.href);};
-  fetch('data/contoso_exercice.csv').then(r=>{if(!r.ok)throw 0;return r.text();}).then(t=>{save(t,'contoso_exercice.csv');showToast('Jeu de données téléchargé.');}).catch(()=>{save(fallback,'nexora_contoso_exercice.csv');showToast('Jeu de données téléchargé (version embarquée).');});
+function downloadDataset(path='data/contoso_exercice.csv'){
+  const fallbackContoso='DateVente,IDProduit,Produit,Categorie,Region,IDClient,Quantite,Montant\n2026-01-05,P-001,Casque Studio,Audio,Nord,C-102,2,159.80\n2026-01-08,P-004,Clavier Meca,Accessoires,Est,C-087,1,89.00\n2026-02-14,P-002,Enceinte Nomade,Audio,Sud,C-215,3,299.70\n2026-03-02,P-005,Webcam HD,Video,Ouest,C-102,1,74.90\n2026-03-17,P-003,Micro USB,Audio,Nord,C-331,2,119.80\n2026-04-06,P-004,Clavier Meca,Accessoires,Est,C-087,2,178.00\n2026-05-21,P-006,Souris Ergo,Accessoires,Sud,C-451,4,196.00\n2026-06-11,P-001,Casque Studio,Audio,Ouest,C-215,1,79.90';
+  const name=String(path).split('/').pop();
+  const save=(text,filename)=>{const blob=new Blob([text],{type:'text/csv;charset=utf-8'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=filename;link.click();URL.revokeObjectURL(link.href);};
+  fetch(path).then(r=>{if(!r.ok)throw 0;return r.text();}).then(t=>{save(t,name);showToast(`Fichier téléchargé : ${name}`);}).catch(()=>{
+    if(path==='data/contoso_exercice.csv'){ save(fallbackContoso,'nexora_contoso_exercice.csv'); showToast('Jeu de données téléchargé (version embarquée).'); }
+    else showToast(`Téléchargement indisponible : ${name}`);
+  });
 }
 const checklistItems = [
   'Le besoin, le public et la décision à éclairer sont écrits.',
@@ -600,7 +604,7 @@ document.addEventListener('click',e=>{
   const del=e.target.closest('[data-note]'); if(del){const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]');notes.splice(Number(del.dataset.note),1);localStorage.setItem('nexora-notes',JSON.stringify(notes));renderNotes();showToast('Note supprimée.');}
 });
 $('#complete-lesson').addEventListener('click',completeCurrent);
-$('#download-dataset').addEventListener('click',downloadDataset);
+document.addEventListener('click',e=>{const dl=e.target.closest('[data-download]');if(dl)downloadDataset(dl.dataset.download);});
 $('#glossary-input').addEventListener('input',e=>renderGlossary(e.target.value));
 $('#checklist-button').addEventListener('click',openChecklist);
 $('#modal-close').addEventListener('click',closeModal);

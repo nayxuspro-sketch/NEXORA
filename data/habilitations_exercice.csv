@@ -1,0 +1,11 @@
+Email,Nom,Role,Region
+marie.dupont@exemple.fr,Marie Dupont,Responsable région,Nord
+yassine.amrani@exemple.fr,Yassine Amrani,Responsable région,Nord
+claire.martin@exemple.fr,Claire Martin,Responsable région,Sud
+paul.bernard@exemple.fr,Paul Bernard,Responsable région,Sud
+sonia.roux@exemple.fr,Sonia Roux,Responsable région,Est
+kevin.meyer@exemple.fr,Kevin Meyer,Responsable région,Est
+nadia.fournier@exemple.fr,Nadia Fournier,Responsable région,Ouest
+thomas.girard@exemple.fr,Thomas Girard,Responsable région,Ouest
+julie.moreau@exemple.fr,Julie Moreau,Analyste BI,Toutes
+admin.powerbi@exemple.fr,Administrateur Power BI,Admin,Toutes

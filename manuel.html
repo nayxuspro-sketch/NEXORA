@@ -105,6 +105,37 @@
 <li><code>D_Date</code> : <code>Date</code>, <code>Année</code>, <code>Mois</code>, <code>NumMois</code>, <code>Trimestre</code>.</li>
 </ul>
 <p><strong>Granularité de <code>F_Ventes</code> : une ligne représente une ligne de vente pour un produit, un client et une date.</strong> Cette phrase doit être écrite avant toute mesure.</p>
+<h3>Fichiers d’exercice fournis (dossier <code>data/</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Fichier</th>
+<th>Contenu</th>
+<th>Exercices concernés</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>contoso_exercice.csv</code></td>
+<td><code>F_Ventes</code> — 12 ventes Contoso (produits, régions, montants)</td>
+<td>Modules 1 à 9 et 11</td>
+</tr>
+<tr>
+<td><code>notes_exercice.csv</code></td>
+<td><code>F_Notes</code> — 30 notes d’élèves (classes, matières, dates)</td>
+<td>Modules 5 et 7 (agrégations, médiane)</td>
+</tr>
+<tr>
+<td><code>commandes_exercice.csv</code></td>
+<td><code>F_Commandes</code> — 24 commandes avec <code>DelaiJours</code> et statuts, dont deux retards extrêmes (38 et 47 jours)</td>
+<td>Modules 6 et 7 (statut, P90, écart-type)</td>
+</tr>
+<tr>
+<td><code>habilitations_exercice.csv</code></td>
+<td>Table <code>Habilitations</code> — e-mail, rôle et région de 10 utilisateurs</td>
+<td>Module 10 (RLS dynamique)</td>
+</tr>
+</tbody></table>
+<p>Les deux retards extrêmes de <code>commandes_exercice.csv</code> sont volontaires : ils servent à observer l’écart entre moyenne et médiane, puis à calculer un percentile 90.</p>
 <hr>
 <h1 id="chapitre-1">Chapitre 1 — Comprendre la Business Intelligence</h1>
 <h2>Objectifs</h2>

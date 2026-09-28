@@ -146,3 +146,7 @@
 .page-intro-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,label:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--coral);outline-offset:2px;border-radius:6px}
 .sr-item:focus-visible,.quiz-option:focus-visible,.glossary-term:focus-visible{outline-offset:1px}
+
+/* Exercise dataset downloads */
+.dataset-list{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px}
+.dataset-list .text-button{font-size:12px}
