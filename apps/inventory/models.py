@@ -50,6 +50,7 @@ class StockLevel(TenantModel):
         verbose_name = "Niveau de stock"
         verbose_name_plural = "Niveaux de stock"
         unique_together = ('store', 'product')
+        ordering = ['store', 'product']
         indexes = [
             models.Index(fields=['company', 'store', 'product']),
         ]

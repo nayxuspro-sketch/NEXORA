@@ -26,6 +26,7 @@ class CashRegister(TenantModel):
         verbose_name = "Caisse"
         verbose_name_plural = "Caisses"
         unique_together = ('company', 'code')
+        ordering = ['name']
 
     def __str__(self):
         return f"{self.name} ({self.store.name})"
