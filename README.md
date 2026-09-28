@@ -23,6 +23,8 @@ NEXORA est un parcours de formation interactif en français, conçu pour accompa
 - **export des notes en Markdown** (`nexora_notes.md`) depuis l’onglet Mes notes ;
 - **annexe lexique automatique** dans `manuel.html` : les 48 termes sont injectés depuis `app.js` à chaque construction ;
 - **accessibilité clavier** : styles `:focus-visible` sur tous les contrôles ;
+- **accès rapide au contenu** (lien d’évitement type skip-link) pour la navigation au clavier ;
+- **atelier DAX de 18 fiches** : agrégations, comptage, logique, filtrage, temps et statistiques ;
 - **manuel HTML lisible et imprimable** : `manuel.html` (généré depuis `FORMATION_POWER_BI.md`) avec sommaire et bouton Imprimer ;
 - parcours responsive, utilisable sur desktop et mobile ;
 - manuel imprimable complet dans `FORMATION_POWER_BI.md` ;
@@ -73,7 +75,7 @@ npm install --no-save jsdom
 node test/smoke.mjs
 ```
 
-Il vérifie 91 contrôles d’interface sans nécessiter de navigateur.
+Il vérifie 95 contrôles d’interface (dont l’intégrité des fichiers, téléchargements et ancres du manuel) sans nécessiter de navigateur.
 
 ## Régénérer le manuel HTML
 

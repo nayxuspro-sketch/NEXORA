@@ -44,7 +44,7 @@ check('module 1 terminé', $$('#path-list .path-row.done').length === 1);
 check('progression affichée', /\d+%/.test($('#sidebar-progress-value').textContent), $('#sidebar-progress-value').textContent);
 check('lexique rendu', $$('#glossary-terms .glossary-term').length === 48, String($$('#glossary-terms .glossary-term').length));
 check('compteur lexique', $('#glossary-count').textContent.includes('48'), $('#glossary-count').textContent);
-check('compteur atelier', $('#lab-function-count').textContent.includes('15'), $('#lab-function-count').textContent);
+check('compteur atelier', $('#lab-function-count').textContent.includes('18'), $('#lab-function-count').textContent);
 check('date du jour', /SEPTEMBRE 2026/.test($('#dashboard-date').textContent), $('#dashboard-date').textContent.slice(0, 40));
 check('notes vides au départ', $$('#saved-notes .saved-note').length >= 1);
 
@@ -56,7 +56,7 @@ check('aucun id dupliqué (accueil)', dupIds.length === 0, dupIds.join(','));
 // Navigation vers l'atelier DAX
 $('.nav-item[data-route="lab"]').click();
 check('vue atelier active', $('#view-lab').classList.contains('active-view'));
-check('liste formules', $$('#formula-list .formula-item').length === 15, String($$('#formula-list .formula-item').length));
+check('liste formules', $$('#formula-list .formula-item').length === 18, String($$('#formula-list .formula-item').length));
 check('détail formule affiché', $('#formula-detail').textContent.includes('SUM'));
 
 // Sélection d'une autre formule
@@ -239,6 +239,18 @@ check('options de nouveau actives', $$('#lesson-article .quiz-option:not([disabl
 const lessonIds = [...window.document.querySelectorAll('[id]')].map(e => e.id);
 const dupLesson = lessonIds.filter((v, i) => lessonIds.indexOf(v) !== i);
 check('aucun id dupliqué (leçon)', dupLesson.length === 0, dupLesson.join(','));
+
+// Intégrité des fichiers, téléchargements et ancres
+const { existsSync } = await import('node:fs');
+const dlPaths = $$('[data-download]').map(b => b.dataset.download);
+const missing = dlPaths.filter(pp => !existsSync(new URL('../' + pp, import.meta.url)));
+check('fichiers de téléchargement présents sur disque', dlPaths.length === 4 && missing.length === 0, missing.join(','));
+check('skip link et cible de contenu', !!$('.skip-link') && !!$('#main-content') && $('.skip-link').getAttribute('href') === '#main-content');
+const anchorHrefs = [...manualHtml.matchAll(/href="#([^"]+)"/g)].map(m => m[1]);
+const anchorIds = [...manualHtml.matchAll(/id="([^"]+)"/g)].map(m => m[1]);
+const brokenAnchors = anchorHrefs.filter(a => !anchorIds.includes(a));
+check('ancres du manuel valides', anchorHrefs.length >= 15 && brokenAnchors.length === 0, brokenAnchors.join(','));
+check('assets principaux présents', ['styles.css', 'app.js', 'manuel.html', 'FORMATION_POWER_BI.md'].every(f => existsSync(new URL('../' + f, import.meta.url))));
 
 console.log(results.join('\n'));
 const fails = results.filter(r => r.startsWith('FAIL'));
