@@ -4,7 +4,30 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { marked } from 'marked';
 
 const md = readFileSync(new URL('../FORMATION_POWER_BI.md', import.meta.url), 'utf8');
-const body = marked.parse(md, { gfm: true });
+
+// Annexe C : lexique injecté depuis app.js (source unique de vérité)
+const appJs = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+const glossaryBlock = appJs.match(/const glossary = \[([\s\S]*?)\n\];/);
+const terms = glossaryBlock
+  ? [...glossaryBlock[1].matchAll(/\{t:'([\s\S]*?)',\s*d:'([\s\S]*?)'\}/g)].map(m => ({ t: m[1], d: m[2] }))
+  : [];
+const esc = t => t.replace(/\|/g, '\\|');
+const appendix = [
+  '',
+  '# Annexe C — Lexique illustré (' + terms.length + ' termes)',
+  '',
+  'Cette annexe est **générée automatiquement** depuis le lexique de l’application NEXORA (`app.js`) à chaque construction du manuel.',
+  '',
+  '| TERME | DÉFINITION SIMPLE |',
+  '|---|---|',
+  ...terms.map(x => `| ${esc(x.t)} | ${esc(x.d)} |`),
+  '',
+  '> Retrouvez ces termes interactivement dans l’application, onglet **Ressources → Lexique**.',
+  ''
+].join('\n');
+
+const mdFull = md + appendix;
+const body = marked.parse(mdFull, { gfm: true });
 
 // Ancres sur les h1 (chapitres) + TOC
 const toc = [];
@@ -46,4 +69,4 @@ ${withIds}
 </html>
 `;
 writeFileSync(new URL('../manuel.html', import.meta.url), page);
-console.log('manuel.html écrit —', toc.length, 'entrées de sommaire');
+console.log('manuel.html écrit —', toc.length, 'entrées de sommaire,', terms.length, 'termes de lexique');

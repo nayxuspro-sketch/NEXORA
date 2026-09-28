@@ -44,6 +44,11 @@ check('compteur atelier', $('#lab-function-count').textContent.includes('15'), $
 check('date du jour', /SEPTEMBRE 2026/.test($('#dashboard-date').textContent), $('#dashboard-date').textContent.slice(0, 40));
 check('notes vides au départ', $$('#saved-notes .saved-note').length >= 1);
 
+// Propreté du DOM : aucun identifiant dupliqué
+const idList = [...window.document.querySelectorAll('[id]')].map(e => e.id);
+const dupIds = idList.filter((v, i) => idList.indexOf(v) !== i);
+check('aucun id dupliqué (accueil)', dupIds.length === 0, dupIds.join(','));
+
 // Navigation vers l'atelier DAX
 $('.nav-item[data-route="lab"]').click();
 check('vue atelier active', $('#view-lab').classList.contains('active-view'));
@@ -132,6 +137,13 @@ $('.nav-item[data-route="notes"]').click();
 $('#note-text').value = 'CALCULATE modifie le contexte.';
 $('#save-note').click();
 check('note enregistrée', $$('#saved-notes .saved-note').length >= 1 && $('#saved-notes').textContent.includes('CALCULATE'));
+check('bouton export notes', !!$('#export-notes'));
+try { if (!window.URL.createObjectURL) window.URL.createObjectURL = () => 'blob:nexora'; if (!window.URL.revokeObjectURL) window.URL.revokeObjectURL = () => {}; } catch (e) { /* noop */ }
+$('#export-notes').click();
+check('export notes : toast', /exportée/.test($('#toast').textContent), $('#toast').textContent);
+const manualHtml = readFileSync(new URL('../manuel.html', import.meta.url), 'utf8');
+check('manuel : annexe lexique 48 termes', manualHtml.includes('Annexe C — Lexique illustré (48 termes)'));
+check('manuel : sommaire enrichi', (manualHtml.match(/manual-toc-link/g) || []).length >= 15, String((manualHtml.match(/manual-toc-link/g) || []).length));
 
 // Persistance
 check('localStorage progression', JSON.parse(window.localStorage.getItem('nexora-completed')).includes(2));
@@ -202,6 +214,11 @@ check('bouton recommencer visible', !!$('#reset-quiz'));
 $('#reset-quiz').click();
 check('quiz réinitialisé', !$('#reset-quiz') && $('#lesson-article .quiz-score').textContent.includes('0/3'), $('#lesson-article .quiz-score').textContent.trim());
 check('options de nouveau actives', $$('#lesson-article .quiz-option:not([disabled])').length === 9, String($$('#lesson-article .quiz-option:not([disabled])').length));
+
+// Propreté du DOM après rendu d'une leçon complète
+const lessonIds = [...window.document.querySelectorAll('[id]')].map(e => e.id);
+const dupLesson = lessonIds.filter((v, i) => lessonIds.indexOf(v) !== i);
+check('aucun id dupliqué (leçon)', dupLesson.length === 0, dupLesson.join(','));
 
 console.log(results.join('\n'));
 const fails = results.filter(r => r.startsWith('FAIL'));

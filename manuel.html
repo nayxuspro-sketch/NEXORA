@@ -14,7 +14,7 @@
     <div class="manual-actions"><a href="index.html">Retour à l’academy</a><button id="manual-print">Imprimer</button></div>
   </header>
   <div class="manual-layout">
-    <aside class="manual-toc"><p class="eyebrow">SOMMAIRE</p><a class="manual-toc-link" href="#chapitre-1">Chapitre 1 — Comprendre la Business Intelligence</a><a class="manual-toc-link" href="#chapitre-2">Chapitre 2 — Power BI Desktop et premier rapport</a><a class="manual-toc-link" href="#chapitre-3">Chapitre 3 — Sources, Excel, SQL et Power Query</a><a class="manual-toc-link" href="#chapitre-4">Chapitre 4 — Relations et modèle en étoile</a><a class="manual-toc-link" href="#chapitre-5">Chapitre 5 — Mesures, colonnes calculées et agrégations DAX</a><a class="manual-toc-link" href="#chapitre-6">Chapitre 6 — DAX : logique, contexte, filtres et temps</a><a class="manual-toc-link" href="#chapitre-7">Chapitre 7 — Statistiques descriptives et choix des visuels</a><a class="manual-toc-link" href="#chapitre-8">Chapitre 8 — Filtres, segments, drill-through et expérience utilisateur</a><a class="manual-toc-link" href="#chapitre-9">Chapitre 9 — Power BI Service, publication et actualisation</a><a class="manual-toc-link" href="#chapitre-10">Chapitre 10 — Sécurité et gouvernance</a><a class="manual-toc-link" href="#chapitre-11">Chapitre 11 — Projet guidé : cockpit commercial</a><a class="manual-toc-link" href="#chapitre-12">Chapitre 12 — Projet final et portfolio</a><a class="manual-toc-link" href="#chapitre-13">Annexe A — Référence DAX essentielle</a><a class="manual-toc-link" href="#chapitre-14">Annexe B — Checklist avant publication</a></aside>
+    <aside class="manual-toc"><p class="eyebrow">SOMMAIRE</p><a class="manual-toc-link" href="#chapitre-1">Chapitre 1 — Comprendre la Business Intelligence</a><a class="manual-toc-link" href="#chapitre-2">Chapitre 2 — Power BI Desktop et premier rapport</a><a class="manual-toc-link" href="#chapitre-3">Chapitre 3 — Sources, Excel, SQL et Power Query</a><a class="manual-toc-link" href="#chapitre-4">Chapitre 4 — Relations et modèle en étoile</a><a class="manual-toc-link" href="#chapitre-5">Chapitre 5 — Mesures, colonnes calculées et agrégations DAX</a><a class="manual-toc-link" href="#chapitre-6">Chapitre 6 — DAX : logique, contexte, filtres et temps</a><a class="manual-toc-link" href="#chapitre-7">Chapitre 7 — Statistiques descriptives et choix des visuels</a><a class="manual-toc-link" href="#chapitre-8">Chapitre 8 — Filtres, segments, drill-through et expérience utilisateur</a><a class="manual-toc-link" href="#chapitre-9">Chapitre 9 — Power BI Service, publication et actualisation</a><a class="manual-toc-link" href="#chapitre-10">Chapitre 10 — Sécurité et gouvernance</a><a class="manual-toc-link" href="#chapitre-11">Chapitre 11 — Projet guidé : cockpit commercial</a><a class="manual-toc-link" href="#chapitre-12">Chapitre 12 — Projet final et portfolio</a><a class="manual-toc-link" href="#chapitre-13">Annexe A — Référence DAX essentielle</a><a class="manual-toc-link" href="#chapitre-14">Annexe B — Checklist avant publication</a><a class="manual-toc-link" href="#chapitre-15">Annexe C — Lexique illustré (48 termes)</a></aside>
     <article class="manual-article">
 <h1>Formation Power BI — de zéro à dashboard professionnel</h1>
 <blockquote>
@@ -827,6 +827,211 @@ Cumul Annuel = TOTALYTD([Total], D_Date[Date])
 </ul>
 <blockquote>
 <p>Un dashboard professionnel n’est pas celui qui montre le plus de choses. C’est celui qui permet à la bonne personne de prendre une meilleure décision, avec confiance.</p>
+</blockquote>
+<h1 id="chapitre-15">Annexe C — Lexique illustré (48 termes)</h1>
+<p>Cette annexe est <strong>générée automatiquement</strong> depuis le lexique de l’application NEXORA (<code>app.js</code>) à chaque construction du manuel.</p>
+<table>
+<thead>
+<tr>
+<th>TERME</th>
+<th>DÉFINITION SIMPLE</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Actualisation</td>
+<td>Relancer les requêtes pour recharger le modèle avec les données les plus récentes. Elle peut être manuelle ou planifiée dans Power BI Service.</td>
+</tr>
+<tr>
+<td>Agrégation</td>
+<td>Résumer plusieurs valeurs en un seul résultat. Exemples : SUM pour additionner, AVERAGE pour la moyenne, DISTINCTCOUNT pour les valeurs uniques.</td>
+</tr>
+<tr>
+<td>Ajouter des requêtes</td>
+<td>Empiler des lignes de tables qui ont les mêmes colonnes : janvier + février + mars. À ne pas confondre avec Fusionner.</td>
+</tr>
+<tr>
+<td>Application Power BI</td>
+<td>Regroupement web de rapports et pages validés, destiné à un public de lecteurs avec un accès simple.</td>
+</tr>
+<tr>
+<td>Axe</td>
+<td>Zone d’un visuel qui accueille les catégories ou les dates. Exemple : les mois le long d’une courbe.</td>
+</tr>
+<tr>
+<td>Business Intelligence (BI)</td>
+<td>Méthodes et outils qui transforment les données en informations utiles à la décision. Le tableau de bord n’est pas le décideur : il éclaire celui qui décide.</td>
+</tr>
+<tr>
+<td>Cadrage</td>
+<td>Définir le besoin, le public, les décisions, les sources et la fréquence avant de construire. Une demande comme « un dashboard » devient une question précise.</td>
+</tr>
+<tr>
+<td>CALCULATE</td>
+<td>Fonction centrale de DAX : évalue une mesure dans un contexte de filtre modifié. Exemple : le total des ventes mais seulement pour le segment Premium.</td>
+</tr>
+<tr>
+<td>Carte KPI</td>
+<td>Visuel qui affiche une valeur clé, souvent avec une variation. Sert à attirer l’œil sur le niveau actuel d’un indicateur.</td>
+</tr>
+<tr>
+<td>Colonne calculée</td>
+<td>Colonne ajoutée au modèle, calculée ligne par ligne à l’actualisation. Utile pour créer un libellé ou un segment stable.</td>
+</tr>
+<tr>
+<td>Contexte de filtre</td>
+<td>Ensemble des filtres actifs autour d’une mesure (segments, page, visuel). La même mesure donne un résultat différent selon ce contexte.</td>
+</tr>
+<tr>
+<td>Contexte de ligne</td>
+<td>Point de vue d’une formule de colonne sur une ligne donnée. Une colonne calculée s’évalue ligne par ligne ; une mesure s’évalue selon les filtres.</td>
+</tr>
+<tr>
+<td>DAX</td>
+<td>Langage des formules de Power BI. Il ressemble à Excel mais travaille sur des tableaux entiers et réagit aux filtres du rapport.</td>
+</tr>
+<tr>
+<td>Dimension</td>
+<td>Table de description qui répond à qui, quoi, quand, où : produit, client, date, région. Elle filtre la table de faits.</td>
+</tr>
+<tr>
+<td>DirectQuery</td>
+<td>Mode de connexion qui interroge la source à la volée, sans copier les données. Utile pour la fraîcheur, au prix d’une dépendance à la source.</td>
+</tr>
+<tr>
+<td>DIVIDE</td>
+<td>Division protégée contre le dénominateur nul. Préférée à « / » pour un taux : DIVIDE(a, b, 0) renvoie 0 si b vaut zéro.</td>
+</tr>
+<tr>
+<td>Drill-through</td>
+<td>Passage d’une vue synthétique vers une page de détail en gardant le contexte sélectionné. Exemple : clic droit sur un produit → transactions détaillées.</td>
+</tr>
+<tr>
+<td>Drill-down</td>
+<td>Descendre dans une hiérarchie d’un visuel : année → trimestre → mois, puis remonter.</td>
+</tr>
+<tr>
+<td>Espace de travail</td>
+<td>Espace web partagé où une équipe publie et gouverne son contenu, avec des rôles (membre, contributeur, lecteur…).</td>
+</tr>
+<tr>
+<td>Écart-type</td>
+<td>Mesure de dispersion autour de la moyenne. Un écart-type élevé signale des valeurs très hétérogènes.</td>
+</tr>
+<tr>
+<td>Étapes appliquées</td>
+<td>Historique des transformations dans Power Query. Chaque étape est rejouée à la prochaine actualisation : c’est la recette de nettoyage.</td>
+</tr>
+<tr>
+<td>Filtre de page</td>
+<td>Filtre qui s’applique à tous les visuels d’une page. Exemple : afficher uniquement le trimestre en cours.</td>
+</tr>
+<tr>
+<td>Filtre de rapport</td>
+<td>Filtre qui s’applique à toutes les pages du rapport. Utile pour restreindre tout le rapport à une période ou une entité.</td>
+</tr>
+<tr>
+<td>Fusionner des requêtes</td>
+<td>Rapprocher des colonnes de deux tables grâce à une clé commune, comme une jointure. Exemple : ajouter le nom du produit aux ventes.</td>
+</tr>
+<tr>
+<td>Gateway (passerelle)</td>
+<td>Pont sécurisé entre Power BI Service et une source de données située sur le réseau local de l’organisation.</td>
+</tr>
+<tr>
+<td>Granularité</td>
+<td>Ce qu’une ligne d’une table représente. Dans F_Ventes : une ligne de vente pour un produit, un client et une date. À écrire avant toute mesure.</td>
+</tr>
+<tr>
+<td>Import (mode)</td>
+<td>Mode de connexion qui charge une copie des données dans le modèle. C’est le mode le plus courant et le plus rapide à l’affichage.</td>
+</tr>
+<tr>
+<td>Info-bulle</td>
+<td>Détail affiché au survol d’un élément. Elle complète un visuel sans l’encombrer.</td>
+</tr>
+<tr>
+<td>KPI</td>
+<td>Indicateur clé relié à une décision. Sans décision associée, un chiffre reste un simple affichage.</td>
+</tr>
+<tr>
+<td>Langage M</td>
+<td>Langage des requêtes Power Query. L’interface génère le code : le lire suffit pour diagnostiquer une étape.</td>
+</tr>
+<tr>
+<td>Médiane</td>
+<td>Valeur qui sépare la distribution en deux moitiés. Contrairement à la moyenne, elle résiste aux valeurs extrêmes.</td>
+</tr>
+<tr>
+<td>Mesure</td>
+<td>Calcul dynamique évalué selon les filtres du visuel. Idéale pour les KPI : elle ne stocke pas de résultat dans le modèle.</td>
+</tr>
+<tr>
+<td>Modèle en étoile</td>
+<td>Organisation avec une table de faits au centre et des dimensions autour. Simple à lire et aux filtres prévisibles.</td>
+</tr>
+<tr>
+<td>Modèle sémantique</td>
+<td>Couche de données publiée dans Service qui alimente les rapports, les scores et les connections partagées.</td>
+</tr>
+<tr>
+<td>N-1</td>
+<td>Période précédente : mois précédent, trimestre précédent ou année précédente. La référence d’une comparaison temporelle.</td>
+</tr>
+<tr>
+<td>Percentile</td>
+<td>Seuil en dessous duquel se trouve une proportion d’observations. Le P90 d’un délai indique le délai dépassé par 10 % des cas.</td>
+</tr>
+<tr>
+<td>Power BI Desktop</td>
+<td>Application locale où l’on connecte, modèle, calcule et dessine le rapport. Le fichier de travail s’appelle .pbix.</td>
+</tr>
+<tr>
+<td>Power BI Service</td>
+<td>Plateforme web où l’on publie, partage, actualise et administre les rapports.</td>
+</tr>
+<tr>
+<td>Power Query</td>
+<td>Moteur de connexion et de transformation : il nettoie et structure les données avant le modèle.</td>
+</tr>
+<tr>
+<td>Requête</td>
+<td>Recette qui décrit le passage de la source à une table prête à l’emploi : quelles étapes, dans quel ordre.</td>
+</tr>
+<tr>
+<td>RLS (Row-Level Security)</td>
+<td>Sécurité au niveau des lignes : chaque utilisateur ne voit que les lignes qui le concernent. Exemple : un responsable ne voit que sa région.</td>
+</tr>
+<tr>
+<td>Segment</td>
+<td>Filtre visible et manipulable par le lecteur, posé sur un visuel ou une page.</td>
+</tr>
+<tr>
+<td>Signet (bookmark)</td>
+<td>État d’un rapport enregistré (filtres, visibilité) auquel on peut revenir en un clic.</td>
+</tr>
+<tr>
+<td>SWITCH(TRUE())</td>
+<td>Motif DAX lisible pour plusieurs conditions : les cas sont évalués dans l’ordre, comme une pile de règles.</td>
+</tr>
+<tr>
+<td>Table calculée</td>
+<td>Table créée par une formule DAX, calculée à l’actualisation. À réserver aux besoins ciblés de modélisation.</td>
+</tr>
+<tr>
+<td>Table de dates</td>
+<td>Table continue d’un jour à l’autre, reliée au fait et marquée comme table de dates. Indispensable pour N-1 et les cumuls.</td>
+</tr>
+<tr>
+<td>Table de faits</td>
+<td>Table des événements mesurables : une ligne par vente, note ou commande. Elle contient les mesures et les clés étrangères.</td>
+</tr>
+<tr>
+<td>Visuel</td>
+<td>Élément graphique du rapport : courbe, barres, carte, matrice. Chaque visuel répond à une question précise.</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Retrouvez ces termes interactivement dans l’application, onglet <strong>Ressources → Lexique</strong>.</p>
 </blockquote>
 
       <footer class="manual-footer">Source : <a href="FORMATION_POWER_BI.md">FORMATION_POWER_BI.md</a> · Régénéré avec <code>node tools/build_manual.mjs</code></footer>

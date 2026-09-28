@@ -612,6 +612,16 @@ $('#open-certificate').addEventListener('click',openCertificate);
 $('#export-progress').addEventListener('click',exportProgress);
 $('#import-progress').addEventListener('change',e=>{if(e.target.files[0])importProgress(e.target.files[0]);e.target.value='';});
 $('#add-note').addEventListener('click',()=>{$('#note-text').focus();});
+$('#export-notes').addEventListener('click',()=>{
+  const notes=JSON.parse(localStorage.getItem('nexora-notes')||'[]');
+  if(!notes.length){ showToast('Aucune note à exporter pour le moment.'); return; }
+  const md='# Mes notes — NEXORA\n\n'+notes.map(n=>`## ${n.date}\n\n${n.text}\n`).join('\n---\n\n');
+  try{
+    const blob=new Blob([md],{type:'text/markdown;charset=utf-8'});
+    const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='nexora_notes.md'; link.click(); URL.revokeObjectURL(link.href);
+    showToast(`${notes.length} note${notes.length>1?'s':''} exportée${notes.length>1?'s':''} en Markdown.`);
+  }catch(e){ showToast('Export impossible dans ce navigateur.'); }
+});
 $$('[data-action="start"],[data-action="continue"]').forEach(btn=>btn.addEventListener('click',()=>openModule(currentModule)));
 
 // Initial render
