@@ -179,3 +179,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
   .exercise-card,.demo-card,.formula-box,.quiz-question,.mini-project,.warning-box{break-inside:avoid;box-shadow:none}
   a[href]::after{content:""}
 }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}

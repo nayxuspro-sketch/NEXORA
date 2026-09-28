@@ -309,6 +309,8 @@ const $$ = (selector, parent=document) => [...parent.querySelectorAll(selector)]
 function getModule(id){ return modules.find(m => m.id === Number(id)) || modules[0]; }
 function isUnlocked(m){ return m.id <= Math.max(...completedModules, 1) + 1; }
 function progress(){ return Math.min(100, Math.round(((completedModules.length + (currentModule && !completedModules.includes(currentModule) ? .38 : 0)) / modules.length) * 100)); }
+function scrollBehavior(){ return (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'auto' : 'smooth'; }
+function setSidebarOpen(open){ const sb=$('#sidebar'), b=$('#mobile-menu'); if(!sb) return; sb.classList.toggle('open',open); if(b) b.setAttribute('aria-expanded',open?'true':'false'); }
 function showToast(message){ const toast=$('#toast'); toast.textContent=message; toast.classList.add('show'); clearTimeout(window.toastTimer); window.toastTimer=setTimeout(()=>toast.classList.remove('show'),3000); }
 
 function quizScore(id){
@@ -448,15 +450,15 @@ function navigateView(route){
   currentRoute=route;
   $$('.view').forEach(v=>v.classList.remove('active-view'));
   const target=$(`#view-${route}`); if(target) target.classList.add('active-view');
-  $$('.nav-item').forEach(item=>item.classList.toggle('active',item.dataset.route===route));
+  $$('.nav-item').forEach(item=>{ const on=item.dataset.route===route; item.classList.toggle('active',on); if(on) item.setAttribute('aria-current','page'); else item.removeAttribute('aria-current'); });
   const labels={dashboard:'Vue d’ensemble',parcours:'Mon parcours',lab:'Atelier DAX',ressources:'Ressources',notes:'Mes notes',lesson:'Leçon'};
   $('#breadcrumb-current').textContent=labels[route]||'Formation Power BI';
   if(route==='parcours') renderPath();
   if(route==='lab') renderLab();
   if(route==='ressources') renderGlossary();
   if(route==='notes') renderNotes();
-  window.scrollTo({top:0,behavior:'smooth'});
-  $('#sidebar').classList.remove('open');
+  window.scrollTo({top:0,behavior:scrollBehavior()});
+  setSidebarOpen(false);
 }
 let lastRouteKey=null;
 const validRoutes=['dashboard','parcours','lab','ressources','notes'];
@@ -593,15 +595,15 @@ function handleSearchResult(btn){
   const kind=btn.dataset.sr;
   closeSearchResults();
   if(kind==='module'){ openModule(Number(btn.dataset.id)); return; }
-  if(kind==='term'){ const t=btn.querySelector('span')?.textContent||''; navigate('ressources'); showTermDefinition(t); const def=$('#glossary-definition'); if(def&&typeof def.scrollIntoView==='function') def.scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
+  if(kind==='term'){ const t=btn.querySelector('span')?.textContent||''; navigate('ressources'); showTermDefinition(t); const def=$('#glossary-definition'); if(def&&typeof def.scrollIntoView==='function') def.scrollIntoView({behavior:scrollBehavior(),block:'nearest'}); return; }
   if(kind==='formula'){ selectedFormula=Number(btn.dataset.idx); navigate('lab'); }
 }
 
 // Navigation and delegated interactions
 $$('.nav-item').forEach(btn=>btn.addEventListener('click',()=>navigate(btn.dataset.route)));
 $$('[data-route]').forEach(btn=>{if(!btn.classList.contains('nav-item')) btn.addEventListener('click',()=>navigate(btn.dataset.route));});
-$('#mobile-menu').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
-document.addEventListener('click',e=>{const sb=$('#sidebar');if(sb.classList.contains('open')&&!e.target.closest('#sidebar')&&!e.target.closest('#mobile-menu'))sb.classList.remove('open');});
+$('#mobile-menu').addEventListener('click',()=>setSidebarOpen(!$('#sidebar').classList.contains('open')));
+document.addEventListener('click',e=>{const sb=$('#sidebar');if(sb.classList.contains('open')&&!e.target.closest('#sidebar')&&!e.target.closest('#mobile-menu'))setSidebarOpen(false);});
 $('#search-input').addEventListener('input',e=>{ const v=e.target.value; renderSearchResults(v); if(!v.trim()) handleSearch(''); });
 $('#search-input').addEventListener('keydown',e=>{if(e.key==='Enter'){handleSearch(e.target.value); navigate('parcours'); closeSearchResults();}});
 document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#search-input').focus();}});
@@ -611,7 +613,7 @@ document.addEventListener('click',e=>{
   const formula=e.target.closest('[data-formula]'); if(formula){selectedFormula=Number(formula.dataset.formula);renderLab();}
   const dr=e.target.closest('[data-dyn-route]'); if(dr){ navigate(dr.dataset.dynRoute); return; }
   const om=e.target.closest('[data-open-module]'); if(om&&!om.disabled){ openModule(Number(om.dataset.openModule)); return; }
-  const goto=e.target.closest('[data-goto]'); if(goto){ e.preventDefault(); const el=document.getElementById(goto.dataset.goto); if(el&&typeof el.scrollIntoView==='function') el.scrollIntoView({behavior:'smooth',block:'start'}); }
+  const goto=e.target.closest('[data-goto]'); if(goto){ e.preventDefault(); const el=document.getElementById(goto.dataset.goto); if(el&&typeof el.scrollIntoView==='function') el.scrollIntoView({behavior:scrollBehavior(),block:'start'}); }
   const sr=e.target.closest('[data-sr]'); if(sr){ handleSearchResult(sr); return; }
   if(e.target.closest('#reset-quiz')){ saveQuiz(currentModule,[]); renderLesson(getModule(currentModule)); showToast('Quiz réinitialisé — répondez à nouveau.'); return; }
   if(!e.target.closest('.topbar-search')) closeSearchResults();
