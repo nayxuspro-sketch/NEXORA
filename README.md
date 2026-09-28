@@ -78,7 +78,7 @@ npm install --no-save jsdom
 node test/smoke.mjs
 ```
 
-Il vérifie 107 contrôles d’interface (dont l’intégrité des fichiers, téléchargements et ancres du manuel) sans nécessiter de navigateur.
+Il vérifie 114 contrôles (dont l’intégrité des fichiers, téléchargements et ancres du manuel) sans nécessiter de navigateur, dont une **vérification d’intégrité pédagogique** : chaque module possède ses objectifs, sa démonstration, sa formule, ses erreurs, ses exercices et sa correction ; chaque quiz ses 3 questions valides ; chaque fiche DAX ses 6 champs.
 
 ## Régénérer le manuel HTML
 

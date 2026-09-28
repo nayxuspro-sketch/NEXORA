@@ -656,4 +656,5 @@ const dateEl=$('#dashboard-date');
 if(dateEl) dateEl.innerHTML=`${new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date()).toUpperCase()} <span class="dot"></span> BON RETOUR`;
 const labCount=$('#lab-function-count'); if(labCount) labCount.textContent=`${formulas.length} fonctions clés`;
 applyName(); renderActivity(); renderDashboardModules(); renderPath(); updateProgressUI(); renderGlossary(); renderNotes();
+window.__nexora={modules,formulas,glossary,quizzes}; // export de test / debug
 applyLocation();

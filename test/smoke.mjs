@@ -273,6 +273,41 @@ check('aucun id dupliqué (leçon)', dupLesson.length === 0, dupLesson.join(',')
   check('note enregistrable malgré corruption', w2.document.querySelector('#saved-notes').textContent.includes('note de récupération'));
 }
 
+// Intégrité pédagogique du contenu (export de debug)
+{
+  const N = window.__nexora;
+  check('export de debug présent', !!N && N.modules.length === 12 && N.quizzes);
+  const problems = [];
+  for (const m of N.modules) {
+    if (!m.objectives || m.objectives.length < 3) problems.push(`M${m.id}:objectifs`);
+    if (!m.demo || !Array.isArray(m.demo.steps) || m.demo.steps.length < 4 || !m.demo.result) problems.push(`M${m.id}:démo`);
+    if (!m.formula || !m.formula.code || !m.formula.explanation) problems.push(`M${m.id}:formule`);
+    for (const key of ['errors', 'best']) if (!Array.isArray(m[key]) || m[key].length < 3) problems.push(`M${m.id}:${key}`);
+    for (const key of ['guided', 'autonomous', 'correction', 'project', 'prereq', 'subtitle', 'short']) if (!m[key] || String(m[key]).length < 20) problems.push(`M${m.id}:${key}`);
+    if (!/^\d+\s*(min|h)(\s*\d+)?$/.test(m.time || '')) problems.push(`M${m.id}:time(${m.time})`);
+    if (!m.content || (m.content.match(/<h2>/g) || []).length < 2) problems.push(`M${m.id}:contenu`);
+    const o = (m.content.match(/«/g) || []).length, c = (m.content.match(/»/g) || []).length;
+    if (o !== c) problems.push(`M${m.id}:guillemets ${o}/${c}`);
+  }
+  check('contenu complet des 12 modules', problems.length === 0, problems.join(','));
+  const quizProblems = [];
+  const ids = Object.keys(N.quizzes);
+  for (const id of ids) {
+    const qs = N.quizzes[id];
+    if (qs.length !== 3) quizProblems.push(`M${id}:${qs.length}q`);
+    qs.forEach((q, i) => { if (!q.q || !Array.isArray(q.o) || q.o.length !== 3 || !(Number.isInteger(q.a) && q.a >= 0 && q.a < 3) || !q.why) quizProblems.push(`M${id}.Q${i + 1}`); });
+  }
+  check('quiz : 3 questions valides × 12 modules', ids.length === 12 && quizProblems.length === 0, quizProblems.join(','));
+  const badF = N.formulas.filter(f => !f.name || !f.code || !f.description || !f.result || !f.use || !f.error || !f.tag);
+  check('18 fiches DAX complètes', N.formulas.length === 18 && badF.length === 0, badF.map(f => f.name || '?').join(','));
+  check('lexique : 48 définitions substantielles', N.glossary.length === 48 && N.glossary.every(g => g.t && g.d && g.d.length > 30));
+  const totalLessons = N.modules.reduce((a, m) => a + m.lessons, 0);
+  check('48 leçons annoncées = somme des modules', totalLessons === 48, String(totalLessons));
+  const mdText = readFileSync(new URL('../FORMATION_POWER_BI.md', import.meta.url), 'utf8');
+  const mdO = (mdText.match(/«/g) || []).length, mdC = (mdText.match(/»/g) || []).length;
+  check('guillemets équilibrés dans le manuel', mdO === mdC && mdO >= 10, `${mdO}/${mdC}`);
+}
+
 // Intégrité des fichiers, téléchargements et ancres
 const { existsSync } = await import('node:fs');
 const dlPaths = $$('[data-download]').map(b => b.dataset.download);
