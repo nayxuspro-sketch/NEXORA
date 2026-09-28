@@ -52,6 +52,7 @@ NEXORA est un parcours de formation interactif en français, conçu pour accompa
 | Fichier | Contenu | Exercices |
 |---|---|---|
 | `data/contoso_exercice.csv` | Ventes Contoso (12 lignes) | Modules 1–9, 11 |
+| `data/contoso_exercice.xlsx` | Ventes Contoso au format Excel (feuille `Ventes`) | Module 2 — import Excel |
 | `data/notes_exercice.csv` | Notes scolaires (30 lignes) | Modules 5, 7 |
 | `data/commandes_exercice.csv` | Commandes et délais (24 lignes, retards extrêmes inclus) | Modules 6, 7 |
 | `data/habilitations_exercice.csv` | Habilitations RLS (10 utilisateurs) | Module 10 |
@@ -77,7 +78,7 @@ npm install --no-save jsdom
 node test/smoke.mjs
 ```
 
-Il vérifie 105 contrôles d’interface (dont l’intégrité des fichiers, téléchargements et ancres du manuel) sans nécessiter de navigateur.
+Il vérifie 107 contrôles d’interface (dont l’intégrité des fichiers, téléchargements et ancres du manuel) sans nécessiter de navigateur.
 
 ## Régénérer le manuel HTML
 

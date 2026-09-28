@@ -46,6 +46,7 @@ Le projet utilise une table de faits `F_Ventes` et quatre dimensions :
 | Fichier | Contenu | Exercices concernés |
 |---|---|---|
 | `contoso_exercice.csv` | `F_Ventes` — 12 ventes Contoso (produits, régions, montants) | Modules 1 à 9 et 11 |
+| `contoso_exercice.xlsx` | Même table `Ventes` au format Excel (feuille unique) | Module 2 — import Excel |
 | `notes_exercice.csv` | `F_Notes` — 30 notes d’élèves (classes, matières, dates) | Modules 5 et 7 (agrégations, médiane) |
 | `commandes_exercice.csv` | `F_Commandes` — 24 commandes avec `DelaiJours` et statuts, dont deux retards extrêmes (38 et 47 jours) | Modules 6 et 7 (statut, P90, écart-type) |
 | `habilitations_exercice.csv` | Table `Habilitations` — e-mail, rôle et région de 10 utilisateurs | Module 10 (RLS dynamique) |
@@ -164,7 +165,7 @@ Une colonne déposée dans un visuel peut être agrégée par Somme, Moyenne, No
 
 1. Ouvrir Power BI Desktop.
 2. Choisir **Accueil → Obtenir les données → Excel**.
-3. Sélectionner `Contoso.xlsx`.
+3. Sélectionner `contoso_exercice.xlsx` (fourni dans `data/`).
 4. Dans le navigateur, cocher `Ventes` puis choisir **Transformer les données** si la source doit être nettoyée, ou **Charger** si elle est déjà propre.
 5. Dans la vue Rapport, choisir un histogramme.
 6. Déposer `Categorie` dans l’axe et `Montant` dans les valeurs.

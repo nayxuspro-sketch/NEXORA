@@ -22,7 +22,7 @@ const dom = new JSDOM(html, {
   virtualConsole: vc
 });
 const { window } = dom;
-window.fetch = () => Promise.resolve({ ok: true, text: () => Promise.resolve('ColonneA,ColonneB\n1,2\n') });
+window.fetch = () => Promise.resolve({ ok: true, text: () => Promise.resolve('ColonneA,ColonneB\n1,2\n'), arrayBuffer: () => Promise.resolve(new Uint8Array([0x50, 0x4B, 0x03, 0x04]).buffer) });
 try {
   if (!window.URL.createObjectURL) window.URL.createObjectURL = () => 'blob:nexora';
   if (!window.URL.revokeObjectURL) window.URL.revokeObjectURL = () => {};
@@ -80,11 +80,16 @@ $('#modal-close').click();
 check('modale fermée', $('#modal-overlay').hidden);
 
 // Jeux de données d'exercice
-check('4 fichiers d’exercice', $$('[data-download]').length === 4, String($$('[data-download]').length));
+check('5 fichiers d’exercice', $$('[data-download]').length === 5, String($$('[data-download]').length));
 check('bouton contoso présent', !!$('#download-dataset'));
 $('[data-download="data/notes_exercice.csv"]').click();
 await new Promise(r => setTimeout(r, 60));
 check('téléchargement multi-fichiers', /Fichier téléchargé : notes_exercice\.csv/.test($('#toast').textContent), $('#toast').textContent);
+$('[data-download="data/contoso_exercice.xlsx"]').click();
+await new Promise(r => setTimeout(r, 60));
+check('téléchargement Excel (.xlsx)', /Fichier téléchargé : contoso_exercice\.xlsx/.test($('#toast').textContent), $('#toast').textContent);
+const xlsBuf = readFileSync(new URL('../data/contoso_exercice.xlsx', import.meta.url));
+check('xlsx valide (en-tête PK)', xlsBuf[0] === 0x50 && xlsBuf[1] === 0x4B, String(xlsBuf.slice(0, 2)));
 
 // Ouverture module 2 puis validation
 $$('#dashboard-module-grid .module-card')[1].click();
@@ -272,7 +277,7 @@ check('aucun id dupliqué (leçon)', dupLesson.length === 0, dupLesson.join(',')
 const { existsSync } = await import('node:fs');
 const dlPaths = $$('[data-download]').map(b => b.dataset.download);
 const missing = dlPaths.filter(pp => !existsSync(new URL('../' + pp, import.meta.url)));
-check('fichiers de téléchargement présents sur disque', dlPaths.length === 4 && missing.length === 0, missing.join(','));
+check('fichiers de téléchargement présents sur disque', dlPaths.length === 5 && missing.length === 0, missing.join(','));
 check('skip link et cible de contenu', !!$('.skip-link') && !!$('#main-content') && $('.skip-link').getAttribute('href') === '#main-content');
 const anchorHrefs = [...manualHtml.matchAll(/href="#([^"]+)"/g)].map(m => m[1]);
 const anchorIds = [...manualHtml.matchAll(/id="([^"]+)"/g)].map(m => m[1]);
