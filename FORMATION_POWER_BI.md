@@ -924,8 +924,13 @@ Ventes Premium = CALCULATE([Total], D_Produit[Segment] = "Premium")
 Ventes Positives = CALCULATE([Total], FILTER(F_Ventes, F_Ventes[Montant] > 0))
 Part Total = DIVIDE([Total], CALCULATE([Total], ALL(D_Produit)), 0)
 
+-- Taux protégés
+Marge % = DIVIDE([Marge], [Total Ventes], 0)
+Taux Remplissage = DIVIDE([Lignes Remplies], [Lignes Totales], 0)
+
 -- Temps
 N-1 = CALCULATE([Total], DATEADD(D_Date[Date], -1, YEAR))
+N-1 Même Période = CALCULATE([Total], SAMEPERIODLASTYEAR(D_Date[Date]))
 Cumul Annuel = TOTALYTD([Total], D_Date[Date])
 ```
 
@@ -936,6 +941,7 @@ Cumul Annuel = TOTALYTD([Total], D_Date[Date])
 - `FILTER` renvoie une table filtrée.
 - `ALL` retire des filtres.
 - `DIVIDE` est plus sûr que `/` lorsque zéro est possible.
+- `SAMEPERIODLASTYEAR` compare à la période équivalente de N-1 (table Date obligatoire).
 - Les fonctions temporelles exigent une table Date continue et reliée.
 
 # Annexe B — Checklist avant publication

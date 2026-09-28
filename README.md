@@ -75,7 +75,7 @@ npm install --no-save jsdom
 node test/smoke.mjs
 ```
 
-Il vérifie 95 contrôles d’interface (dont l’intégrité des fichiers, téléchargements et ancres du manuel) sans nécessiter de navigateur.
+Il vérifie 96 contrôles d’interface (dont l’intégrité des fichiers, téléchargements et ancres du manuel) sans nécessiter de navigateur.
 
 ## Régénérer le manuel HTML
 

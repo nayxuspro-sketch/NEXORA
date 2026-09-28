@@ -167,3 +167,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 /* Skip link (accessibility) */
 .skip-link{position:absolute;left:-9999px;top:0;background:var(--navy);color:#fff;padding:11px 17px;z-index:300;border-radius:0 0 9px 0;font-size:13px;text-decoration:none}
 .skip-link:focus{left:0}
+
+
+/* Print: lesson and views (app) */
+@media print{
+  .sidebar,.topbar,.mobile-menu,.toast,.skip-link,.lesson-toc,.lesson-title-row .button,.lesson-pagination,.back-button,.resource-actions,.dataset-list{display:none!important}
+  .main-content{margin:0;padding:0;max-width:none}
+  .view:not(.active-view){display:none}
+  .lesson-article,.page-intro,.section-heading{max-width:none}
+  .lesson-layout{grid-template-columns:1fr}
+  .exercise-card,.demo-card,.formula-box,.quiz-question,.mini-project,.warning-box{break-inside:avoid;box-shadow:none}
+  a[href]::after{content:""}
+}

@@ -251,6 +251,7 @@ const anchorIds = [...manualHtml.matchAll(/id="([^"]+)"/g)].map(m => m[1]);
 const brokenAnchors = anchorHrefs.filter(a => !anchorIds.includes(a));
 check('ancres du manuel valides', anchorHrefs.length >= 15 && brokenAnchors.length === 0, brokenAnchors.join(','));
 check('assets principaux présents', ['styles.css', 'app.js', 'manuel.html', 'FORMATION_POWER_BI.md'].every(f => existsSync(new URL('../' + f, import.meta.url))));
+check('annexe DAX du manuel à jour', manualHtml.includes('SAMEPERIODLASTYEAR') && manualHtml.includes('Marge % = DIVIDE'), 'DIVIDE + SAMEPERIODLASTYEAR');
 
 console.log(results.join('\n'));
 const fails = results.filter(r => r.startsWith('FAIL'));
