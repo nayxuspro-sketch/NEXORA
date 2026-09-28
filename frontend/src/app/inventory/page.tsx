@@ -39,7 +39,7 @@ export default function InventoryPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [tab, setTab] = React.useState<'levels' | 'movements' | 'intelligence' | 'inventories'>('intelligence');
+  const [tab, setTab] = React.useState<'levels' | 'movements' | 'intelligence' | 'inventories'>('levels');
   const [search, setSearch] = React.useState('');
 
   // Modals
@@ -241,78 +241,9 @@ export default function InventoryPage() {
   }>({
     queryKey: ['stock-intelligence'],
     queryFn: () => apiRequest('/inventory/intelligence/?days=30'),
-    placeholderData: {
-      summary: {
-        out_of_stock_count: 1,
-        critical_alerts_count: 2,
-        dormant_count: 4,
-        fast_moving_count: 3,
-        reorder_suggestions_count: 2,
-        anomalies_count: 1,
-      },
-      critical_alerts: [
-        {
-          product_id: 'p1',
-          product_name: 'Ordinateur Portable Pro 15',
-          sku: 'LAPTOP-01',
-          store_name: 'Alpha Dépôt Principal',
-          current_stock: '2.00',
-          alert_threshold: '5.00',
-        },
-      ],
-      out_of_stock: [],
-      fast_moving: [
-        {
-          product_id: 'p2',
-          name: 'Souris Sans Fil Ergonomique',
-          sku: 'MOUSE-01',
-          units_sold: '42.00',
-          avg_daily_consumption: '1.40',
-          current_stock: '96.00',
-          days_of_stock_left: 68,
-        },
-      ],
-      dormant_items: [
-        {
-          product_id: 'p3',
-          name: 'Câble Réseau Blindé RJ45 10m',
-          sku: 'CAB-RJ45',
-          units_sold: '0.00',
-          avg_daily_consumption: '0.00',
-          current_stock: '150.00',
-          days_of_stock_left: 999,
-        },
-      ],
-      replenishment_forecasts: [
-        {
-          product_id: 'p1',
-          product_name: 'Ordinateur Portable Pro 15',
-          sku: 'LAPTOP-01',
-          current_stock: '2.00',
-          avg_daily_consumption: '0.80',
-          estimated_days_left: 2,
-          suggested_reorder_qty: '22.00',
-          estimated_cost: '11000.00',
-          priority: 'URGENT',
-          disclaimer: 'Estimation calculée pour couvrir 30 jours de ventes.',
-        },
-      ],
-      anomalies: [
-        {
-          id: 'ano-1',
-          product_name: 'Souris Sans Fil Ergonomique',
-          sku: 'MOUSE-01',
-          store: 'Alpha Dépôt Principal',
-          movement_type: 'Casse / Dépréciation',
-          quantity: '2.00',
-          reason: 'Boîtier fendu lors du déchargement',
-          reference: 'DMG-2026-001',
-          date: new Date().toISOString(),
-        },
-      ],
-      predictive_notice:
-        'Toutes les prévisions et suggestions de réapprovisionnement constituent des estimations indicatives calculées sur la base de l\'historique des ventes.',
-    },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 5000,
   });
 
   // Fetch levels with instant sync & real-time zero cache
@@ -508,6 +439,7 @@ export default function InventoryPage() {
         message: 'Les quantités ont été ajoutées immédiatement au stock du magasin.',
       });
       setIsStockEntryModalOpen(false);
+      setTab('levels'); // Bascule automatique vers le tableau des niveaux de stock
       setStockEntryData({
         store: '',
         product: '',
@@ -519,6 +451,7 @@ export default function InventoryPage() {
       queryClient.invalidateQueries({ queryKey: ['stock-levels'] });
       queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
       queryClient.invalidateQueries({ queryKey: ['stock-intelligence'] });
+      refetchStockLevels();
     },
     onError: (err: any) => {
       toast({
@@ -614,16 +547,6 @@ export default function InventoryPage() {
         {/* Tab Switcher */}
         <div className="flex border-b border-border space-x-6 text-sm font-semibold overflow-x-auto pb-px">
           <button
-            onClick={() => setTab('intelligence')}
-            className={`pb-3 border-b-2 flex items-center gap-2 transition-all shrink-0 ${
-              tab === 'intelligence'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Sparkles className="h-4 w-4" /> Intelligence & Anticipation
-          </button>
-          <button
             onClick={() => setTab('levels')}
             className={`pb-3 border-b-2 flex items-center gap-2 transition-all shrink-0 ${
               tab === 'levels'
@@ -642,6 +565,16 @@ export default function InventoryPage() {
             }`}
           >
             <History className="h-4 w-4" /> Mouvements & Entrées de Stock
+          </button>
+          <button
+            onClick={() => setTab('intelligence')}
+            className={`pb-3 border-b-2 flex items-center gap-2 transition-all shrink-0 ${
+              tab === 'intelligence'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Sparkles className="h-4 w-4" /> Intelligence & Anticipation
           </button>
           <button
             onClick={() => setTab('inventories')}

@@ -32,6 +32,30 @@ class StockMovementViewSet(TenantModelViewSet):
     filterset_fields = ['store', 'product', 'movement_type']
     search_fields = ['product__name', 'product__sku', 'reference']
 
+    def perform_create(self, serializer):
+        company = self.get_company()
+        validated_data = serializer.validated_data
+        store = validated_data.get('store')
+        product = validated_data.get('product')
+        quantity = validated_data.get('quantity')
+        movement_type = validated_data.get('movement_type')
+        reference = validated_data.get('reference', '')
+        reason = validated_data.get('reason', '')
+        user = self.request.user if self.request.user.is_authenticated else None
+
+        # Delegate to transactional StockService to update StockLevel atomically
+        movement = StockService.record_movement(
+            company=company,
+            store=store,
+            product=product,
+            quantity=quantity,
+            movement_type=movement_type,
+            reference=reference,
+            reason=reason,
+            user=user
+        )
+        serializer.instance = movement
+
 
 class InventoryViewSet(TenantModelViewSet):
     queryset = Inventory.objects.prefetch_related('lines__product').all()
