@@ -98,6 +98,11 @@ class SaleViewSet(TenantModelViewSet):
         if not amount:
             return Response({'error': 'Le montant est obligatoire'}, status=status.HTTP_400_BAD_REQUEST)
 
+        user = request.user if request.user and request.user.is_authenticated else None
+        if not user:
+            from apps.accounts.models import User
+            user = User.objects.filter(company=sale.company).first()
+
         try:
             payment = SaleService.process_payment(
                 company=sale.company,
@@ -105,7 +110,7 @@ class SaleViewSet(TenantModelViewSet):
                 amount=amount,
                 method=method,
                 register=sale.register,
-                user=request.user,
+                user=user,
                 reference=ref
             )
             return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)

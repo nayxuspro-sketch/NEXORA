@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
@@ -9,19 +9,83 @@ import { Input } from '@/components/ui/input';
 import { apiRequest } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Sale, PaginatedResponse } from '@/types';
-import { Search, FileText, Eye, Download } from 'lucide-react';
+import { Search, FileText, Eye, Download, CreditCard, CheckCircle2, Banknote, Smartphone } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/toast';
 
 export default function SalesPage() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const [search, setSearch] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [selectedSale, setSelectedSale] = React.useState<Sale | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
 
+  // Modal: Compléter Solde Partiel
+  const [isPayModalOpen, setIsPayModalOpen] = React.useState(false);
+  const [saleToPay, setSaleToPay] = React.useState<Sale | null>(null);
+  const [payAmount, setPayAmount] = React.useState('');
+  const [payMethod, setPayMethod] = React.useState<'CASH' | 'MOBILE_MONEY' | 'CARD' | 'BANK_TRANSFER' | 'CHECK'>('CASH');
+  const [payReference, setPayReference] = React.useState('');
+
+  const openPayModal = (sale: Sale) => {
+    const total = parseFloat(sale.total_amount?.toString() || '0');
+    const paid = parseFloat(sale.paid_amount?.toString() || '0');
+    const remaining = Math.max(0, total - paid);
+    setSaleToPay(sale);
+    setPayAmount(remaining > 0 ? remaining.toString() : '');
+    setPayMethod('CASH');
+    setPayReference(`REG-SOLDE-${Date.now().toString().slice(-4)}`);
+    setIsPayModalOpen(true);
+  };
+
+  const payMutation = useMutation({
+    mutationFn: async () => {
+      if (!saleToPay) throw new Error('Vente non sélectionnée');
+      const amt = parseFloat(payAmount);
+      if (isNaN(amt) || amt <= 0) {
+        throw new Error('Veuillez saisir un montant valide');
+      }
+      return await apiRequest(`/sales/${saleToPay.id}/pay/`, {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: amt,
+          method: payMethod,
+          reference: payReference,
+        }),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        type: 'success',
+        title: 'Paiement Enregistré avec Succès',
+        message: `Le versement de ${formatCurrency(payAmount)} a été crédité sur la facture.`,
+      });
+      setIsPayModalOpen(false);
+      setSaleToPay(null);
+      setPayAmount('');
+      // Invalidation des caches
+      queryClient.invalidateQueries({ queryKey: ['sales-list'] });
+      queryClient.invalidateQueries({ queryKey: ['registers'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-report'] });
+      queryClient.invalidateQueries({ queryKey: ['bi-analytics'] });
+    },
+    onError: (err: any) => {
+      toast({
+        type: 'error',
+        title: 'Erreur lors du règlement',
+        message: err.message || 'Impossible d\'enregistrer le versement.',
+      });
+    },
+  });
+
   const { data: salesData, isLoading } = useQuery<PaginatedResponse<Sale>>({
     queryKey: ['sales-list', search, currentPage],
     queryFn: () => apiRequest<PaginatedResponse<Sale>>(`/sales/?page=${currentPage}&search=${encodeURIComponent(search)}`),
+    staleTime: 0,
+    refetchInterval: 3000,
   });
 
   const columns = [
@@ -112,19 +176,38 @@ export default function SalesPage() {
     },
     {
       header: 'Actions',
-      cell: (row: Sale) => (
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-all"
-          onClick={() => {
-            setSelectedSale(row);
-            setIsDetailModalOpen(true);
-          }}
-        >
-          <Eye className="h-3.5 w-3.5 mr-1 text-primary" /> Détails
-        </Button>
-      ),
+      cell: (row: Sale) => {
+        const total = parseFloat(row.total_amount?.toString() || '0');
+        const paid = parseFloat(row.paid_amount?.toString() || '0');
+        const remaining = total - paid;
+        const canPay = remaining > 0 && row.status !== 'CANCELLED';
+
+        return (
+          <div className="flex items-center gap-1.5">
+            {canPay && (
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                onClick={() => openPayModal(row)}
+              >
+                <CreditCard className="h-3.5 w-3.5 mr-1" /> Encaisser solde
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs font-semibold hover:bg-primary/10 hover:text-primary transition-all"
+              onClick={() => {
+                setSelectedSale(row);
+                setIsDetailModalOpen(true);
+              }}
+            >
+              <Eye className="h-3.5 w-3.5 mr-1 text-primary" /> Détails
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -288,7 +371,20 @@ export default function SalesPage() {
                 </div>
               )}
 
-              <div className="flex justify-end pt-3 border-t">
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                {parseFloat(selectedSale.total_amount?.toString() || '0') > parseFloat(selectedSale.paid_amount?.toString() || '0') && selectedSale.status !== 'CANCELLED' && (
+                  <Button
+                    type="button"
+                    variant="default"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                    onClick={() => {
+                      setIsDetailModalOpen(false);
+                      openPayModal(selectedSale);
+                    }}
+                  >
+                    <CreditCard className="h-4 w-4 mr-1.5" /> Encaisser le solde restant
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -301,6 +397,154 @@ export default function SalesPage() {
                 </Button>
               </div>
             </div>
+          )}
+        </Modal>
+
+        {/* MODAL: COMPLÉTER UN SOLDE PARTIEL */}
+        <Modal
+          isOpen={isPayModalOpen}
+          onClose={() => {
+            setIsPayModalOpen(false);
+            setSaleToPay(null);
+          }}
+          title={`Encaisser un Versement — Facture ${saleToPay?.reference || ''}`}
+          maxWidth="md"
+        >
+          {saleToPay && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                payMutation.mutate();
+              }}
+              className="space-y-4 pt-2"
+            >
+              {/* Récapitulatif financier */}
+              <div className="p-3.5 rounded-xl bg-muted/40 border space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Client :</span>
+                  <span className="font-bold text-foreground">{saleToPay.customer_name || 'Client Comptoir'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Facture TTC :</span>
+                  <span className="font-mono font-bold text-foreground">{formatCurrency(saleToPay.total_amount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Déjà Encaissé :</span>
+                  <span className="font-mono font-semibold text-emerald-600">{formatCurrency(saleToPay.paid_amount)}</span>
+                </div>
+                <div className="flex justify-between pt-2 border-t text-sm">
+                  <span className="font-bold text-foreground">Reste à payer :</span>
+                  <span className="font-mono font-black text-rose-600">
+                    {formatCurrency(Math.max(0, parseFloat(saleToPay.total_amount?.toString() || '0') - parseFloat(saleToPay.paid_amount?.toString() || '0')))}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mode de règlement */}
+              <div>
+                <label className="text-xs font-bold text-foreground block mb-1.5">
+                  Mode de Versement *
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod('CASH')}
+                    className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition-all ${
+                      payMethod === 'CASH'
+                        ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary'
+                        : 'hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <Banknote className="h-4 w-4" /> Espèces
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod('MOBILE_MONEY')}
+                    className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition-all ${
+                      payMethod === 'MOBILE_MONEY'
+                        ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary'
+                        : 'hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <Smartphone className="h-4 w-4" /> Mobile Money
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod('CARD')}
+                    className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition-all ${
+                      payMethod === 'CARD'
+                        ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary'
+                        : 'hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <CreditCard className="h-4 w-4" /> Carte Bancaire
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod('BANK_TRANSFER')}
+                    className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition-all ${
+                      payMethod === 'BANK_TRANSFER'
+                        ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary'
+                        : 'hover:bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <FileText className="h-4 w-4" /> Virement / Chèque
+                  </button>
+                </div>
+              </div>
+
+              {/* Montant versé */}
+              <div>
+                <label className="text-xs font-bold text-foreground block mb-1">
+                  Montant du Versement (FCFA) *
+                </label>
+                <Input
+                  type="number"
+                  step="any"
+                  min="1"
+                  required
+                  placeholder="Ex: 25000"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  className="font-mono font-bold text-base"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Vous pouvez encaisser la totalité du restant ou un acompte partiel additionnel.
+                </p>
+              </div>
+
+              {/* Référence ou reçu */}
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Référence du Reçu / Bordereau (Optionnel)
+                </label>
+                <Input
+                  placeholder="Ex: REG-MOBILE-998822"
+                  value={payReference}
+                  onChange={(e) => setPayReference(e.target.value)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsPayModalOpen(false);
+                    setSaleToPay(null);
+                  }}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="submit"
+                  isLoading={payMutation.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-1.5" /> Valider l'Encaissement
+                </Button>
+              </div>
+            </form>
           )}
         </Modal>
       </div>
