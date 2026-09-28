@@ -122,7 +122,7 @@ export function Topbar({ onToggleSidebar, onOpenQuickSearch }: TopbarProps) {
                     <Download className="h-4 w-4 shrink-0 text-emerald-500" />
                     <div>
                       <p className="font-bold">Télécharger l'Application (ZIP)</p>
-                      <p className="text-[10px] text-muted-foreground">Release v1.0.0 complète prête à l'emploi</p>
+                      <p className="text-[10px] text-muted-foreground">Release certifiée v1.2.2 avec synchronisation en temps réel</p>
                     </div>
                   </a>
                 </div>

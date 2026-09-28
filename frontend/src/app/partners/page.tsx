@@ -33,6 +33,7 @@ export default function PartnersPage() {
   const { data: partnersData, isLoading } = useQuery<PaginatedResponse<Partner>>({
     queryKey: ['partners-list', search],
     queryFn: () => apiRequest<PaginatedResponse<Partner>>(`/partners/?search=${encodeURIComponent(search)}`),
+    refetchInterval: 3000,
   });
 
   const createMutation = useMutation({

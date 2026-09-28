@@ -32,6 +32,7 @@ class Unit(TenantModel):
         verbose_name = "Unité de mesure"
         verbose_name_plural = "Unités de mesure"
         unique_together = ('company', 'symbol')
+        ordering = ['name']
 
     def __str__(self):
         return f"{self.name} ({self.symbol})"

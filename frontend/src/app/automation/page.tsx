@@ -57,6 +57,7 @@ export default function AutomationPage() {
   const { data: rulesData, isLoading } = useQuery<{ results: AutomationRuleItem[] }>({
     queryKey: ['automation-rules'],
     queryFn: () => apiRequest('/automation-rules/'),
+    refetchInterval: 5000,
     placeholderData: {
       results: [
         {
