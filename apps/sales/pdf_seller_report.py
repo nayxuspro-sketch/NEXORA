@@ -395,15 +395,13 @@ class SellerSalesReportPdfView(APIView):
         # Top Products table
         elements.append(Paragraph("<b>2. Répartition des Ventes par Produit & Contribution à la Marge :</b>", section_heading))
         p_table_headers = [
-            Paragraph("<b>Produit / Article</b>", cell_bold),
-            Paragraph("<b>SKU</b>", cell_bold),
-            Paragraph("<b>Quantité Vendue</b>", cell_bold),
-            Paragraph("<b>Chiffre d'Affaires</b>", cell_bold),
-            Paragraph("<b>Marge Brute</b>", cell_bold),
-            Paragraph("<b>Part (%)</b>", cell_bold),
+            Paragraph("<b>Produit / Article</b>", table_header_style),
+            Paragraph("<b>SKU</b>", table_header_style),
+            Paragraph("<b>Quantité Vendue</b>", table_header_style),
+            Paragraph("<b>Chiffre d'Affaires</b>", table_header_style),
+            Paragraph("<b>Marge Brute</b>", table_header_style),
+            Paragraph("<b>Part (%)</b>", table_header_style),
         ]
-        for h in p_table_headers:
-            h.style.textColor = colors.white
 
         p_table_data = [p_table_headers]
         for p_name, p_data in sorted_prods[:6]:

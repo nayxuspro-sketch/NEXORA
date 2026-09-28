@@ -170,6 +170,15 @@ class BiReportPdfExportView(APIView):
             textColor=colors.HexColor('#0f172a')
         )
 
+        header_style = ParagraphStyle(
+            'BiHeaderStyle',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=7.5,
+            leading=9.5,
+            textColor=colors.white
+        )
+
         body_style = ParagraphStyle(
             'BiBody',
             parent=styles['Normal'],
@@ -264,13 +273,11 @@ class BiReportPdfExportView(APIView):
         # 2. Répartition par Famille de Produits
         elements.append(Paragraph("<b>2. Contribution par Famille de Produits</b>", section_heading))
         cat_headers = [
-            Paragraph("<b>Famille / Catégorie</b>", cell_bold),
-            Paragraph("<b>Chiffre d'Affaires TTC</b>", cell_bold),
-            Paragraph("<b>Poids dans les Ventes (%)</b>", cell_bold),
-            Paragraph("<b>Niveau de Contribution</b>", cell_bold),
+            Paragraph("<b>Famille / Catégorie</b>", header_style),
+            Paragraph("<b>Chiffre d'Affaires TTC</b>", header_style),
+            Paragraph("<b>Poids dans les Ventes (%)</b>", header_style),
+            Paragraph("<b>Niveau de Contribution</b>", header_style),
         ]
-        for h in cat_headers:
-            h.style.textColor = colors.white
 
         cat_table_data = [cat_headers]
         for cat_name, cat_rev in sorted(category_stats.items(), key=lambda x: x[1], reverse=True):
@@ -308,15 +315,13 @@ class BiReportPdfExportView(APIView):
         # 3. Top Produits & Rentabilité Réelle
         elements.append(Paragraph("<b>3. Matrice de Rentabilité des Produits Phares</b>", section_heading))
         p_headers = [
-            Paragraph("<b>Article & Modèle</b>", cell_bold),
-            Paragraph("<b>SKU</b>", cell_bold),
-            Paragraph("<b>Quantité</b>", cell_bold),
-            Paragraph("<b>CA Réalisé</b>", cell_bold),
-            Paragraph("<b>Marge Brute</b>", cell_bold),
-            Paragraph("<b>Taux Marge</b>", cell_bold),
+            Paragraph("<b>Article & Modèle</b>", header_style),
+            Paragraph("<b>SKU</b>", header_style),
+            Paragraph("<b>Quantité</b>", header_style),
+            Paragraph("<b>CA Réalisé</b>", header_style),
+            Paragraph("<b>Marge Brute</b>", header_style),
+            Paragraph("<b>Taux Marge</b>", header_style),
         ]
-        for h in p_headers:
-            h.style.textColor = colors.white
 
         p_table_data = [p_headers]
         for p_name, p_data in sorted_prods[:6]:

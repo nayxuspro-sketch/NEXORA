@@ -133,6 +133,15 @@ class AuditLogPdfExportView(APIView):
             textColor=colors.HexColor('#0f172a')
         )
 
+        header_style = ParagraphStyle(
+            'AuditHeaderStyle',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=7.5,
+            leading=9.5,
+            textColor=colors.white
+        )
+
         company_name = company.name if company else "NEXORA ENTERPRISE"
         elements.append(Paragraph(f"<b>{company_name} — REGISTRE OFFICIEL DU JOURNAL D'AUDIT & SÉCURITÉ</b>", title_style))
         period_text = (
@@ -171,15 +180,13 @@ class AuditLogPdfExportView(APIView):
 
         # Table Headers
         table_headers = [
-            Paragraph("<b>Horodatage (UTC/Local)</b>", cell_bold),
-            Paragraph("<b>Action de Sécurité</b>", cell_bold),
-            Paragraph("<b>Ressource / Cible</b>", cell_bold),
-            Paragraph("<b>Opérateur / Utilisateur</b>", cell_bold),
-            Paragraph("<b>Adresse IP</b>", cell_bold),
-            Paragraph("<b>Détails & Payload d'Audit</b>", cell_bold),
+            Paragraph("<b>Horodatage (UTC/Local)</b>", header_style),
+            Paragraph("<b>Action de Sécurité</b>", header_style),
+            Paragraph("<b>Ressource / Cible</b>", header_style),
+            Paragraph("<b>Opérateur / Utilisateur</b>", header_style),
+            Paragraph("<b>Adresse IP</b>", header_style),
+            Paragraph("<b>Détails & Payload d'Audit</b>", header_style),
         ]
-        for h in table_headers:
-            h.style.textColor = colors.white
 
         table_data = [table_headers]
 

@@ -173,6 +173,15 @@ class StockLevelPdfExportView(APIView):
             textColor=colors.HexColor('#0f172a')
         )
 
+        header_style = ParagraphStyle(
+            'HeaderStyle',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=8,
+            leading=10,
+            textColor=colors.white
+        )
+
         # Header Title
         company_name = company.name if company else "NEXORA ENTERPRISE"
         elements.append(Paragraph(f"<b>{company_name} — ÉTAT ET NIVEAU DES STOCKS PAR PÉRIODE</b>", title_style))
@@ -207,15 +216,15 @@ class StockLevelPdfExportView(APIView):
 
         # Data Table
         table_headers = [
-            Paragraph("<b>Magasin / Dépôt</b>", cell_bold),
-            Paragraph("<b>Article & SKU</b>", cell_bold),
-            Paragraph("<b>Stock Début</b>", cell_bold),
-            Paragraph("<b>Entrées (+)</b>", cell_bold),
-            Paragraph("<b>Sorties (-)</b>", cell_bold),
-            Paragraph("<b>Stock Fin</b>", cell_bold),
-            Paragraph("<b>Coût Unit. HT</b>", cell_bold),
-            Paragraph("<b>Prix Vente TTC</b>", cell_bold),
-            Paragraph("<b>Valorisation Coût</b>", cell_bold),
+            Paragraph("<b>Magasin / Dépôt</b>", header_style),
+            Paragraph("<b>Article & SKU</b>", header_style),
+            Paragraph("<b>Stock Début</b>", header_style),
+            Paragraph("<b>Entrées (+)</b>", header_style),
+            Paragraph("<b>Sorties (-)</b>", header_style),
+            Paragraph("<b>Stock Fin</b>", header_style),
+            Paragraph("<b>Coût Unit. HT</b>", header_style),
+            Paragraph("<b>Prix Vente TTC</b>", header_style),
+            Paragraph("<b>Valorisation Coût</b>", header_style),
         ]
 
         table_data = [table_headers]
@@ -245,10 +254,6 @@ class StockLevelPdfExportView(APIView):
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
             ('PADDING', (0, 0), (-1, -1), 4.5),
         ]))
-
-        # Fix header text colors inside paragraphs
-        for i in range(len(table_headers)):
-            table_headers[i].style.textColor = colors.white
 
         elements.append(stock_table)
 
@@ -376,6 +381,15 @@ class StockMovementPdfExportView(APIView):
             textColor=colors.HexColor('#0f172a')
         )
 
+        header_style = ParagraphStyle(
+            'MoveHeaderStyle',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=7.5,
+            leading=9.5,
+            textColor=colors.white
+        )
+
         company_name = company.name if company else "NEXORA ENTERPRISE"
         elements.append(Paragraph(f"<b>{company_name} — GRAND LIVRE DES MOUVEMENTS DE STOCKS</b>", title_style))
         period_text = f"Période auditée : du <b>{start_date.strftime('%d/%m/%Y')}</b> au <b>{end_date.strftime('%d/%m/%Y')}</b> | {len(movements)} écriture(s) trouvée(s) | Édité le : {now.strftime('%d/%m/%Y à %H:%M')}"
@@ -409,14 +423,14 @@ class StockMovementPdfExportView(APIView):
 
         # Table Headers
         table_headers = [
-            Paragraph("<b>Date & Heure</b>", cell_bold),
-            Paragraph("<b>Type de Flux</b>", cell_bold),
-            Paragraph("<b>Article & SKU</b>", cell_bold),
-            Paragraph("<b>Dépôt / Magasin</b>", cell_bold),
-            Paragraph("<b>Quantité</b>", cell_bold),
-            Paragraph("<b>Avant → Après</b>", cell_bold),
-            Paragraph("<b>Référence & Motif</b>", cell_bold),
-            Paragraph("<b>Opérateur</b>", cell_bold),
+            Paragraph("<b>Date & Heure</b>", header_style),
+            Paragraph("<b>Type de Flux</b>", header_style),
+            Paragraph("<b>Article & SKU</b>", header_style),
+            Paragraph("<b>Dépôt / Magasin</b>", header_style),
+            Paragraph("<b>Quantité</b>", header_style),
+            Paragraph("<b>Avant → Après</b>", header_style),
+            Paragraph("<b>Référence & Motif</b>", header_style),
+            Paragraph("<b>Opérateur</b>", header_style),
         ]
 
         table_data = [table_headers]
@@ -451,9 +465,6 @@ class StockMovementPdfExportView(APIView):
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
             ('PADDING', (0, 0), (-1, -1), 4),
         ]))
-
-        for i in range(len(table_headers)):
-            table_headers[i].style.textColor = colors.white
 
         elements.append(moves_table)
 
@@ -632,6 +643,15 @@ class InventoryDiscrepanciesPdfExportView(APIView):
             textColor=colors.HexColor('#0f172a')
         )
 
+        header_style = ParagraphStyle(
+            'InvHeaderStyle',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=7.5,
+            leading=9.5,
+            textColor=colors.white
+        )
+
         company_name = company.name if company else "NEXORA ENTERPRISE"
         elements.append(Paragraph(f"<b>{company_name} — RAPPORT DES INVENTAIRES PHYSIQUES & ANALYSE DES ÉCARTS</b>", title_style))
         period_text = f"Période auditée : du <b>{start_date.strftime('%d/%m/%Y')}</b> au <b>{end_date.strftime('%d/%m/%Y')}</b> | {total_sessions} session(s) d'inventaire | {total_counted_lines} référence(s) comptée(s) | Édité le : {now.strftime('%d/%m/%Y à %H:%M')}"
@@ -668,16 +688,16 @@ class InventoryDiscrepanciesPdfExportView(APIView):
 
         # Table Headers
         table_headers = [
-            Paragraph("<b>Session / Réf.</b>", cell_bold),
-            Paragraph("<b>Date & Statut</b>", cell_bold),
-            Paragraph("<b>Dépôt</b>", cell_bold),
-            Paragraph("<b>Article & SKU</b>", cell_bold),
-            Paragraph("<b>Stock Théorique</b>", cell_bold),
-            Paragraph("<b>Compté Physique</b>", cell_bold),
-            Paragraph("<b>Écart Qté</b>", cell_bold),
-            Paragraph("<b>Coût Unit.</b>", cell_bold),
-            Paragraph("<b>Valorisation Écart</b>", cell_bold),
-            Paragraph("<b>Observations</b>", cell_bold),
+            Paragraph("<b>Session / Réf.</b>", header_style),
+            Paragraph("<b>Date & Statut</b>", header_style),
+            Paragraph("<b>Dépôt</b>", header_style),
+            Paragraph("<b>Article & SKU</b>", header_style),
+            Paragraph("<b>Stock Théorique</b>", header_style),
+            Paragraph("<b>Compté Physique</b>", header_style),
+            Paragraph("<b>Écart Qté</b>", header_style),
+            Paragraph("<b>Coût Unit.</b>", header_style),
+            Paragraph("<b>Valorisation Écart</b>", header_style),
+            Paragraph("<b>Observations</b>", header_style),
         ]
 
         table_data = [table_headers]
@@ -714,9 +734,6 @@ class InventoryDiscrepanciesPdfExportView(APIView):
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
             ('PADDING', (0, 0), (-1, -1), 4),
         ]))
-
-        for i in range(len(table_headers)):
-            table_headers[i].style.textColor = colors.white
 
         elements.append(discrepancy_table)
 

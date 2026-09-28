@@ -135,6 +135,15 @@ class ProductCatalogPdfExportView(APIView):
             textColor=colors.HexColor('#0f172a')
         )
 
+        header_style = ParagraphStyle(
+            'CatHeaderStyle',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=7.5,
+            leading=9.5,
+            textColor=colors.white
+        )
+
         company_name = company.name if company else "NEXORA ENTERPRISE"
         elements.append(Paragraph(f"<b>{company_name} — CATALOGUE DES PRODUITS PAR STATUT</b>", title_style))
         elements.append(Paragraph(
@@ -172,19 +181,17 @@ class ProductCatalogPdfExportView(APIView):
 
         # Table Headers
         table_headers = [
-            Paragraph("<b>Désignation de l'Article</b>", cell_bold),
-            Paragraph("<b>SKU / Réf.</b>", cell_bold),
-            Paragraph("<b>Code-barres / EAN</b>", cell_bold),
-            Paragraph("<b>Famille / Catégorie</b>", cell_bold),
-            Paragraph("<b>Prix Achat HT</b>", cell_bold),
-            Paragraph("<b>Prix Vente TTC</b>", cell_bold),
-            Paragraph("<b>Marge / Unité</b>", cell_bold),
-            Paragraph("<b>Stock Dispo</b>", cell_bold),
-            Paragraph("<b>Seuil Min</b>", cell_bold),
-            Paragraph("<b>Statut</b>", cell_bold),
+            Paragraph("<b>Désignation de l'Article</b>", header_style),
+            Paragraph("<b>SKU / Réf.</b>", header_style),
+            Paragraph("<b>Code-barres / EAN</b>", header_style),
+            Paragraph("<b>Famille / Catégorie</b>", header_style),
+            Paragraph("<b>Prix Achat HT</b>", header_style),
+            Paragraph("<b>Prix Vente TTC</b>", header_style),
+            Paragraph("<b>Marge / Unité</b>", header_style),
+            Paragraph("<b>Stock Dispo</b>", header_style),
+            Paragraph("<b>Seuil Min</b>", header_style),
+            Paragraph("<b>Statut</b>", header_style),
         ]
-        for h in table_headers:
-            h.style.textColor = colors.white
 
         table_data = [table_headers]
 
