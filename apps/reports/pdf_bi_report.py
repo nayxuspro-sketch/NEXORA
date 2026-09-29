@@ -399,5 +399,5 @@ class BiReportPdfExportView(APIView):
 
         response = HttpResponse(pdf_data, content_type='application/pdf')
         filename = f"Rapport_BI_Decision_{days}j_{now.strftime('%Y%m%d')}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response

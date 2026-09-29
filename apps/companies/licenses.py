@@ -257,5 +257,5 @@ class StoreLicenseCertificatePdfExportView(APIView):
 
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         filename = f"Certificat_Licence_{store.code}_{lic.license_key[:10]}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response

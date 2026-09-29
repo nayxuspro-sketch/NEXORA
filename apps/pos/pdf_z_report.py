@@ -234,5 +234,5 @@ class CashRegisterZReportPdfExportView(APIView):
 
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         filename = f"Rapport_Z_Cloture_Caisse_{now.strftime('%Y%m%d_%H%M%S')}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response

@@ -281,7 +281,7 @@ class StockLevelPdfExportView(APIView):
 
         response = HttpResponse(pdf_data, content_type='application/pdf')
         filename = f"Etat_Stocks_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
 
 
@@ -506,7 +506,7 @@ class StockMovementPdfExportView(APIView):
 
         response = HttpResponse(pdf_data, content_type='application/pdf')
         filename = f"Grand_Livre_Mouvements_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
 
 
@@ -789,5 +789,5 @@ class InventoryDiscrepanciesPdfExportView(APIView):
 
         response = HttpResponse(pdf_data, content_type='application/pdf')
         filename = f"Inventaires_Ecarts_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response

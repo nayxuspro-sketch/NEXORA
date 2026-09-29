@@ -507,7 +507,7 @@ class SellerSalesReportPdfView(APIView):
         seller_clean = seller_ascii.replace(' ', '_').replace('/', '_')
         response = HttpResponse(pdf_data, content_type='application/pdf')
         filename = f"Vente_{seller_clean}_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
         response['Pragma'] = 'no-cache'
         response['Expires'] = '0'

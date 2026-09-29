@@ -262,5 +262,5 @@ class ProductCatalogPdfExportView(APIView):
         status_slug = status_filter.lower()
         response = HttpResponse(pdf_data, content_type='application/pdf')
         filename = f"Catalogue_Produits_{status_slug}_{now.strftime('%Y%m%d')}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
