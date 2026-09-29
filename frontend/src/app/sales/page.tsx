@@ -84,8 +84,8 @@ export default function SalesPage() {
   const { data: salesData, isLoading } = useQuery<PaginatedResponse<Sale>>({
     queryKey: ['sales-list', search, currentPage],
     queryFn: () => apiRequest<PaginatedResponse<Sale>>(`/sales/?page=${currentPage}&search=${encodeURIComponent(search)}`),
-    staleTime: 0,
-    refetchInterval: 3000,
+    staleTime: 1000 * 30,
+    refetchInterval: 30000,
     placeholderData: {
       status: 'success',
       pagination: { count: 3, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },

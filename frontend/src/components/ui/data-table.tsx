@@ -29,6 +29,10 @@ export function DataTable<T extends { id?: string | number }>({
   emptyMessage = 'Aucun élément trouvé.',
   pagination,
 }: DataTableProps<T>) {
+  // N'afficher le squelette de chargement que lors du tout premier chargement initial à vide
+  // Si des données sont déjà présentes en mémoire, on maintient l'affichage stable sans faire clignoter la table
+  const showLoadingSkeleton = isLoading && data.length === 0;
+
   return (
     <div className="w-full space-y-4">
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
@@ -44,7 +48,7 @@ export function DataTable<T extends { id?: string | number }>({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {isLoading ? (
+              {showLoadingSkeleton ? (
                 Array.from({ length: 5 }).map((_, rIdx) => (
                   <tr key={rIdx} className="animate-pulse">
                     {columns.map((_, cIdx) => (

@@ -28,7 +28,8 @@ export default function DashboardPage() {
   const { data: report, isLoading } = useQuery<DashboardReport>({
     queryKey: ['dashboard-report'],
     queryFn: () => apiRequest<DashboardReport>('/reports/dashboard/?days=30'),
-    refetchInterval: 3000,
+    staleTime: 1000 * 30,
+    refetchInterval: 30000,
     placeholderData: {
       period_days: 30,
       sales: {

@@ -85,7 +85,7 @@ export default function AuditPage() {
       });
       return apiRequest<PaginatedResponse<AuditLogItem>>(`/audit-logs/?${params.toString()}`);
     },
-    refetchInterval: 10000, // Live poll every 10s for real-time security monitoring
+    refetchInterval: 30000, // Live poll toutes les 30s pour le monitoring
   });
 
   // Traduction française et stylisation visuelle des actions
