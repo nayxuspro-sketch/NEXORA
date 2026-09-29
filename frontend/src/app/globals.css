@@ -83,3 +83,54 @@
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
+
+/* ==========================================================================
+   REGLES D'IMPRESSION PROPRES ET ANTI-REPETITION (TICKETS DE CAISSE POS & RECUS)
+   ========================================================================== */
+@media print {
+  /* Masquer l'ensemble des éléments d'interface à l'impression */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Isoler strictement le reçu de caisse actif et ses enfants directs */
+  #pos-receipt-print-area,
+  #pos-receipt-print-area * {
+    visibility: visible;
+  }
+
+  /* Repositionner le reçu au sommet absolu de la page sans marge parasite */
+  #pos-receipt-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 8px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Désactiver toute répétition ou saut de page intempestif */
+  @page {
+    size: 80mm auto;
+    margin: 0mm;
+  }
+
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+}
+

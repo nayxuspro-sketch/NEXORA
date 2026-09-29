@@ -1117,8 +1117,11 @@ export default function PosPage() {
         maxWidth="sm"
       >
         <div className="space-y-4 pt-1">
-          {/* Printable Ticket Shape */}
-          <div className="p-4 rounded-xl border bg-card font-mono text-xs space-y-3 shadow-inner">
+          {/* Printable Ticket Shape with dedicated print id */}
+          <div
+            id="pos-receipt-print-area"
+            className="p-4 rounded-xl border bg-card font-mono text-xs space-y-3 shadow-inner"
+          >
             <div className="text-center border-b pb-2">
               {activeRegister?.store_logo && (
                 <div className="flex justify-center mb-2">
@@ -1174,11 +1177,59 @@ export default function PosPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 print:hidden">
             <Button
               variant="outline"
               className="flex-1 font-bold text-xs"
-              onClick={() => window.print()}
+              onClick={() => {
+                const printContent = document.getElementById('pos-receipt-print-area');
+                if (printContent) {
+                  const printWindow = window.open('', '_blank', 'width=380,height=600');
+                  if (printWindow) {
+                    printWindow.document.write(`
+                      <!DOCTYPE html>
+                      <html>
+                        <head>
+                          <title>Ticket de Caisse #${completedSale?.reference || ''}</title>
+                          <style>
+                            @page { size: 80mm auto; margin: 0; }
+                            body {
+                              font-family: monospace;
+                              font-size: 11px;
+                              width: 76mm;
+                              margin: 0 auto;
+                              padding: 6px;
+                              color: #000;
+                              background: #fff;
+                            }
+                            .text-center { text-align: center; }
+                            .text-right { text-align: right; }
+                            .font-bold { font-weight: bold; }
+                            .border-b { border-bottom: 1px dashed #999; padding-bottom: 6px; margin-bottom: 6px; }
+                            .border-t { border-top: 1px dashed #999; padding-top: 6px; margin-top: 6px; }
+                            .flex { display: flex; justify-content: space-between; }
+                            img { max-height: 45px; max-width: 120px; object-fit: contain; margin-bottom: 4px; }
+                          </style>
+                        </head>
+                        <body>
+                          ${printContent.innerHTML}
+                          <script>
+                            window.onload = function() {
+                              window.print();
+                              window.onafterprint = function() { window.close(); };
+                            };
+                          </script>
+                        </body>
+                      </html>
+                    `);
+                    printWindow.document.close();
+                  } else {
+                    window.print();
+                  }
+                } else {
+                  window.print();
+                }
+              }}
             >
               <Printer className="h-4 w-4 mr-1.5" /> Imprimer Ticket
             </Button>
