@@ -78,7 +78,16 @@ npm install --no-save jsdom
 node test/smoke.mjs
 ```
 
-Il vérifie 114 contrôles (dont l’intégrité des fichiers, téléchargements et ancres du manuel) sans nécessiter de navigateur, dont une **vérification d’intégrité pédagogique** : chaque module possède ses objectifs, sa démonstration, sa formule, ses erreurs, ses exercices et sa correction ; chaque quiz ses 3 questions valides ; chaque fiche DAX ses 6 champs.
+Il vérifie 118 contrôles (dont l’intégrité des fichiers, téléchargements et ancres du manuel) sans nécessiter de navigateur, dont une **vérification d’intégrité pédagogique** : chaque module possède ses objectifs, sa démonstration, sa formule, ses erreurs, ses exercices et sa correction ; chaque quiz ses 3 questions valides ; chaque fiche DAX ses 6 champs.
+
+## Manuel PDF
+
+`Formation_Power_BI_NEXORA.pdf` (32 pages, couverture, sommaire cliquable avec numéros de page, signets PDF et annexe lexique) :
+
+```bash
+pip install --break-system-packages reportlab pypdf
+python3 tools/build_pdf.py
+```
 
 ## Régénérer le manuel HTML
 

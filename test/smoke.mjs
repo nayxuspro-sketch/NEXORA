@@ -323,6 +323,15 @@ check('annexe DAX du manuel à jour', manualHtml.includes('SAMEPERIODLASTYEAR') 
 const cssText = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
 check('styles : prefers-reduced-motion', cssText.includes('prefers-reduced-motion'));
 
+// Manuel PDF
+check('lien PDF dans les ressources', !!$('.resource-card a[href="Formation_Power_BI_NEXORA.pdf"]'));
+const pdfPath = new URL('../Formation_Power_BI_NEXORA.pdf', import.meta.url);
+check('fichier PDF présent', existsSync(pdfPath));
+const pdfBuf = readFileSync(pdfPath);
+check('PDF valide (> 100 Ko, en-tête %PDF)', pdfBuf.slice(0, 5).toString() === '%PDF-' && pdfBuf.length > 100000, String(pdfBuf.length));
+const pageMarks = pdfBuf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || [];
+check('PDF : au moins 30 pages', pageMarks.length >= 30, String(pageMarks.length));
+
 console.log(results.join('\n'));
 const fails = results.filter(r => r.startsWith('FAIL'));
 if (warnings.length) console.log('\nAvertissements jsdom (attendus) : ' + warnings.length);
