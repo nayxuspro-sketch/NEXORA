@@ -1455,11 +1455,12 @@ export default function InventoryPage() {
               <span className="font-bold text-foreground">Rapport d'Écarts A4 Paysage (Landscape)</span>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t border-border">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsInventoriesPdfModalOpen(false)}
+                className="w-full sm:w-auto font-medium"
               >
                 Annuler
               </Button>
@@ -1467,7 +1468,7 @@ export default function InventoryPage() {
                 href={`/api/v1/inventory/export-inventories-pdf/?start_date=${inventoriesPdfPeriod.start_date}&end_date=${inventoriesPdfPeriod.end_date}${inventoriesPdfPeriod.store_id ? `&store_id=${inventoriesPdfPeriod.store_id}` : ''}${inventoriesPdfPeriod.status ? `&status=${inventoriesPdfPeriod.status}` : ''}&_t=${Date.now()}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md font-semibold text-xs border border-input bg-background hover:bg-muted text-foreground transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md font-semibold text-xs border border-input bg-background hover:bg-muted text-foreground transition-colors w-full sm:w-auto"
                 onClick={() => setTimeout(() => setIsInventoriesPdfModalOpen(false), 500)}
               >
                 Ouvrir dans un onglet (Direct)
@@ -1476,6 +1477,7 @@ export default function InventoryPage() {
                 type="button"
                 onClick={handleExportInventoriesPdf}
                 isLoading={isExportingInventoriesPdf}
+                className="w-full sm:w-auto"
               >
                 <Download className="h-4 w-4 mr-1.5" /> Télécharger le Rapport d'Écarts PDF
               </Button>
@@ -1567,11 +1569,12 @@ export default function InventoryPage() {
               <span className="font-bold text-foreground">Grand Livre A4 Paysage (Landscape)</span>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t border-border">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsMovementsPdfModalOpen(false)}
+                className="w-full sm:w-auto font-medium"
               >
                 Annuler
               </Button>
@@ -1579,7 +1582,7 @@ export default function InventoryPage() {
                 href={`/api/v1/inventory/export-movements-pdf/?start_date=${movementsPdfPeriod.start_date}&end_date=${movementsPdfPeriod.end_date}${movementsPdfPeriod.store_id ? `&store_id=${movementsPdfPeriod.store_id}` : ''}${movementsPdfPeriod.movement_type ? `&movement_type=${movementsPdfPeriod.movement_type}` : ''}&_t=${Date.now()}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md font-semibold text-xs border border-input bg-background hover:bg-muted text-foreground transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md font-semibold text-xs border border-input bg-background hover:bg-muted text-foreground transition-colors w-full sm:w-auto"
                 onClick={() => setTimeout(() => setIsMovementsPdfModalOpen(false), 500)}
               >
                 Ouvrir dans un onglet (Direct)
@@ -1588,6 +1591,7 @@ export default function InventoryPage() {
                 type="button"
                 onClick={handleExportMovementsPdf}
                 isLoading={isExportingMovementsPdf}
+                className="w-full sm:w-auto"
               >
                 <Download className="h-4 w-4 mr-1.5" /> Télécharger le Grand Livre PDF
               </Button>
@@ -1655,11 +1659,12 @@ export default function InventoryPage() {
               <span className="font-bold text-foreground">PDF Paysage A4 (Haute Définition)</span>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t border-border">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsPdfModalOpen(false)}
+                className="w-full sm:w-auto font-medium"
               >
                 Annuler
               </Button>
@@ -1667,7 +1672,7 @@ export default function InventoryPage() {
                 href={`/api/v1/inventory/export-pdf/?start_date=${pdfPeriod.start_date}&end_date=${pdfPeriod.end_date}${pdfPeriod.store_id ? `&store_id=${pdfPeriod.store_id}` : ''}&_t=${Date.now()}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md font-semibold text-xs border border-input bg-background hover:bg-muted text-foreground transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md font-semibold text-xs border border-input bg-background hover:bg-muted text-foreground transition-colors w-full sm:w-auto"
                 onClick={() => setTimeout(() => setIsPdfModalOpen(false), 500)}
               >
                 Ouvrir dans un onglet (Direct)
@@ -1676,6 +1681,7 @@ export default function InventoryPage() {
                 type="button"
                 onClick={handleExportPdf}
                 isLoading={isExportingPdf}
+                className="w-full sm:w-auto"
               >
                 <Download className="h-4 w-4 mr-1.5" /> Télécharger le Rapport PDF
               </Button>

@@ -333,11 +333,12 @@ export default function AuditPage() {
               <span className="font-bold text-foreground">Registre d'Audit A4 Paysage (Landscape)</span>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t border-border">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsPdfModalOpen(false)}
+                className="w-full sm:w-auto font-medium"
               >
                 Annuler
               </Button>
@@ -345,7 +346,7 @@ export default function AuditPage() {
                 href={`/api/v1/audit/export-pdf/?start_date=${pdfPeriod.start_date}&end_date=${pdfPeriod.end_date}${pdfPeriod.action ? `&action=${encodeURIComponent(pdfPeriod.action)}` : ''}&_t=${Date.now()}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md font-semibold text-xs border border-input bg-background hover:bg-muted text-foreground transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md font-semibold text-xs border border-input bg-background hover:bg-muted text-foreground transition-colors w-full sm:w-auto"
                 onClick={() => setTimeout(() => setIsPdfModalOpen(false), 500)}
               >
                 Ouvrir dans un onglet (Direct)
@@ -354,6 +355,7 @@ export default function AuditPage() {
                 type="button"
                 onClick={handleExportPdf}
                 isLoading={isExportingPdf}
+                className="w-full sm:w-auto"
               >
                 <Download className="h-4 w-4 mr-1.5" /> Télécharger le Journal PDF
               </Button>
