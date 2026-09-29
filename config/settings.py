@@ -164,3 +164,8 @@ SPECTACULAR_SETTINGS = {
 # CORS configuration
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+CORS_EXPOSE_HEADERS = ['Content-Disposition', 'Content-Length', 'Content-Type']
+
+# Frame options : allow iframe previews and PDF viewing
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+

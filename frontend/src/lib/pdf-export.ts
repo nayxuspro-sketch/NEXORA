@@ -87,13 +87,34 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
     }
   }
 
+  // Convert response to Blob
   const blob = await response.blob();
-  const blobUrl = window.URL.createObjectURL(blob);
+  const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+  const blobUrl = window.URL.createObjectURL(pdfBlob);
+
+  // 1. Déclencher le téléchargement automatique du fichier PDF
   const link = document.createElement('a');
   link.href = blobUrl;
   link.download = filename;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
   document.body.appendChild(link);
   link.click();
-  window.URL.revokeObjectURL(blobUrl);
   document.body.removeChild(link);
+
+  // 2. Ouvrir également le PDF directement dans un nouvel onglet pour consultation immédiate
+  try {
+    const previewWindow = window.open(blobUrl, '_blank');
+    if (!previewWindow) {
+      // Si le bloqueur de popups bloque window.open, le téléchargement a déjà eu lieu
+    }
+  } catch (e) {
+    // Silently continue
+  }
+
+  // Nettoyage de l'URL Blob après délai suffisant pour l'ouverture
+  setTimeout(() => {
+    window.URL.revokeObjectURL(blobUrl);
+  }, 60000);
 }
+

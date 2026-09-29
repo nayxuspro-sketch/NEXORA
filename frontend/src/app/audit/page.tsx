@@ -333,7 +333,7 @@ export default function AuditPage() {
               <span className="font-bold text-foreground">Registre d'Audit A4 Paysage (Landscape)</span>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t border-border">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
@@ -341,6 +341,15 @@ export default function AuditPage() {
               >
                 Annuler
               </Button>
+              <a
+                href={`/api/v1/audit/export-pdf/?start_date=${pdfPeriod.start_date}&end_date=${pdfPeriod.end_date}${pdfPeriod.action ? `&action=${encodeURIComponent(pdfPeriod.action)}` : ''}&_t=${Date.now()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md font-semibold text-xs border border-input bg-background hover:bg-muted text-foreground transition-colors"
+                onClick={() => setTimeout(() => setIsPdfModalOpen(false), 500)}
+              >
+                Ouvrir dans un onglet (Direct)
+              </a>
               <Button
                 type="button"
                 onClick={handleExportPdf}
