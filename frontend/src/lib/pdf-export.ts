@@ -1,10 +1,12 @@
 /**
  * Helper robuste et universel pour la génération, visualisation et téléchargement des PDF.
- * Fonctionne avec fiabilité absolue dans tous les navigateurs, y compris dans les environnements
- * isolés (iframe Arena.ai, Chrome/Edge avec bloqueur de popups ou bloqueur de téléchargements automatiques).
+ * Fonctionne avec fiabilité absolue dans tous les navigateurs et environnements :
+ * - Proxy Next.js (/api/v1/...)
+ * - Connexion directe backend local (http://127.0.0.1:8008/api/v1/...)
+ * - Environnement sandbox et iframe cross-origin
  */
 
-export function openPdfViewerModal(blobUrl: string, downloadUrl: string, title: string = 'Visualisation du Document PDF', filename: string = 'document.pdf') {
+export function openPdfViewerModal(blobUrl: string, title: string = 'Visualisation du Document PDF', filename: string = 'document.pdf') {
   if (typeof window === 'undefined') return;
 
   // Supprimer tout modal existant
@@ -73,12 +75,7 @@ export function openPdfViewerModal(blobUrl: string, downloadUrl: string, title: 
 }
 
 /**
- * Télécharge et affiche immédiatement un PDF en utilisant l'API Fetch et un Blob mémoire.
- * Cette technique garantit que :
- * 1. La requête HTTP s'exécute avec les en-têtes d'authentification appropriés.
- * 2. Le fichier binaire est reçu dans son intégralité (Blob MIME application/pdf).
- * 3. Le navigateur ne bloque pas l'action (aucun blocage d'iframe cross-origin ou de popup).
- * 4. Le fichier est automatiquement téléchargé ET présenté à l'écran.
+ * Télécharge et affiche immédiatement un PDF en utilisant l'API Fetch avec repli multi-adresses et Blob mémoire.
  */
 export async function downloadPdfFile(endpoint: string, defaultFilename: string): Promise<void> {
   const isBrowser = typeof window !== 'undefined';
@@ -94,18 +91,25 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
     localStorage.getItem('nexora_access_token');
 
   const headers: Record<string, string> = {
-    'Accept': 'application/pdf',
+    'Accept': 'application/pdf, application/octet-stream, */*',
   };
 
   if (token && token.startsWith('eyJ')) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Tenter le téléchargement via les endpoints disponibles
   const apiPath = fullEndpoint.startsWith('/api/v1') ? fullEndpoint : `/api/v1${fullEndpoint}`;
+
+  // Liste ordonnée des URLs candidates :
+  // 1. Relatif (/api/v1/...) via le proxy Next.js
+  // 2. Direct Backend port 8008 (localhost)
+  // 3. Direct Backend port 8000 (repli si un utilisateur a lancé Django sur 8000)
+  // 4. URL absolue origin (pour les iframes et webviews)
   const candidateUrls = [
     apiPath,
-    typeof window !== 'undefined' ? `${window.location.origin}${apiPath}` : apiPath,
+    `http://127.0.0.1:8008${apiPath}`,
+    `http://127.0.0.1:8000${apiPath}`,
+    `${window.location.origin}${apiPath}`,
   ];
 
   let blob: Blob | null = null;
@@ -119,25 +123,33 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
       });
 
       if (!response.ok) {
-        throw new Error(`Erreur serveur HTTP ${response.status}`);
+        // En cas de code d'erreur (ex: 500 ou 404), on passe à l'URL suivante avant d'abandonner
+        lastError = new Error(`Erreur serveur HTTP ${response.status}`);
+        continue;
       }
 
       const contentType = response.headers.get('content-type') || '';
       if (!contentType.includes('pdf') && !contentType.includes('octet-stream')) {
-        // En cas d'erreur HTML ou JSON
         const text = await response.text();
-        throw new Error(`Le serveur a retourné un format inattendu: ${text.slice(0, 100)}`);
+        if (text.startsWith('%PDF')) {
+          // Contenu binaire PDF même si le Content-Type a été altéré par un proxy
+          blob = new Blob([text], { type: 'application/pdf' });
+          break;
+        }
+        continue;
       }
 
       blob = await response.blob();
-      break;
+      if (blob && blob.size > 0) {
+        break;
+      }
     } catch (err: any) {
       lastError = err;
     }
   }
 
   if (!blob || blob.size === 0) {
-    throw new Error(lastError?.message || 'Impossible de récupérer le document PDF depuis le serveur.');
+    throw new Error(lastError?.message || 'Impossible de joindre le serveur pour générer le document PDF.');
   }
 
   // Créer un Blob URL dédié de type application/pdf
@@ -158,5 +170,5 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
 
   // 2. Afficher la visionneuse interactive plein écran avec iframe locale (blob URL 100% compatible)
   const displayTitle = defaultFilename.replace('.pdf', '').replace(/_/g, ' ');
-  openPdfViewerModal(blobUrl, fullEndpoint, displayTitle, defaultFilename);
+  openPdfViewerModal(blobUrl, displayTitle, defaultFilename);
 }
