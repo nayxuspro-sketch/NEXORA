@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /*
+   * THEME SOMBRE HOMOGENE & HARMONIEUX POUR TOUTE L'APPLICATION
+   * Palette sombre unifiée identique à la page de connexion :
+   * - Fond général : Slate-900 / Zinc-950 (#0b132b)
+   * - Cartes & Surfaces : Slate-800 (#1e293b)
+   * - Texte : Blanc doux (#f8fafc) & Gris ardoise (#94a3b8)
+   * - Accents : Bleu Roi SaaS (#0284c7) & Vert Émeraude (#10b981)
+   */
+  :root, .dark {
+    --background: 222 47% 9%;         /* #0c1322 - fond sombre doux reposant */
+    --foreground: 210 40% 98%;        /* #f8fafc - texte net et très contrasté */
+
+    --card: 217 33% 14%;              /* #182234 - cartes slate bien délimitées */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 217 33% 14%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Brand Primary : Bleu Lumineux visible sur sombre */
+    --primary: 217 91% 60%;           /* #3b82f6 */
+    --primary-foreground: 0 0% 100%;
+
+    /* Surfaces secondaires */
+    --secondary: 217 33% 19%;         /* #233047 */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;             /* #1e293b */
+    --muted-foreground: 215 20% 65%;  /* #94a3b8 */
+
+    --accent: 217 33% 20%;
+    --accent-foreground: 210 40% 98%;
+
+    /* Sémantiques */
+    --success: 152 76% 45%;           /* #22c55e */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;            /* #f59e0b */
+    --warning-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;         /* #ef4444 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 33% 22%;            /* Bordures nettes mais douces */
+    --input: 217 33% 22%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/25 selection:text-primary-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Micro-animations */
+.animate-scale-in {
+  animation: scaleIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Typographie monétaire avec alignement des chiffres FCFA */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   REGLES D'IMPRESSION PROPRES ET ANTI-REPETITION (TICKETS DE CAISSE POS & RECUS)
+   ========================================================================== */
+@media print {
+  /* Masquer l'ensemble des éléments d'interface à l'impression */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Isoler strictement le reçu de caisse actif et ses enfants directs */
+  #pos-receipt-print-area,
+  #pos-receipt-print-area * {
+    visibility: visible;
+  }
+
+  /* Repositionner le reçu au sommet absolu de la page sans marge parasite */
+  #pos-receipt-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 8px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Désactiver toute répétition ou saut de page intempestif */
+  @page {
+    size: 80mm auto;
+    margin: 0mm;
+  }
+
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+}
+
