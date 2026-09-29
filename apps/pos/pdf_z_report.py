@@ -1,3 +1,4 @@
+from apps.common.renderers import PassthroughBinaryRenderer
 from io import BytesIO
 from datetime import datetime
 from decimal import Decimal
@@ -16,6 +17,7 @@ from apps.common.pdf_header import get_store_logo_flowable, create_header_with_l
 
 
 class CashRegisterZReportPdfExportView(APIView):
+    renderer_classes = [PassthroughBinaryRenderer]
     """
     Exports official POS Daily Z Report (Rapport Z - Clôture Fiscale de Caisse).
     Inalterable cash audit, tax breakdown, and session balance certified.

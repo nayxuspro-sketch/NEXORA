@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { apiRequest } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { downloadPdfFile } from '@/lib/pdf-export';
 import { Sale, PaginatedResponse } from '@/types';
 import { Search, FileText, Eye, Download, CreditCard, CheckCircle2, Banknote, Smartphone } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
@@ -22,6 +23,45 @@ export default function SalesPage() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [selectedSale, setSelectedSale] = React.useState<Sale | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
+
+  // Modal: Bilan Vendeur / État de Vente PDF
+  const [isSellerPdfModalOpen, setIsSellerPdfModalOpen] = React.useState(false);
+  const [isExportingSellerPdf, setIsExportingSellerPdf] = React.useState(false);
+  const [sellerPdfPeriod, setSellerPdfPeriod] = React.useState({
+    start_date: new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+    seller_email: '',
+  });
+
+  const handleExportSellerPdf = async () => {
+    try {
+      setIsExportingSellerPdf(true);
+      const queryParams = new URLSearchParams({
+        start_date: sellerPdfPeriod.start_date,
+        end_date: sellerPdfPeriod.end_date,
+        ...(sellerPdfPeriod.seller_email ? { seller: sellerPdfPeriod.seller_email } : {}),
+      });
+      await downloadPdfFile(
+        `/api/v1/sales/export-seller-pdf/?${queryParams.toString()}`,
+        `Bilan_Ventes_${sellerPdfPeriod.start_date}_${sellerPdfPeriod.end_date}.pdf`
+      );
+
+      toast({
+        type: 'success',
+        title: 'Bilan Ventes Téléchargé',
+        message: "L'état de vente et l'analyse avec suggestions ont été générés en PDF.",
+      });
+      setIsSellerPdfModalOpen(false);
+    } catch (err: any) {
+      toast({
+        type: 'error',
+        title: 'Erreur Export PDF',
+        message: err.message || 'Impossible de générer le bilan des ventes en PDF.',
+      });
+    } finally {
+      setIsExportingSellerPdf(false);
+    }
+  };
 
   // Modal: Compléter Solde Partiel
   const [isPayModalOpen, setIsPayModalOpen] = React.useState(false);
@@ -334,13 +374,24 @@ export default function SalesPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-            Historique des Ventes & Factures
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Suivi des encaissements, soldes partiels et pièces comptables générées.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+              Historique des Ventes & Factures
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Suivi des encaissements, soldes partiels et pièces comptables générées.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsSellerPdfModalOpen(true)}
+            className="flex items-center gap-2 border-primary/30 hover:bg-primary/10 hover:text-primary font-bold text-xs"
+          >
+            <Download className="h-4 w-4 text-primary" />
+            Exporter Bilan & Ventes (PDF)
+          </Button>
         </div>
 
         <Input
@@ -666,6 +717,68 @@ export default function SalesPage() {
               </div>
             </form>
           )}
+        </Modal>
+
+        {/* MODAL: EXPORT BILAN DES VENTES PDF */}
+        <Modal
+          isOpen={isSellerPdfModalOpen}
+          onClose={() => setIsSellerPdfModalOpen(false)}
+          title="Exporter le Bilan des Ventes & Analyses (PDF)"
+          maxWidth="md"
+        >
+          <div className="space-y-4 pt-2">
+            <p className="text-xs text-muted-foreground">
+              Générez un rapport PDF officiel sur 2 pages comprenant l&apos;état certifié des transactions, la marge commerciale brute, ainsi que des suggestions personnalisées basées sur les tendances de vente.
+            </p>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">Date Début *</label>
+                  <Input
+                    type="date"
+                    value={sellerPdfPeriod.start_date}
+                    onChange={(e) => setSellerPdfPeriod(prev => ({ ...prev, start_date: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1">Date Fin *</label>
+                  <Input
+                    type="date"
+                    value={sellerPdfPeriod.end_date}
+                    onChange={(e) => setSellerPdfPeriod(prev => ({ ...prev, end_date: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-foreground block mb-1">Filtre Vendeur / Caissier (Optionnel)</label>
+                <Input
+                  placeholder="Laisser vide pour toutes les ventes ou email vendeur"
+                  value={sellerPdfPeriod.seller_email}
+                  onChange={(e) => setSellerPdfPeriod(prev => ({ ...prev, seller_email: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsSellerPdfModalOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                onClick={handleExportSellerPdf}
+                isLoading={isExportingSellerPdf}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+              >
+                <Download className="h-4 w-4 mr-1.5" /> Télécharger Rapport PDF
+              </Button>
+            </div>
+          </div>
         </Modal>
       </div>
     </DashboardLayout>

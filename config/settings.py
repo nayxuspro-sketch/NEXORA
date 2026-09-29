@@ -50,7 +50,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'apps.common.middleware.FrameOptionsMiddleware',
     'apps.audit.middleware.SecurityAuditLoggingMiddleware',
 ]
 
@@ -167,5 +167,5 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ['Content-Disposition', 'Content-Length', 'Content-Type']
 
 # Frame options : allow iframe previews and PDF viewing
-X_FRAME_OPTIONS = 'SAMEORIGIN'
+X_FRAME_OPTIONS = 'ALLOWALL'
 

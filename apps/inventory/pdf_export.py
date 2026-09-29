@@ -1,3 +1,4 @@
+from apps.common.renderers import PassthroughBinaryRenderer
 from io import BytesIO
 from decimal import Decimal
 from datetime import datetime
@@ -16,6 +17,7 @@ from apps.common.pdf_header import get_store_logo_flowable, create_header_with_l
 
 
 class StockLevelPdfExportView(APIView):
+    renderer_classes = [PassthroughBinaryRenderer]
     """
     Exports Stock Levels as a professional PDF report for a given period or at a specific date.
     Query params:
@@ -286,6 +288,7 @@ class StockLevelPdfExportView(APIView):
 
 
 class StockMovementPdfExportView(APIView):
+    renderer_classes = [PassthroughBinaryRenderer]
     """
     Exports Stock Movements Audit Log as a professional PDF report for a given period.
     Query params:
@@ -511,6 +514,7 @@ class StockMovementPdfExportView(APIView):
 
 
 class InventoryDiscrepanciesPdfExportView(APIView):
+    renderer_classes = [PassthroughBinaryRenderer]
     """
     Exports Physical Inventories & Discrepancies (Écarts) as a professional PDF report for a given date range.
     Query params:

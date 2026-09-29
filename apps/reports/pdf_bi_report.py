@@ -1,3 +1,4 @@
+from apps.common.renderers import PassthroughBinaryRenderer
 from io import BytesIO
 from decimal import Decimal
 from datetime import datetime, timedelta
@@ -17,6 +18,7 @@ from apps.common.pdf_header import get_store_logo_flowable, create_header_with_l
 
 
 class BiReportPdfExportView(APIView):
+    renderer_classes = [PassthroughBinaryRenderer]
     """
     Exports a comprehensive Executive Business Intelligence & Decision PDF Report:
     - Page 1: Executive KPI Scorecard, Revenue Breakdown, Margins & Diagnostic Explanations.

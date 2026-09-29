@@ -1,3 +1,4 @@
+from apps.common.renderers import PassthroughBinaryRenderer
 from io import BytesIO
 from decimal import Decimal
 from datetime import datetime
@@ -17,6 +18,7 @@ from apps.common.pdf_header import get_store_logo_flowable, create_header_with_l
 
 
 class SellerSalesReportPdfView(APIView):
+    renderer_classes = [PassthroughBinaryRenderer]
     """
     Exports a 2-page customized PDF report for an individual seller/cashier:
     - Page 1: Official Sales Statement for the given period (filtered strictly to this seller).

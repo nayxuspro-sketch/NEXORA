@@ -1,3 +1,4 @@
+from apps.common.renderers import PassthroughBinaryRenderer
 from io import BytesIO
 from decimal import Decimal
 from django.utils import timezone
@@ -15,6 +16,7 @@ from apps.common.pdf_header import get_store_logo_flowable, create_header_with_l
 
 
 class ProductCatalogPdfExportView(APIView):
+    renderer_classes = [PassthroughBinaryRenderer]
     """
     Exports the Product Catalog as a professional PDF report filtered by STATUS:
     - ALL: Tous les produits

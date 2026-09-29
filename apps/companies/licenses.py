@@ -1,3 +1,4 @@
+from apps.common.renderers import PassthroughBinaryRenderer
 import hashlib
 import hmac
 from datetime import datetime
@@ -99,6 +100,7 @@ class StoreLicenseViewSet(viewsets.ModelViewSet):
 
 
 class StoreLicenseCertificatePdfExportView(APIView):
+    renderer_classes = [PassthroughBinaryRenderer]
     """
     Generates and downloads the official Certificate of Authenticity & Software License (PDF).
     """

@@ -1,3 +1,4 @@
+from apps.common.renderers import PassthroughBinaryRenderer
 from io import BytesIO
 from datetime import datetime
 from django.utils import timezone
@@ -15,6 +16,7 @@ from apps.common.pdf_header import get_store_logo_flowable, create_header_with_l
 
 
 class AuditLogPdfExportView(APIView):
+    renderer_classes = [PassthroughBinaryRenderer]
     """
     Exports Audit & Security Log as a tamper-evident, official PDF report for a user-defined date range.
     Query params:
