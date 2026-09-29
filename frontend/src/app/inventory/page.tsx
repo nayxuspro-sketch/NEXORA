@@ -241,29 +241,26 @@ export default function InventoryPage() {
   }>({
     queryKey: ['stock-intelligence'],
     queryFn: () => apiRequest('/inventory/intelligence/?days=30'),
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60,
     refetchOnWindowFocus: true,
-    refetchInterval: 30000,
-  });
+      });
 
   // Fetch levels with instant sync & real-time zero cache
   const { data: levelsData, isLoading: isLevelsLoading, refetch: refetchStockLevels } = useQuery<PaginatedResponse<StockLevel>>({
     queryKey: ['stock-levels', search],
     queryFn: () => apiRequest<PaginatedResponse<StockLevel>>(`/stock-levels/?search=${encodeURIComponent(search)}`),
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60,
     refetchOnWindowFocus: true,
-    refetchInterval: 30000, // Actualisation automatique transparente toutes les 30 secondes
-  });
+      });
 
   // Fetch movements with instant sync
   const { data: movementsData, isLoading: isMovementsLoading } = useQuery<PaginatedResponse<StockMovement>>({
     queryKey: ['stock-movements', search],
     queryFn: () =>
       apiRequest<PaginatedResponse<StockMovement>>(`/stock-movements/?search=${encodeURIComponent(search)}`),
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60,
     refetchOnWindowFocus: true,
-    refetchInterval: 30000,
-  });
+      });
 
   // Fetch stores
   const { data: storesData } = useQuery<PaginatedResponse<Store>>({

@@ -87,10 +87,9 @@ export default function ProductsPage() {
       apiRequest<PaginatedResponse<Product>>(
         `/products/?page=${currentPage}&search=${encodeURIComponent(search)}`
       ),
-    staleTime: 1000 * 30, // Conserve les données valides pendant 30s
+    staleTime: 1000 * 60, // Conserve les données valides pendant 30s
     refetchOnWindowFocus: true,
-    refetchInterval: 30000, // Actualisation automatique fluide toutes les 30s
-  });
+      });
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {

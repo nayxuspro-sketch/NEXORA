@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { RefreshIndicator } from '@/components/ui/refresh-indicator';
 import {
   Menu,
   Search,
@@ -59,6 +60,9 @@ export function Topbar({ onToggleSidebar, onOpenQuickSearch }: TopbarProps) {
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span>En ligne</span>
         </div>
+
+        {/* Indicateur de synchronisation et actualisation manuelle instantanée */}
+        <RefreshIndicator />
 
         {/* Menu Documentations & Guides (Évite la saturation visuelle) */}
         <div className="relative">

@@ -257,9 +257,8 @@ export default function SettingsPage() {
   const { data: storesData, isLoading: isLoadingStores } = useQuery<{ results: StoreItem[] }>({
     queryKey: ['settings-stores'],
     queryFn: () => apiRequest<{ results: StoreItem[] }>('/stores/'),
-    staleTime: 1000 * 30,
-    refetchInterval: 30000,
-  });
+    staleTime: 1000 * 60,
+      });
 
   // Mutation: Save Store
   const storeMutation = useMutation({

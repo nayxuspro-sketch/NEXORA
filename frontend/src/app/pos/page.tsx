@@ -228,9 +228,8 @@ export default function PosPage() {
   const { data: registersData } = useQuery<PaginatedResponse<CashRegister>>({
     queryKey: ['registers'],
     queryFn: () => apiRequest<PaginatedResponse<CashRegister>>('/registers/'),
-    staleTime: 1000 * 30,
-    refetchInterval: 30000,
-  });
+    staleTime: 1000 * 60,
+      });
 
   const activeRegister = registersData?.results?.[0] || {
     id: 'reg-01',
@@ -246,9 +245,8 @@ export default function PosPage() {
   const { data: productsData, isLoading } = useQuery<PaginatedResponse<Product>>({
     queryKey: ['products', search],
     queryFn: () => apiRequest<PaginatedResponse<Product>>(`/products/?search=${encodeURIComponent(search)}`),
-    staleTime: 1000 * 30,
-    refetchInterval: 30000,
-    placeholderData: {
+    staleTime: 1000 * 60,
+        placeholderData: {
       status: 'success',
       pagination: { count: 3, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
       results: [

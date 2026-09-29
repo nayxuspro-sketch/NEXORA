@@ -11,8 +11,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60 * 2, // 2 minutes
-            refetchOnWindowFocus: false,
+            staleTime: 1000 * 60 * 3, // Données fraîches pendant 3 minutes (évite les requêtes inutiles)
+            refetchOnWindowFocus: true, // Re-synchronise de manière professionnelle quand l'utilisateur revient sur l'onglet
+            refetchOnReconnect: true, // Re-synchronise immédiatement lors du rétablissement réseau
             retry: 1,
           },
         },

@@ -33,9 +33,8 @@ export default function PartnersPage() {
   const { data: partnersData, isLoading } = useQuery<PaginatedResponse<Partner>>({
     queryKey: ['partners-list', search],
     queryFn: () => apiRequest<PaginatedResponse<Partner>>(`/partners/?search=${encodeURIComponent(search)}`),
-    staleTime: 1000 * 30,
-    refetchInterval: 30000,
-  });
+    staleTime: 1000 * 60,
+      });
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
