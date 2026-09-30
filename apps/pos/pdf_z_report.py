@@ -1,3 +1,4 @@
+from apps.common.validators import parse_safe_uuid
 from apps.common.renderers import PassthroughBinaryRenderer
 from io import BytesIO
 from datetime import datetime
@@ -30,8 +31,11 @@ class CashRegisterZReportPdfExportView(APIView):
         closing_balance_param = request.query_params.get('closing_balance')
 
         register = None
-        if register_id:
-            register = CashRegister.objects.filter(id=register_id).first()
+        safe_reg_uuid = parse_safe_uuid(register_id)
+        if safe_reg_uuid:
+            register = CashRegister.objects.filter(id=safe_reg_uuid).first()
+        elif register_id:
+            register = CashRegister.objects.filter(company=company, code__iexact=str(register_id).strip()).first()
         if not register:
             register = CashRegister.objects.filter(company=company).first()
 
@@ -63,7 +67,10 @@ class CashRegisterZReportPdfExportView(APIView):
         # Balances
         reg_opening = Decimal(str(register.current_balance)) if register else Decimal('125000.00')
         theoritical_cash = reg_opening + pay_cash
-        real_cash = Decimal(closing_balance_param) if closing_balance_param else theoritical_cash
+        try:
+            real_cash = Decimal(str(closing_balance_param).replace(' ', '').replace(',', '.')) if closing_balance_param else theoritical_cash
+        except Exception:
+            real_cash = theoritical_cash
         ecart_caisse = real_cash - theoritical_cash
 
         # Document setup (A4 Portrait)

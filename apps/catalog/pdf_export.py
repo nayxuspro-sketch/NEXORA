@@ -1,3 +1,4 @@
+from apps.common.validators import parse_safe_uuid
 from apps.common.renderers import PassthroughBinaryRenderer
 from io import BytesIO
 from decimal import Decimal
@@ -39,7 +40,11 @@ class ProductCatalogPdfExportView(APIView):
         products_qs = Product.objects.filter(company=company).select_related('category', 'unit').order_by('name')
 
         if category_id:
-            products_qs = products_qs.filter(category_id=category_id)
+            safe_cat_id = parse_safe_uuid(category_id)
+            if safe_cat_id:
+                products_qs = products_qs.filter(category_id=safe_cat_id)
+            else:
+                products_qs = products_qs.filter(category__name__icontains=str(category_id).strip())
 
         # Pre-compute stock levels per product
         stock_levels_qs = StockLevel.objects.filter(company=company)

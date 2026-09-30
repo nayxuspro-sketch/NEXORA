@@ -2,6 +2,7 @@ from rest_framework.views import exception_handler
 from rest_framework.response import Response
 from rest_framework import status
 import logging
+import traceback
 
 logger = logging.getLogger('nexora.errors')
 
@@ -9,14 +10,6 @@ logger = logging.getLogger('nexora.errors')
 def custom_exception_handler(exc, context):
     """
     Standardized API exception format across the entire NEXORA platform.
-    
-    Response shape:
-    {
-        "status": "error",
-        "code": "<ERROR_CODE>",
-        "message": "<Human friendly summary>",
-        "details": <dict or list with fine-grained field errors>
-    }
     """
     response = exception_handler(exc, context)
 
@@ -45,18 +38,15 @@ def custom_exception_handler(exc, context):
         return response
 
     # Unhandled server errors (500)
-    logger.exception(f"Unhandled exception in API context: {context}", exc_info=exc)
+    tb = traceback.format_exc()
+    print(f"\n[EXCEPTION 500 CAPTURED] Context: {context}\nException: {exc}\nTraceback:\n{tb}\n", flush=True)
+
     return Response(
         {
             "status": "error",
             "code": "server_error",
-            "message": "Une erreur interne inattendue s'est produite sur le serveur NEXORA.",
-            "details": str(exc) if getattr(settings_debug(), 'DEBUG', False) else None
+            "message": f"Erreur interne : {str(exc)}",
+            "details": tb
         },
         status=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
-
-
-def settings_debug():
-    from django.conf import settings
-    return settings

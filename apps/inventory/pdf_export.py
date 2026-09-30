@@ -1,3 +1,4 @@
+from apps.common.validators import parse_safe_uuid
 from apps.common.renderers import PassthroughBinaryRenderer
 from io import BytesIO
 from decimal import Decimal
@@ -62,8 +63,11 @@ class StockLevelPdfExportView(APIView):
 
         # Stores filter
         stores_qs = Store.objects.filter(company=company)
-        if store_id:
-            stores_qs = stores_qs.filter(id=store_id)
+        safe_store_uuid = parse_safe_uuid(store_id)
+        if safe_store_uuid:
+            stores_qs = stores_qs.filter(id=safe_store_uuid)
+        elif store_id:
+            stores_qs = stores_qs.filter(code__iexact=str(store_id).strip()) or stores_qs
 
         # Products
         products = Product.objects.filter(company=company, is_active=True).order_by('name')
@@ -189,8 +193,8 @@ class StockLevelPdfExportView(APIView):
         company_name = company.name if company else "NEXORA ENTERPRISE"
         # Determine store logo if filtered by store or from first store
         store_logo_str = ""
-        if store_id and stores_qs.filter(id=store_id).exists():
-            st = stores_qs.filter(id=store_id).first()
+        if safe_store_uuid and stores_qs.filter(id=safe_store_uuid).exists():
+            st = stores_qs.filter(id=safe_store_uuid).first()
             store_logo_str = getattr(st, 'logo', '')
         elif stores_qs.count() == 1:
             st = stores_qs.first()
@@ -338,8 +342,13 @@ class StockMovementPdfExportView(APIView):
             created_at__lte=end_date
         ).select_related('product', 'store', 'user').order_by('-created_at')
 
-        if store_id:
-            movements_qs = movements_qs.filter(store_id=store_id)
+        safe_store_uuid = parse_safe_uuid(store_id)
+        if safe_store_uuid:
+            movements_qs = movements_qs.filter(store_id=safe_store_uuid)
+        elif store_id:
+            matching_store = Store.objects.filter(company=company, code__iexact=str(store_id).strip()).first()
+            if matching_store:
+                movements_qs = movements_qs.filter(store=matching_store)
         if m_type:
             movements_qs = movements_qs.filter(movement_type=m_type)
 
@@ -413,8 +422,10 @@ class StockMovementPdfExportView(APIView):
 
         company_name = company.name if company else "NEXORA ENTERPRISE"
         store_logo_str = ""
-        if store_id:
-            st = Store.objects.filter(id=store_id).first()
+        if safe_store_uuid:
+            st = Store.objects.filter(id=safe_store_uuid).first()
+        elif store_id:
+            st = Store.objects.filter(company=company, code__iexact=str(store_id).strip()).first()
             if st:
                 store_logo_str = getattr(st, 'logo', '')
         elif hasattr(request.user, 'managed_stores') and request.user.managed_stores.exists():
@@ -566,8 +577,13 @@ class InventoryDiscrepanciesPdfExportView(APIView):
             created_at__lte=end_date
         ).select_related('store', 'created_by').prefetch_related('lines__product').order_by('-created_at')
 
-        if store_id:
-            inv_qs = inv_qs.filter(store_id=store_id)
+        safe_store_uuid = parse_safe_uuid(store_id)
+        if safe_store_uuid:
+            inv_qs = inv_qs.filter(store_id=safe_store_uuid)
+        elif store_id:
+            matching_store = Store.objects.filter(company=company, code__iexact=str(store_id).strip()).first()
+            if matching_store:
+                inv_qs = inv_qs.filter(store=matching_store)
         if inv_status:
             inv_qs = inv_qs.filter(status=inv_status)
 
@@ -690,8 +706,10 @@ class InventoryDiscrepanciesPdfExportView(APIView):
 
         company_name = company.name if company else "NEXORA ENTERPRISE"
         store_logo_str = ""
-        if store_id:
-            st = Store.objects.filter(id=store_id).first()
+        if safe_store_uuid:
+            st = Store.objects.filter(id=safe_store_uuid).first()
+        elif store_id:
+            st = Store.objects.filter(company=company, code__iexact=str(store_id).strip()).first()
             if st:
                 store_logo_str = getattr(st, 'logo', '')
         elif hasattr(request.user, 'managed_stores') and request.user.managed_stores.exists():
