@@ -123,8 +123,20 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
         let errDetails = `Erreur serveur HTTP ${response.status}`;
         try {
           const errBody = await response.text();
-          if (errBody && errBody.length < 300) {
-            errDetails += `: ${errBody}`;
+          if (errBody) {
+            try {
+              const parsed = JSON.parse(errBody);
+              const msg = parsed.message || parsed.detail || parsed.error;
+              if (msg) {
+                errDetails = `Erreur ${response.status}: ${msg}`;
+              } else {
+                errDetails += `: ${errBody.slice(0, 150)}`;
+              }
+            } catch {
+              if (errBody.length < 200 && errBody !== 'statuscodemessagedetails') {
+                errDetails += `: ${errBody}`;
+              }
+            }
           }
         } catch {}
         lastError = new Error(errDetails);
