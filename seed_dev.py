@@ -111,45 +111,137 @@ for sp in sample_products:
     StockLevel.objects.update_or_create(company=company, store=store, product=prod, defaults={'quantity': stock_qty})
 
 # Partners
-customer, _ = Partner.objects.update_or_create(
+cust1, _ = Partner.objects.update_or_create(
     company=company,
     name='Client Général Comptoir',
-    defaults={
-        'partner_type': 'CUSTOMER',
-        'email': 'client.comptoir@nexora.bf',
-        'phone': '+226 70 00 00 01',
-        'address': 'Ouagadougou',
-        'is_active': True,
-    }
+    defaults={'partner_type': 'CUSTOMER', 'phone': '+226 70 00 00 01', 'address': 'Ouagadougou', 'is_active': True}
+)
+cust2, _ = Partner.objects.update_or_create(
+    company=company,
+    name='Société Faso Technologies SARL',
+    defaults={'partner_type': 'CUSTOMER', 'phone': '+226 25 30 11 22', 'address': 'Avenue Kwamé N’Krumah', 'is_active': True}
+)
+cust3, _ = Partner.objects.update_or_create(
+    company=company,
+    name='Cabinet Audit & Conseils Ouaga',
+    defaults={'partner_type': 'CUSTOMER', 'phone': '+226 25 36 45 50', 'address': 'Koulouba', 'is_active': True}
 )
 
-# Sales
+# Sales transactions to populate Seller Report Table
 now = timezone.now()
 p1 = Product.objects.get(sku='LAPTOP-HP-01')
 p2 = Product.objects.get(sku='MOUSE-WL-01')
+p3 = Product.objects.get(sku='KEYB-USB-01')
+p4 = Product.objects.get(sku='RAMETTE-A4-DOUBLEA')
 
-s1, _ = Sale.objects.get_or_create(
-    company=company,
-    reference='VNT-2026-0001',
-    defaults={
-        'store': store,
-        'register': register,
-        'customer': customer,
-        'seller': admin,
-        'status': 'COMPLETED',
-        'payment_status': 'PAID',
-        'subtotal_amount': Decimal('480000.00'),
-        'tax_amount': Decimal('86400.00'),
-        'discount_amount': Decimal('0.00'),
-        'total_amount': Decimal('566400.00'),
-        'paid_amount': Decimal('566400.00'),
-    }
-)
-SaleItem.objects.filter(sale=s1).delete()
-SaleItem.objects.create(company=company, sale=s1, product=p1, quantity=Decimal('1.00'), unit_price=p1.selling_price, tax_rate=p1.tax_rate, discount_rate=Decimal('0.00'), total=p1.selling_price)
-SaleItem.objects.create(company=company, sale=s1, product=p2, quantity=Decimal('2.00'), unit_price=p2.selling_price, tax_rate=p2.tax_rate, discount_rate=Decimal('0.00'), total=p2.selling_price * 2)
+transactions = [
+    {
+        'ref': 'FAC-2026-0001',
+        'customer': cust1,
+        'days_ago': 0,
+        'hours_ago': 1,
+        'pay_method': 'CASH',
+        'items': [(p1, Decimal('1.00')), (p2, Decimal('2.00'))],
+    },
+    {
+        'ref': 'FAC-2026-0002',
+        'customer': cust2,
+        'days_ago': 0,
+        'hours_ago': 3,
+        'pay_method': 'MOBILE_MONEY',
+        'items': [(p3, Decimal('2.00')), (p4, Decimal('5.00'))],
+    },
+    {
+        'ref': 'FAC-2026-0003',
+        'customer': cust3,
+        'days_ago': 1,
+        'hours_ago': 2,
+        'pay_method': 'CARD',
+        'items': [(p2, Decimal('3.00')), (p3, Decimal('1.00'))],
+    },
+    {
+        'ref': 'FAC-2026-0004',
+        'customer': cust1,
+        'days_ago': 2,
+        'hours_ago': 4,
+        'pay_method': 'CASH',
+        'items': [(p1, Decimal('2.00'))],
+    },
+    {
+        'ref': 'FAC-2026-0005',
+        'customer': cust2,
+        'days_ago': 3,
+        'hours_ago': 5,
+        'pay_method': 'MOBILE_MONEY',
+        'items': [(p4, Decimal('10.00')), (p2, Decimal('2.00'))],
+    },
+    {
+        'ref': 'FAC-2026-0006',
+        'customer': cust3,
+        'days_ago': 5,
+        'hours_ago': 6,
+        'pay_method': 'CASH',
+        'items': [(p3, Decimal('4.00')), (p1, Decimal('1.00'))],
+    },
+    {
+        'ref': 'FAC-2026-0007',
+        'customer': cust1,
+        'days_ago': 8,
+        'hours_ago': 2,
+        'pay_method': 'CASH',
+        'items': [(p2, Decimal('5.00')), (p4, Decimal('8.00'))],
+    },
+]
 
-Payment.objects.filter(sale=s1).delete()
-Payment.objects.create(company=company, sale=s1, register=register, payment_method='CASH', amount=Decimal('566400.00'), reference='PAY-VNT-0001', processed_by=admin)
+for t in transactions:
+    created_time = now - timedelta(days=t['days_ago'], hours=t['hours_ago'])
+    subtotal = sum((prod.selling_price * qty for prod, qty in t['items']), Decimal('0.00'))
+    tax = (subtotal * Decimal('18.00')) / Decimal('100.00')
+    total = subtotal + tax
 
-print("Base de données initialisée avec succès !")
+    sale, _ = Sale.objects.update_or_create(
+        company=company,
+        reference=t['ref'],
+        defaults={
+            'store': store,
+            'register': register,
+            'customer': t['customer'],
+            'seller': admin,
+            'status': 'COMPLETED',
+            'payment_status': 'PAID',
+            'subtotal_amount': subtotal,
+            'tax_amount': tax,
+            'discount_amount': Decimal('0.00'),
+            'total_amount': total,
+            'paid_amount': total,
+        }
+    )
+    Sale.objects.filter(id=sale.id).update(created_at=created_time)
+
+    SaleItem.objects.filter(sale=sale).delete()
+    for prod, qty in t['items']:
+        line_tot = prod.selling_price * qty
+        SaleItem.objects.create(
+            company=company,
+            sale=sale,
+            product=prod,
+            quantity=qty,
+            unit_price=prod.selling_price,
+            tax_rate=Decimal('18.00'),
+            discount_rate=Decimal('0.00'),
+            total=line_tot
+        )
+
+    Payment.objects.filter(sale=sale).delete()
+    Payment.objects.create(
+        company=company,
+        sale=sale,
+        register=register,
+        payment_method=t['pay_method'],
+        amount=total,
+        reference=f"PAY-{t['ref']}",
+        processed_by=admin
+    )
+    Payment.objects.filter(sale=sale).update(created_at=created_time)
+
+print("Base de données initialisée avec 7 transactions complètes pour le vendeur !")
