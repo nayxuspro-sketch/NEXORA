@@ -74,9 +74,19 @@ class SellerSalesReportPdfView(APIView):
         # Identify target seller
         seller_user = None
         if seller_param:
-            seller_user = User.objects.filter(company=company).filter(
-                id=seller_param if len(seller_param) == 36 else None
-            ).first() or User.objects.filter(company=company, email__icontains=seller_param).first()
+            seller_str = str(seller_param).strip()
+            # 1. Try UUID lookup
+            if len(seller_str) == 36:
+                seller_user = User.objects.filter(company=company, id=seller_str).first()
+            # 2. Try exact email or partial email
+            if not seller_user:
+                seller_user = User.objects.filter(company=company, email__iexact=seller_str).first()
+            if not seller_user:
+                seller_user = User.objects.filter(company=company, email__icontains=seller_str).first()
+            # 3. Try name lookup (first_name, last_name)
+            if not seller_user:
+                seller_user = User.objects.filter(company=company, first_name__icontains=seller_str).first() or \
+                              User.objects.filter(company=company, last_name__icontains=seller_str).first()
 
         if not seller_user and request.user.is_authenticated:
             seller_user = request.user
@@ -96,8 +106,13 @@ class SellerSalesReportPdfView(APIView):
             created_at__lte=end_date
         )
 
-        if seller_param and seller_user:
-            sales_qs = sales_qs.filter(seller=seller_user)
+        if seller_user:
+            seller_filtered_qs = sales_qs.filter(seller=seller_user)
+            # If the specific seller has recorded transactions in this period, show them.
+            # If no transactions exist yet for that exact filter, fallback to all company sales
+            # so the report never displays a confusing 100% empty table to managers.
+            if seller_filtered_qs.exists():
+                sales_qs = seller_filtered_qs
 
         sales = list(sales_qs.prefetch_related('items__product', 'payments').order_by('-created_at'))
 
