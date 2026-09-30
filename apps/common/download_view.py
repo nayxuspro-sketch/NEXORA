@@ -7,10 +7,9 @@ class DirectZipDownloadView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
-        # Chercher en priorité l'archive certifiée la plus récente
         candidates = [
             "/home/user/NEXORA/NEXORA-CERTIFIED-RELEASE-LATEST.zip",
-            "/home/user/NEXORA/nexora-latest.zip"
+            "/home/user/NEXORA/frontend/public/NEXORA-CERTIFIED-RELEASE-LATEST.zip",
         ]
         zip_path = None
         for p in candidates:
@@ -21,7 +20,7 @@ class DirectZipDownloadView(APIView):
         if not zip_path:
             raise Http404("Le fichier ZIP d'installation n'est pas disponible.")
 
-        filename = os.path.basename(zip_path)
+        filename = "NEXORA-CERTIFIED-RELEASE-LATEST.zip"
         response = FileResponse(
             open(zip_path, 'rb'),
             as_attachment=True,
@@ -30,6 +29,7 @@ class DirectZipDownloadView(APIView):
         )
         response['Content-Length'] = os.path.getsize(zip_path)
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Access-Control-Allow-Origin'] = '*'
         return response
 
 class CertificationManifestView(APIView):
