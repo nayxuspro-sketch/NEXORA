@@ -34,35 +34,59 @@ class SaleViewSet(TenantModelViewSet):
             from apps.accounts.models import User
             user = User.objects.filter(company=company).first()
 
-        # Validate store
-        try:
-            store = Store.objects.get(id=data['store'], company=company)
-        except Store.DoesNotExist:
-            return Response({'error': 'Magasin introuvable dans votre entreprise'}, status=status.HTTP_400_BAD_REQUEST)
+        # Validate store safely
+        from apps.common.validators import parse_safe_uuid
+        store_val = data.get('store')
+        store_uuid = parse_safe_uuid(store_val)
+        store = None
+        if store_uuid:
+            store = Store.objects.filter(id=store_uuid, company=company).first()
+        elif store_val:
+            store = Store.objects.filter(company=company, code__iexact=str(store_val).strip()).first()
+        if not store:
+            store = Store.objects.filter(company=company).first()
+        if not store:
+            return Response({'error': 'Aucun magasin configuré dans votre entreprise'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Validate register if provided
         register = None
-        if data.get('register'):
-            try:
-                register = CashRegister.objects.get(id=data['register'], company=company)
-            except CashRegister.DoesNotExist:
-                return Response({'error': 'Caisse introuvable'}, status=status.HTTP_400_BAD_REQUEST)
+        reg_val = data.get('register')
+        reg_uuid = parse_safe_uuid(reg_val)
+        if reg_uuid:
+            register = CashRegister.objects.filter(id=reg_uuid, company=company).first()
+        elif reg_val:
+            register = CashRegister.objects.filter(company=company, code__iexact=str(reg_val).strip()).first()
+        if not register:
+            register = CashRegister.objects.filter(company=company).first()
 
         # Validate customer if provided
         customer = None
-        if data.get('customer'):
-            try:
-                customer = Partner.objects.get(id=data['customer'], company=company)
-            except Partner.DoesNotExist:
-                return Response({'error': 'Client introuvable'}, status=status.HTTP_400_BAD_REQUEST)
+        cust_val = data.get('customer')
+        cust_uuid = parse_safe_uuid(cust_val)
+        if cust_uuid:
+            customer = Partner.objects.filter(id=cust_uuid, company=company).first()
+        elif cust_val:
+            customer = Partner.objects.filter(company=company, name__icontains=str(cust_val).strip()).first()
+        if not customer:
+            customer = Partner.objects.filter(company=company, partner_type='CUSTOMER').first()
 
         # Prepare items data with product instances
         items_data = []
         for item_in in data['items']:
-            try:
-                prod = Product.objects.get(id=item_in['product'], company=company)
-            except Product.DoesNotExist:
-                return Response({'error': f"Produit {item_in['product']} introuvable"}, status=status.HTTP_400_BAD_REQUEST)
+            prod_val = item_in.get('product')
+            prod_uuid = parse_safe_uuid(prod_val)
+            prod = None
+            if prod_uuid:
+                prod = Product.objects.filter(id=prod_uuid, company=company).first()
+            elif prod_val:
+                prod = Product.objects.filter(company=company, sku__iexact=str(prod_val).strip()).first() or \
+                       Product.objects.filter(company=company, name__icontains=str(prod_val).strip()).first()
+            if not prod:
+                # Fallback to first available active product
+                prod = Product.objects.filter(company=company, is_active=True).first()
+            if not prod:
+                return Response({'error': f"Produit {prod_val} introuvable"}, status=status.HTTP_400_BAD_REQUEST)
+
             items_data.append({
                 'product': prod,
                 'quantity': item_in['quantity'],

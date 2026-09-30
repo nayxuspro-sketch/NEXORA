@@ -127,7 +127,7 @@ cust3, _ = Partner.objects.update_or_create(
     defaults={'partner_type': 'CUSTOMER', 'phone': '+226 25 36 45 50', 'address': 'Koulouba', 'is_active': True}
 )
 
-# Sales transactions to populate Seller Report Table
+# Sales transactions
 now = timezone.now()
 p1 = Product.objects.get(sku='LAPTOP-HP-01')
 p2 = Product.objects.get(sku='MOUSE-WL-01')

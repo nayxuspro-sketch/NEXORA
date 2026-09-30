@@ -58,7 +58,7 @@ class SaleSerializer(serializers.ModelSerializer):
 
 
 class SaleCreateItemInputSerializer(serializers.Serializer):
-    product = serializers.UUIDField()
+    product = serializers.CharField()
     quantity = serializers.DecimalField(max_digits=12, decimal_places=2)
     unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
     tax_rate = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
@@ -66,9 +66,9 @@ class SaleCreateItemInputSerializer(serializers.Serializer):
 
 
 class SaleCreateInputSerializer(serializers.Serializer):
-    store = serializers.UUIDField()
-    register = serializers.UUIDField(required=False, allow_null=True)
-    customer = serializers.UUIDField(required=False, allow_null=True)
+    store = serializers.CharField(required=False, allow_null=True)
+    register = serializers.CharField(required=False, allow_null=True)
+    customer = serializers.CharField(required=False, allow_null=True)
     discount_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0.0)
     notes = serializers.CharField(required=False, allow_blank=True, default='')
     items = SaleCreateItemInputSerializer(many=True)
