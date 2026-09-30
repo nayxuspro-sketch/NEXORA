@@ -1,9 +1,9 @@
 /**
  * Helper robuste et universel pour la génération, visualisation et téléchargement des PDF.
  * Fonctionne avec fiabilité absolue dans tous les navigateurs et environnements :
- * - Proxy Next.js (/api/v1/...)
- * - Connexion directe backend local (http://127.0.0.1:8008/api/v1/...)
- * - Environnement sandbox et iframe cross-origin
+ * - Route serveur Next.js dédiée (/api/pdf-proxy/?endpoint=...)
+ * - Proxy relatif Next.js (/api/v1/...)
+ * - Téléchargement binaire sécurisé en mémoire Blob sans blocage iframe/popup
  */
 
 export function openPdfViewerModal(blobUrl: string, title: string = 'Visualisation du Document PDF', filename: string = 'document.pdf') {
@@ -100,16 +100,13 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
 
   const apiPath = fullEndpoint.startsWith('/api/v1') ? fullEndpoint : `/api/v1${fullEndpoint}`;
 
-  // Liste ordonnée des URLs candidates :
-  // 1. Relatif (/api/v1/...) via le proxy Next.js
-  // 2. Direct Backend port 8008 (localhost)
-  // 3. Direct Backend port 8000 (repli si un utilisateur a lancé Django sur 8000)
-  // 4. URL absolue origin (pour les iframes et webviews)
+  // Pipeline ordonné de requêtes :
+  // 1. Route de proxy serveur dédiée Next.js (sécurisée côté serveur Node.js vers 127.0.0.1:8008)
+  // 2. Rewrite direct /api/v1/...
+  const proxyUrl = `/api/pdf-proxy/?endpoint=${encodeURIComponent(apiPath)}`;
   const candidateUrls = [
+    proxyUrl,
     apiPath,
-    `http://127.0.0.1:8008${apiPath}`,
-    `http://127.0.0.1:8000${apiPath}`,
-    `${window.location.origin}${apiPath}`,
   ];
 
   let blob: Blob | null = null;
@@ -123,7 +120,6 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
       });
 
       if (!response.ok) {
-        // En cas de code d'erreur (ex: 500 ou 404), on passe à l'URL suivante avant d'abandonner
         lastError = new Error(`Erreur serveur HTTP ${response.status}`);
         continue;
       }
@@ -132,7 +128,6 @@ export async function downloadPdfFile(endpoint: string, defaultFilename: string)
       if (!contentType.includes('pdf') && !contentType.includes('octet-stream')) {
         const text = await response.text();
         if (text.startsWith('%PDF')) {
-          // Contenu binaire PDF même si le Content-Type a été altéré par un proxy
           blob = new Blob([text], { type: 'application/pdf' });
           break;
         }
