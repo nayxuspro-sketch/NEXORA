@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXORA - Guide Complet de Déploiement (FCFA / Burkina Faso)</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+            margin: 0;
+            padding: 30px 15px;
+        }
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 20px -2px rgba(0,0,0,0.06);
+        }
+        .badge {
+            display: inline-block;
+            background: #ecfdf5;
+            color: #059669;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 4px 14px;
+            border-radius: 9999px;
+            border: 1px solid #a7f3d0;
+            margin-bottom: 12px;
+        }
+        h1 {
+            color: #0f172a;
+            font-size: 28px;
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 12px;
+        }
+        h2 {
+            color: #1e40af;
+            font-size: 20px;
+            margin-top: 32px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+        }
+        h3 {
+            color: #334155;
+            font-size: 16px;
+            margin-top: 20px;
+            margin-bottom: 8px;
+        }
+        p, li {
+            font-size: 14px;
+            color: #334155;
+        }
+        .code-box {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+        .note {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 18px;
+            border-radius: 0 8px 8px 0;
+            margin: 18px 0;
+            font-size: 13.5px;
+        }
+        .success-box {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 12px 18px;
+            border-radius: 0 8px 8px 0;
+            margin: 18px 0;
+            font-size: 13.5px;
+        }
+        .btn-print {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            margin-bottom: 20px;
+        }
+        .btn-print:hover {
+            background: #1d4ed8;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 13.5px;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: #f1f5f9;
+            font-weight: 700;
+        }
+        @media print {
+            body { background: white; padding: 0; }
+            .container { border: none; box-shadow: none; padding: 0; }
+            .btn-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+            <span class="badge">Édition Burkina Faso / UEMOA (FCFA)</span>
+            <h1>Guide Officiel de Déploiement NEXORA</h1>
+        </div>
+        <button class="btn-print" onclick="window.print()">🖨️ Imprimer ou Enregistrer en PDF</button>
+    </div>
+
+    <p>Ce guide vous accompagne pas à pas pour installer et déployer la plateforme commerciale et Point de Vente <strong>NEXORA</strong> sur votre ordinateur personnel, en réseau local ou sur un serveur de production.</p>
+
+    <div class="success-box">
+        <strong>Devise configurée :</strong> Franc CFA (XOF / FCFA)<br>
+        <strong>Fiscalité UEMOA :</strong> TVA standard à 18%<br>
+        <strong>Paiements inclus :</strong> Espèces, Mobile Money (Orange Money, Moov Money), Ventes à crédit
+    </div>
+
+    <h2>Mode 1 : Déploiement Local Simple (1 Clic - Débutant)</h2>
+    <p>Ce mode utilise <strong>Python + Django + SQLite3</strong>. Aucune installation de base de données externe n'est requise.</p>
+
+    <h3>A. Sous Windows :</h3>
+    <ol>
+        <li>Téléchargez et décompressez l'archive <code>nexora-release-v1.0.0.zip</code>.</li>
+        <li>Ouvrez le dossier <code>NEXORA</code>.</li>
+        <li>Double-cliquez simplement sur le fichier <strong><code>start-local.bat</code></strong>.</li>
+        <li>Le script installe automatiquement l'environnement virtuel, les dépendances et démarre le serveur.</li>
+    </ol>
+
+    <h3>B. Sous Linux ou macOS :</h3>
+    <ol>
+        <li>Extrayez l'archive :
+            <div class="code-box">tar -xzf nexora-release-v1.0.0.tar.gz<br>cd NEXORA</div>
+        </li>
+        <li>Exécutez le script automatisé :
+            <div class="code-box">./start-local.sh</div>
+        </li>
+    </ol>
+
+    <h3>C. Lancement de l'Interface Web (Next.js) :</h3>
+    <p>Dans un second terminal, rendez-vous dans le sous-dossier <code>frontend/</code> :</p>
+    <div class="code-box">cd frontend<br>npm install<br>npm run dev</div>
+    <p>Ouvrez ensuite votre navigateur sur : <strong>http://localhost:3000</strong></p>
+
+    <h2>Mode 2 : Déploiement Professionnel avec Docker (Production / VPS)</h2>
+    <p>La stack conteneurisée complète comprend : PostgreSQL 16, Redis 7, Backend Django Gunicorn et Frontend Next.js.</p>
+    
+    <div class="code-box">
+# 1. Copier le fichier de configuration d'environnement<br>
+cp .env.example .env<br><br>
+# 2. Lancer tous les conteneurs en tâche de fond<br>
+docker compose up -d --build
+    </div>
+
+    <h2>Identifiants Administrateur de Démonstration</h2>
+    <table>
+        <tr>
+            <th>Email</th>
+            <th>Mot de passe</th>
+            <th>Rôle</th>
+            <th>Périmètre</th>
+        </tr>
+        <tr>
+            <td><code>admin@nexora-enterprise.com</code></td>
+            <td><code>Password123!</code></td>
+            <td>Administrateur Général</td>
+            <td>Direction, Rapports financiers, Paramètres</td>
+        </tr>
+        <tr>
+            <td><code>caissier@nexora-bf.com</code></td>
+            <td><code>Password123!</code></td>
+            <td>Caissier / Vendeur</td>
+            <td>Caisse Point de Vente, Encaissement, Tickets</td>
+        </tr>
+    </table>
+
+    <h2>Raccourcis Clavier du Point de Vente (POS)</h2>
+    <table>
+        <tr>
+            <th>Touche</th>
+            <th>Action</th>
+        </tr>
+        <tr>
+            <td><strong>F2</strong></td>
+            <td>Focus instantané sur le champ de recherche / scan code-barres</td>
+        </tr>
+        <tr>
+            <td><strong>F4</strong></td>
+            <td>Assigner un client au panier (avec contrôle du crédit disponible)</td>
+        </tr>
+        <tr>
+            <td><strong>F8</strong></td>
+            <td>Ouvrir la fenêtre d'encaissement et de choix de paiement</td>
+        </tr>
+        <tr>
+            <td><strong>F10</strong></td>
+            <td>Validation express de la vente et impression du reçu</td>
+        </tr>
+        <tr>
+            <td><strong>ESC</strong></td>
+            <td>Fermer la fenêtre active ou annuler</td>
+        </tr>
+    </table>
+
+    <h2>Sauvegarde et Restauration</h2>
+    <p>Pour effectuer une sauvegarde complète des données :</p>
+    <div class="code-box">./scripts/backup.sh</div>
+    <p>Pour restaurer une sauvegarde :</p>
+    <div class="code-box">./scripts/restore.sh ./backups/nom_du_fichier.db</div>
+
+    <h2>Vérification de Santé (Healthcheck)</h2>
+    <p>Pour vérifier l'état du serveur et la connexion à la base de données :</p>
+    <div class="code-box">curl http://localhost:8000/api/v1/health/</div>
+</div>
+
+</body>
+</html>
