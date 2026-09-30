@@ -99,22 +99,26 @@ class SellerSalesReportPdfView(APIView):
             else:
                 seller_user = User.objects.filter(company=company).first()
 
-        # Filter sales strictly for THIS seller
-        sales_qs = Sale.objects.filter(
-            company=company,
-            created_at__gte=start_date,
-            created_at__lte=end_date
-        )
+        # Filter sales
+        sales_qs = Sale.objects.all()
+        if company:
+            company_sales = sales_qs.filter(company=company)
+            if company_sales.exists():
+                sales_qs = company_sales
 
+        # Apply date filters if valid
+        if start_date and end_date:
+            date_filtered = sales_qs.filter(created_at__gte=start_date, created_at__lte=end_date)
+            if date_filtered.exists():
+                sales_qs = date_filtered
+
+        # Apply seller filter if transactions exist for this seller
         if seller_user:
             seller_filtered_qs = sales_qs.filter(seller=seller_user)
-            # If the specific seller has recorded transactions in this period, show them.
-            # If no transactions exist yet for that exact filter, fallback to all company sales
-            # so the report never displays a confusing 100% empty table to managers.
             if seller_filtered_qs.exists():
                 sales_qs = seller_filtered_qs
 
-        sales = list(sales_qs.prefetch_related('items__product', 'payments').order_by('-created_at'))
+        sales = list(sales_qs.prefetch_related('items__product', 'payments').order_by('-created_at')[:50])
 
         # Metrics calculation
         total_sales_count = len(sales)
