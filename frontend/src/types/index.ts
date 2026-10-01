@@ -10,6 +10,9 @@ export interface User {
   company_id?: string;
   company_name?: string;
   is_active: boolean;
+  is_superuser?: boolean;
+  groups?: string[];
+  permissions?: string[];
 }
 
 export interface Company {

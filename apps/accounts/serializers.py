@@ -16,6 +16,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
+        perms = list(self.user.get_all_permissions())
+        groups = list(self.user.groups.values_list('name', flat=True))
         data['user'] = {
             'id': str(self.user.id),
             'email': self.user.email,
@@ -24,23 +26,35 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'role': self.user.role,
             'company_id': str(self.user.company_id) if self.user.company_id else None,
             'company_name': self.user.company.name if self.user.company else None,
+            'is_superuser': self.user.is_superuser,
+            'groups': groups,
+            'permissions': perms,
         }
         return data
 
 
 class UserSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source='company.name', read_only=True)
+    permissions = serializers.SerializerMethodField()
+    groups = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'role',
-            'phone', 'company', 'company_name', 'is_active', 'date_joined'
+            'phone', 'company', 'company_name', 'is_active', 'is_superuser',
+            'groups', 'permissions', 'date_joined'
         ]
-        read_only_fields = ['id', 'date_joined']
+        read_only_fields = ['id', 'date_joined', 'permissions', 'groups']
         extra_kwargs = {
             'company': {'required': False}
         }
+
+    def get_permissions(self, obj):
+        return list(obj.get_all_permissions())
+
+    def get_groups(self, obj):
+        return list(obj.groups.values_list('name', flat=True))
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

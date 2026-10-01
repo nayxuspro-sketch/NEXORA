@@ -8,7 +8,10 @@ Write-Host "============================================================" -Foreg
 $base = "https://raw.githubusercontent.com/nayxuspro-sketch/NEXORA/arena/01a0ba27-nexora"
 
 $files = @(
+    "frontend/src/components/layout/sidebar.tsx",
     "frontend/src/app/pos/page.tsx",
+    "frontend/src/types/index.ts",
+    "apps/accounts/serializers.py",
     "apps/common/permissions.py",
     "apps/sales/pdf_seller_report.py",
     "apps/sales/serializers.py",
@@ -40,7 +43,7 @@ foreach ($f in $files) {
     }
 }
 
-Write-Host "`nInsertion et application des droits & groupes..." -ForegroundColor Yellow
+Write-Host "`nInsertion des profils et donnees..." -ForegroundColor Yellow
 try {
     python C:\NEXORA\seed_dev.py
 } catch {

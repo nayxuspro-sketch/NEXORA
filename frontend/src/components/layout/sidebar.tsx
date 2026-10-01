@@ -31,19 +31,101 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const navigation = [
-    { name: 'Tableau de bord', href: '/', icon: LayoutDashboard },
-    { name: 'Caisse & Vente (POS)', href: '/pos', icon: ShoppingCart, badge: 'Direct' },
-    { name: 'Ventes & Commandes', href: '/sales', icon: FileText },
-    { name: 'Catalogue & Produits', href: '/products', icon: Package },
-    { name: 'Stocks & Inventaires', href: '/inventory', icon: Layers },
-    { name: 'Clients & Fournisseurs', href: '/partners', icon: Users },
-    { name: 'Rapports & BI', href: '/reports', icon: CreditCard },
-    { name: 'Assistant IA', href: '/ai', icon: Bell, badge: 'Copilot' },
-    { name: 'Automatisation', href: '/automation', icon: ShieldCheck },
-    { name: 'Audit & Sécurité', href: '/audit', icon: ShieldCheck },
-    { name: 'Paramètres & Droits', href: '/settings', icon: Settings, badge: 'RBAC' },
+  const isSuperAdmin = user?.is_superuser || user?.role === 'ADMIN';
+  const userPerms = user?.permissions || [];
+  const userGroups = (user?.groups || []).map((g) => g.toLowerCase());
+
+  // Vérificateur dynamique de permissions et profil
+  const hasAccess = (requiredModule: string, requiredPerms: string[], allowedRoles: string[]) => {
+    if (isSuperAdmin) return true;
+
+    // 1. Vérification par rôle
+    if (user?.role && allowedRoles.includes(user.role)) return true;
+
+    // 2. Vérification par nom de groupe / profil
+    if (userGroups.some((g) => g.includes(requiredModule.toLowerCase()))) return true;
+
+    // 3. Vérification par permissions granulaires incluses
+    if (requiredPerms.some((p) => userPerms.includes(p) || userPerms.some((up) => up.startsWith(requiredModule)))) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const allNavigation = [
+    {
+      name: 'Tableau de bord',
+      href: '/',
+      icon: LayoutDashboard,
+      visible: true // Toujours accessible
+    },
+    {
+      name: 'Caisse & Vente (POS)',
+      href: '/pos',
+      icon: ShoppingCart,
+      badge: 'Direct',
+      visible: hasAccess('pos', ['pos.view_cashregister', 'sales.add_sale', 'sales.view_sale'], ['ADMIN', 'MANAGER', 'CASHIER'])
+    },
+    {
+      name: 'Ventes & Commandes',
+      href: '/sales',
+      icon: FileText,
+      visible: hasAccess('sales', ['sales.view_sale', 'sales.change_sale'], ['ADMIN', 'MANAGER', 'ACCOUNTANT', 'AUDITOR', 'CASHIER'])
+    },
+    {
+      name: 'Catalogue & Produits',
+      href: '/products',
+      icon: Package,
+      visible: hasAccess('catalog', ['catalog.view_product', 'inventory.view_stocklevel'], ['ADMIN', 'MANAGER', 'STOCK_KEEPER', 'CASHIER'])
+    },
+    {
+      name: 'Stocks & Inventaires',
+      href: '/inventory',
+      icon: Layers,
+      visible: hasAccess('inventory', ['inventory.view_stocklevel', 'inventory.view_inventory', 'inventory.view_store'], ['ADMIN', 'MANAGER', 'STOCK_KEEPER'])
+    },
+    {
+      name: 'Clients & Fournisseurs',
+      href: '/partners',
+      icon: Users,
+      visible: hasAccess('partners', ['partners.view_partner'], ['ADMIN', 'MANAGER', 'ACCOUNTANT', 'CASHIER'])
+    },
+    {
+      name: 'Rapports & BI',
+      href: '/reports',
+      icon: CreditCard,
+      visible: hasAccess('reports', ['sales.view_sale', 'audit.view_auditlog'], ['ADMIN', 'MANAGER', 'ACCOUNTANT', 'AUDITOR'])
+    },
+    {
+      name: 'Assistant IA',
+      href: '/ai',
+      icon: Bell,
+      badge: 'Copilot',
+      visible: hasAccess('ai', ['ai_assistant.view_aisuggestion'], ['ADMIN', 'MANAGER'])
+    },
+    {
+      name: 'Automatisation',
+      href: '/automation',
+      icon: ShieldCheck,
+      visible: isSuperAdmin || user?.role === 'ADMIN'
+    },
+    {
+      name: 'Audit & Sécurité',
+      href: '/audit',
+      icon: ShieldCheck,
+      visible: hasAccess('audit', ['audit.view_auditlog'], ['ADMIN', 'AUDITOR', 'MANAGER'])
+    },
+    {
+      name: 'Paramètres & Droits',
+      href: '/settings',
+      icon: Settings,
+      badge: 'RBAC',
+      visible: isSuperAdmin || user?.role === 'ADMIN'
+    },
   ];
+
+  const navigation = allNavigation.filter((item) => item.visible);
 
   return (
     <>
