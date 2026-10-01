@@ -39,7 +39,8 @@ import {
   UserCheck,
   QrCode,
   Tag,
-  ArrowRight
+  ArrowRight,
+  Receipt
 } from 'lucide-react';
 
 interface CartItem {
@@ -87,6 +88,9 @@ export default function PosPage() {
       });
     }
   };
+
+  // State for optional Tax (TVA) on POS receipt
+  const [applyTax, setApplyTax] = React.useState(true);
 
   // Modals
   const { user: authUser } = useAuth();
@@ -436,13 +440,15 @@ export default function PosPage() {
   const totalDiscountVal = (grossSubtotal * globalDiscount) / 100;
   const discountedSubtotal = grossSubtotal - totalDiscountVal;
 
-  const totalTVA = cart.reduce((acc, item) => {
-    const taxRate = parseFloat(item.product.tax_rate) || 0;
-    const price = parseFloat(item.product.selling_price) || 0;
-    const lineDisc = (price * item.discountRate) / 100;
-    const baseLine = (price - lineDisc) * item.quantity;
-    return acc + (baseLine * taxRate) / 100;
-  }, 0);
+  const totalTVA = applyTax
+    ? cart.reduce((acc, item) => {
+        const taxRate = parseFloat(item.product.tax_rate) || 0;
+        const price = parseFloat(item.product.selling_price) || 0;
+        const lineDisc = (price * item.discountRate) / 100;
+        const baseLine = (price - lineDisc) * item.quantity;
+        return acc + (baseLine * taxRate) / 100;
+      }, 0)
+    : 0;
 
   const totalTTC = discountedSubtotal + totalTVA;
 
@@ -479,7 +485,7 @@ export default function PosPage() {
           product: i.product.id,
           quantity: i.quantity,
           unit_price: i.product.selling_price,
-          tax_rate: i.product.tax_rate,
+          tax_rate: applyTax ? i.product.tax_rate : '0.00',
           discount_rate: i.discountRate,
         })),
         payment: {
@@ -819,8 +825,39 @@ export default function PosPage() {
 
               {/* Financial Summary & Action Buttons */}
               <CardFooter className="p-4 flex flex-col gap-3 bg-muted/20 border-t">
+                {/* Tax (TVA) Toggle for the cashier */}
+                <div className="w-full flex items-center justify-between text-xs pb-1">
+                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                    <Receipt className="h-3.5 w-3.5 text-primary" /> Application TVA (18%) :
+                  </span>
+                  <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/50">
+                    <button
+                      type="button"
+                      onClick={() => setApplyTax(true)}
+                      className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                        applyTax
+                          ? 'bg-primary text-primary-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Avec TVA
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setApplyTax(false)}
+                      className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                        !applyTax
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Sans TVA (Exonéré)
+                    </button>
+                  </div>
+                </div>
+
                 {/* Global discount selector */}
-                <div className="w-full flex items-center justify-between text-xs">
+                <div className="w-full flex items-center justify-between text-xs border-t pt-2">
                   <span className="text-muted-foreground flex items-center gap-1 font-medium">
                     <Percent className="h-3.5 w-3.5" /> Remise Globale Ticket :
                   </span>
@@ -846,9 +883,13 @@ export default function PosPage() {
                     <span>Sous-total HT</span>
                     <span>{formatCurrency(discountedSubtotal)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>TVA collectée</span>
-                    <span>{formatCurrency(totalTVA)}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1">
+                      TVA {applyTax ? '(18% Standard)' : '(0% Exonérée)'}
+                    </span>
+                    <span className={applyTax ? '' : 'text-amber-500 font-medium'}>
+                      {applyTax ? formatCurrency(totalTVA) : '0 FCFA (Non appliquée)'}
+                    </span>
                   </div>
                   {globalDiscount > 0 && (
                     <div className="flex justify-between text-emerald-600 font-semibold">
@@ -1159,7 +1200,7 @@ export default function PosPage() {
                 <span>{formatCurrency(completedSale?.subtotal_amount || 0)}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
-                <span>TVA :</span>
+                <span>{Number(completedSale?.tax_amount || 0) > 0 ? 'TVA (18%) :' : 'TVA (Exonérée) :'}</span>
                 <span>{formatCurrency(completedSale?.tax_amount || 0)}</span>
               </div>
               <div className="flex justify-between font-bold text-sm text-foreground pt-1 border-t">
