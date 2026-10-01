@@ -57,7 +57,13 @@ cashier_group.permissions.set(Permission.objects.filter(
 ))
 
 auditor_group, _ = Group.objects.get_or_create(name="Auditeur & Contrôleur Financier")
-auditor_group.permissions.set(Permission.objects.filter(content_type__app_label__in=['audit', 'sales', 'pos', 'inventory'], codename__startswith='view_'))
+auditor_group.permissions.set(Permission.objects.filter(content_type__app_label__in=['audit', 'sales', 'pos', 'inventory', 'catalog', 'partners'], codename__startswith='view_'))
+
+accountant_group, _ = Group.objects.get_or_create(name="Comptabilité & Finances")
+accountant_group.permissions.set(Permission.objects.filter(
+    content_type__app_label__in=['sales', 'pos', 'partners', 'audit', 'purchases'],
+    codename__in=['view_sale', 'view_payment', 'view_partner', 'view_auditlog', 'view_cashregister', 'view_product', 'change_payment']
+))
 
 # Store
 store, _ = Store.objects.get_or_create(
@@ -66,25 +72,35 @@ store, _ = Store.objects.get_or_create(
     defaults={'name': "Magasin Principal Ouagadougou", 'address': "Avenue Kwamé N'Krumah, Ouagadougou"}
 )
 
-# Caissier / Vendeur d'exemple
-for c_email in ['caissier@nexora-bf.com', 'caissier@nexora.bf']:
-    cashier_user, _ = User.objects.get_or_create(
-        email=c_email,
+# Utilisateurs types avec leurs rôles et profils associés
+default_profiles = [
+    ('caissier@nexora-bf.com', 'Amadou', 'Ouédraogo', 'CASHIER', cashier_group, 'Cashier123!'),
+    ('caissier@nexora.bf', 'Amadou', 'Ouédraogo', 'CASHIER', cashier_group, 'Cashier123!'),
+    ('manager@nexora.bf', 'Ousmane', 'Sawadogo', 'MANAGER', manager_group, 'Manager123!'),
+    ('stock@nexora.bf', 'Fatou', 'Kaboré', 'STOCK_KEEPER', manager_group, 'Stock123!'),
+    ('comptable@nexora.bf', 'Issa', 'Traoré', 'ACCOUNTANT', accountant_group, 'Compta123!'),
+    ('auditeur@nexora.bf', 'Boureima', 'Sankara', 'AUDITOR', auditor_group, 'Audit123!'),
+]
+
+for email, fn, ln, role, grp, pwd in default_profiles:
+    u, _ = User.objects.get_or_create(
+        email=email,
         defaults={
-            'first_name': 'Amadou',
-            'last_name': 'Ouédraogo',
-            'role': 'CASHIER',
+            'first_name': fn,
+            'last_name': ln,
+            'role': role,
             'company': company,
             'is_staff': False,
             'is_superuser': False,
             'is_active': True,
         }
     )
-    cashier_user.role = 'CASHIER'
-    cashier_user.company = company
-    cashier_user.set_password('Cashier123!')
-    cashier_user.save()
-    cashier_user.groups.add(cashier_group)
+    u.role = role
+    u.company = company
+    u.set_password(pwd)
+    u.save()
+    u.groups.clear()
+    u.groups.add(grp)
 
 # Cash Register
 register, _ = CashRegister.objects.get_or_create(
