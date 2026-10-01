@@ -12,6 +12,7 @@ $files = @(
     "frontend/src/app/pos/page.tsx",
     "frontend/src/types/index.ts",
     "apps/accounts/serializers.py",
+    "apps/accounts/settings_views.py",
     "apps/common/permissions.py",
     "apps/sales/pdf_seller_report.py",
     "apps/sales/serializers.py",
@@ -43,7 +44,7 @@ foreach ($f in $files) {
     }
 }
 
-Write-Host "`nInsertion des profils et donnees..." -ForegroundColor Yellow
+Write-Host "`nInsertion et re-synchronisation des donnees et profils..." -ForegroundColor Yellow
 try {
     python C:\NEXORA\seed_dev.py
 } catch {

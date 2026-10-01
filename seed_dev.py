@@ -40,8 +40,20 @@ manager_group.permissions.set(Permission.objects.filter(content_type__app_label_
 
 cashier_group, _ = Group.objects.get_or_create(name="Caissier & Vendeur Comptoir")
 cashier_group.permissions.set(Permission.objects.filter(
-    content_type__app_label__in=['pos', 'sales', 'catalog', 'partners'],
-    codename__in=['add_sale', 'view_sale', 'change_sale', 'add_saleitem', 'view_saleitem', 'add_payment', 'view_payment', 'view_cashregister', 'view_product', 'view_partner']
+    content_type__app_label__in=['pos', 'sales', 'catalog', 'partners', 'inventory'],
+    codename__in=[
+        # Caisse & Ventes
+        'add_sale', 'view_sale', 'change_sale',
+        'add_saleitem', 'view_saleitem',
+        'add_payment', 'view_payment',
+        'view_cashregister', 'view_registersession',
+        # Catalogue & Produits (Consultation obligatoire pour la caisse)
+        'view_product', 'view_category', 'view_unit',
+        # Clients (Consultation et sélection pour facturation)
+        'view_partner', 'add_partner',
+        # Consultation des disponibilités de stock
+        'view_stocklevel', 'view_store'
+    ]
 ))
 
 auditor_group, _ = Group.objects.get_or_create(name="Auditeur & Contrôleur Financier")

@@ -1,7 +1,8 @@
 from rest_framework import serializers, viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from apps.common.permissions import IsAuthenticatedAndInTenant
 from django.contrib.auth.models import Group, Permission
 from apps.accounts.models import User, UserRole
 from apps.companies.models import Company
@@ -37,8 +38,9 @@ class GroupSerializer(serializers.ModelSerializer):
 class GroupViewSet(viewsets.ModelViewSet):
     """
     CRUD management of user groups/profiles and their assigned permissions.
+    Protected: Only administrators can configure groups and permissions.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticatedAndInTenant]
     queryset = Group.objects.prefetch_related('permissions').all().order_by('name')
     serializer_class = GroupSerializer
 
@@ -46,8 +48,9 @@ class GroupViewSet(viewsets.ModelViewSet):
 class SystemPermissionsListView(APIView):
     """
     Returns all system permissions grouped by domain for easy UI toggles.
+    Protected: Only administrators can view full internal permissions catalog.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticatedAndInTenant]
 
     def get(self, request):
         relevant_apps = ['accounts', 'sales', 'inventory', 'purchases', 'pos', 'audit', 'companies', 'ai_assistant']
