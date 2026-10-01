@@ -8,6 +8,7 @@ Write-Host "============================================================" -Foreg
 $base = "https://raw.githubusercontent.com/nayxuspro-sketch/NEXORA/arena/01a0ba27-nexora"
 
 $files = @(
+    "frontend/src/app/pos/page.tsx",
     "apps/sales/pdf_seller_report.py",
     "apps/sales/serializers.py",
     "apps/sales/views.py",
