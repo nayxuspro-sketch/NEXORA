@@ -26,7 +26,18 @@ class IsAuthenticatedAndInTenant(permissions.BasePermission):
         if getattr(user, 'is_superuser', False) or getattr(user, 'role', '') == 'ADMIN':
             return True
 
-        # 3. Check granular Django Permissions granted via Groups / Profiles
+        # 3. Mode Caisse & Vente opérationnel : autoriser la lecture indispensable aux ventes
+        action = getattr(view, 'action', None) or request.method.lower()
+        is_read_action = action in ('list', 'retrieve') or request.method in ('GET', 'HEAD', 'OPTIONS')
+
+        # Si l'utilisateur est un vendeur/caissier et effectue une consultation de lecture pour son catalogue/panier
+        if is_read_action and getattr(user, 'role', '') in ('CASHIER', 'MANAGER', 'STOCK_KEEPER'):
+            # Permettre de lire le catalogue, les prix, les catégories et les partenaires
+            model = getattr(getattr(view, 'queryset', None), 'model', None)
+            if model and model._meta.app_label in ('catalog', 'partners', 'pos'):
+                return True
+
+        # 4. Check granular Django Permissions granted via Groups / Profiles
         model = getattr(getattr(view, 'queryset', None), 'model', None)
         if not model and hasattr(view, 'get_queryset'):
             try:
@@ -37,7 +48,6 @@ class IsAuthenticatedAndInTenant(permissions.BasePermission):
         if model:
             app_label = model._meta.app_label
             model_name = model._meta.model_name
-            action = getattr(view, 'action', None) or request.method.lower()
 
             perm_prefix = self.ACTION_PERM_MAP.get(action)
             if not perm_prefix:

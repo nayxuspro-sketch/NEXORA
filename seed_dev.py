@@ -66,6 +66,26 @@ store, _ = Store.objects.get_or_create(
     defaults={'name': "Magasin Principal Ouagadougou", 'address': "Avenue Kwamé N'Krumah, Ouagadougou"}
 )
 
+# Caissier / Vendeur d'exemple
+for c_email in ['caissier@nexora-bf.com', 'caissier@nexora.bf']:
+    cashier_user, _ = User.objects.get_or_create(
+        email=c_email,
+        defaults={
+            'first_name': 'Amadou',
+            'last_name': 'Ouédraogo',
+            'role': 'CASHIER',
+            'company': company,
+            'is_staff': False,
+            'is_superuser': False,
+            'is_active': True,
+        }
+    )
+    cashier_user.role = 'CASHIER'
+    cashier_user.company = company
+    cashier_user.set_password('Cashier123!')
+    cashier_user.save()
+    cashier_user.groups.add(cashier_group)
+
 # Cash Register
 register, _ = CashRegister.objects.get_or_create(
     company=company,
