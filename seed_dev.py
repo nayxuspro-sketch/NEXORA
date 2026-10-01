@@ -29,6 +29,24 @@ if not User.objects.filter(email='admin@nexora.bf').exists():
 else:
     admin = User.objects.get(email='admin@nexora.bf')
 
+# Groupes / Profils par defaut
+from django.contrib.auth.models import Group, Permission
+admin_group, _ = Group.objects.get_or_create(name="Direction & Administration Générale")
+admin_group.permissions.set(Permission.objects.filter(content_type__app_label__in=['accounts', 'sales', 'inventory', 'purchases', 'pos', 'audit', 'companies', 'catalog', 'partners']))
+admin.groups.add(admin_group)
+
+manager_group, _ = Group.objects.get_or_create(name="Responsable Magasin & Stocks")
+manager_group.permissions.set(Permission.objects.filter(content_type__app_label__in=['inventory', 'catalog', 'purchases', 'partners']))
+
+cashier_group, _ = Group.objects.get_or_create(name="Caissier & Vendeur Comptoir")
+cashier_group.permissions.set(Permission.objects.filter(
+    content_type__app_label__in=['pos', 'sales', 'catalog', 'partners'],
+    codename__in=['add_sale', 'view_sale', 'change_sale', 'add_saleitem', 'view_saleitem', 'add_payment', 'view_payment', 'view_cashregister', 'view_product', 'view_partner']
+))
+
+auditor_group, _ = Group.objects.get_or_create(name="Auditeur & Contrôleur Financier")
+auditor_group.permissions.set(Permission.objects.filter(content_type__app_label__in=['audit', 'sales', 'pos', 'inventory'], codename__startswith='view_'))
+
 # Store
 store, _ = Store.objects.get_or_create(
     company=company,

@@ -9,6 +9,7 @@ $base = "https://raw.githubusercontent.com/nayxuspro-sketch/NEXORA/arena/01a0ba2
 
 $files = @(
     "frontend/src/app/pos/page.tsx",
+    "apps/common/permissions.py",
     "apps/sales/pdf_seller_report.py",
     "apps/sales/serializers.py",
     "apps/sales/views.py",
@@ -39,7 +40,7 @@ foreach ($f in $files) {
     }
 }
 
-Write-Host "`nInsertion des donnees de vente..." -ForegroundColor Yellow
+Write-Host "`nInsertion et application des droits & groupes..." -ForegroundColor Yellow
 try {
     python C:\NEXORA\seed_dev.py
 } catch {
