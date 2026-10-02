@@ -97,7 +97,7 @@ def filtrer_permission_fr(permission):
 
 
 def traduire_permissions_post_migrate(sender, apps=None, **kwargs):
-    """Signal ``post_migrate`` : traduit les permissions appena créées.
+    """Signal ``post_migrate`` : traduit les permissions nouvellement créées.
 
     À connecter dans ``AppConfig.ready()`` (voir docstring du module).
     """
