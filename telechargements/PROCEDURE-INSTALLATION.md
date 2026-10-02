@@ -8,16 +8,16 @@ par leurs équivalents français
 
 Contenu de l'archive :
 
-    integration_django/
+    management/                              ← OBLIGATOIRE, à la RACINE de l'app
     ├── __init__.py
-    ├── permissions_fr.py                        ← table de correspondance, filtre de template, signal post_migrate
-    └── management/
+    └── commands/
         ├── __init__.py
-        └── commands/
-            ├── __init__.py
-            └── traduire_permissions.py          ← commande manage.py
-    i18n/fr-FR.json                              ← chaînes françaises (dont la correspondance des verbes)
-    fenetre-configurer-droits.html               ← la fenêtre traduite, pour référence visuelle
+        └── traduire_permissions.py          ← commande manage.py
+    integration_django/                      ← facultatif : filtre de template + signal post_migrate
+    ├── __init__.py
+    └── permissions_fr.py
+    i18n/fr-FR.json                          ← chaînes françaises (dont la correspondance des verbes)
+    fenetre-configurer-droits.html           ← la fenêtre traduite, pour référence visuelle
 
 ---
 
@@ -30,23 +30,25 @@ Contenu de l'archive :
 
 ## Étape 1 — Déposer les fichiers
 
-Copiez le dossier `integration_django/` dans une app Django existante
+Dézippez l'archive DIRECTEMENT dans le dossier d'une app Django existante
 (exemple ci-dessous avec une app nommée `profils`) :
 
     profils/
+    ├── management/                 ← créé par l'archive (ou fusionné s'il existe déjà)
+    │   ├── __init__.py
+    │   └── commands/
+    │       ├── __init__.py
+    │       └── traduire_permissions.py
     └── integration_django/
-        ├── __init__.py               (vide)
-        ├── permissions_fr.py
-        └── management/
-            ├── __init__.py           (vide)
-            └── commands/
-                ├── __init__.py       (vide)
-                └── traduire_permissions.py
+        ├── __init__.py
+        └── permissions_fr.py
 
-Contrainte unique : conserver la structure interne du paquet
-(``integration_django/management/commands/``), car la commande utilise
-l'import relatif ``from ...permissions_fr import VERBES_FR`` (trois points :
-deux niveaux de paquets au-dessus de ``commands``).
+Contrainte absolue : le dossier ``management/`` doit rester à la RACINE de
+l'app. Django ne recherche les commandes de gestion que dans
+``<app>/management/commands/`` ; placé dans un sous-paquet (par ex.
+``integration_django/management/``), la commande reste invisible et
+``manage.py`` répond « Unknown command ». La commande est autonome :
+aucun import croisé, elle fonctionne où que soit collé ``management/``.
 
 ## Étape 2 — Brancher le signal (futures migrations traduites automatiquement)
 

@@ -24,21 +24,37 @@ les sections « Gestion des Utilisateurs & Équipes », « Assistant IA & Règle
 d'Automatisation », « Direction & Administration Générale », ainsi que les boutons
 « Annuler » et « Enregistrer le Profil et les Droits ».
 
-### `integration_django/` — corriger l'application Django d'origine
+### `correctif/` — corriger l'application Django d'origine
 
 Les libellés `Can add …` proviennent des `Permission.name` **enregistrés en base dans la
-langue active au moment de `migrate`**. Le paquet `integration_django` fournit :
+langue active au moment de `migrate`**. Le dossier `correctif/` contient les fichiers à
+coller **à la racine d'une app Django** :
 
-- `permissions_fr.py` : correspondance `VERBES_FR`, fonction `traduire_nom_permission`,
-  filtre de template `{{ permission|permission_fr }}` et signal `post_migrate`
-  (traduit automatiquement les permissions nouvellement créées) ;
-- `management/commands/traduire_permissions.py` : commande
-  `python manage.py traduire_permissions` (avec `--dry-run` et `--revert`) qui renomme
-  en base les permissions existantes, sans toucher aux `codename` utilisés par `has_perm`.
+```
+correctif/
+├── management/                    ← OBLIGATOIRE, collé à la racine de l'app
+│   ├── __init__.py
+│   └── commands/
+│       ├── __init__.py
+│       └── traduire_permissions.py    ← commande autonome ( --dry-run / --revert )
+└── integration_django/            ← facultatif : filtre + signal post_migrate
+    ├── __init__.py
+    └── permissions_fr.py
+```
 
-Installation : copier `integration_django/` dans une app Django, connecter le signal dans
-`AppConfig.ready()` (exemple dans la docstring de `permissions_fr.py`), puis lancer la
-commande une fois.
+> ⚠ Django ne recherche les commandes de gestion que dans `<app>/management/commands/`.
+> Placée dans un sous-paquet (ex. `integration_django/management/`), la commande reste
+> invisible (« Unknown command »).
+
+- `management/commands/traduire_permissions.py` : renomme en base les permissions
+  existantes, sans toucher aux `codename` utilisés par `has_perm` ;
+- `integration_django/permissions_fr.py` : correspondance `VERBES_FR`, fonction
+  `traduire_nom_permission`, filtre de template `{{ permission|permission_fr }}` et
+  signal `post_migrate` (traduit automatiquement les permissions nouvellement créées).
+
+Installation : dézipper l'archive dans le dossier de l'app, puis
+`python manage.py traduire_permissions` ; connecter éventuellement le signal dans
+`AppConfig.ready()` (exemple dans la docstring de `permissions_fr.py`).
 
 ### Autres fichiers
 

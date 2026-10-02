@@ -2,11 +2,19 @@
 """
 Commande de gestion : ``python manage.py traduire_permissions``
 
+À placer OBLIGATOIREMENT dans ``<app>/management/commands/`` (racine de
+l'app), car Django ne recherche les commandes de gestion que dans ce
+dossier précis — pas dans un sous-paquet comme ``integration_django/``.
+
 Renomme en base de données les ``Permission.name`` créés en anglais
 (« Can add … », « Can change … », « Can delete … », « Can view … ») vers
 leurs équivalents français (« Peut ajouter … », « Peut modifier … »,
 « Peut supprimer … », « Peut consulter … »), sans toucher aux codes
 (``codename``) utilisés par ``has_perm``.
+
+Fichier volontairement autonome (aucun import du paquet
+``integration_django``) pour fonctionner quel que soit l'endroit où le
+dossier ``management/`` est collé.
 
 Usage :
     python manage.py traduire_permissions            # applique
@@ -17,7 +25,13 @@ Usage :
 from django.contrib.auth.models import Permission
 from django.core.management.base import BaseCommand
 
-from ...permissions_fr import VERBES_FR
+#: Même table que dans ``integration_django/permissions_fr.py``.
+VERBES_FR = {
+    "Can add": "Peut ajouter",
+    "Can change": "Peut modifier",
+    "Can delete": "Peut supprimer",
+    "Can view": "Peut consulter",
+}
 
 VERBES_EN = {fr: en for en, fr in VERBES_FR.items()}
 

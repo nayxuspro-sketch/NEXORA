@@ -1,31 +1,38 @@
 CORRECTIF — Traduction française des permissions Django
 Fenêtre « Configurer les Droits : Direction & Administration Générale »
 
-CONTENU
-  integration_django/            paquet à coller dans le dossier de votre app Django
-  PROCEDURE-INSTALLATION.md      procédure détaillée (étapes 0 à 7)
-  LISEZMOI.txt                   ce fichier
+CONTENU DE L'ARCHIVE (racine = dossier de votre app Django)
+  management/commands/traduire_permissions.py   ← OBLIGATOIRE : la commande
+  management/__init__.py, management/commands/__init__.py
+  integration_django/permissions_fr.py          ← facultatif : filtre de template + signal post_migrate
+  integration_django/__init__.py
+  PROCEDURE-INSTALLATION.md, LISEZMOI.txt
+
+IMPORTANT : Django ne recherche les commandes de gestion que dans
+<app>/management/commands/ (racine de l'app). Ne déplacez JAMAIS le dossier
+management/ à l'intérieur d'un sous-paquet (ex. integration_django/), sinon
+la commande reste invisible (« Unknown command »).
 
 CE QUE ÇA CORRIGE
   « Can add … »      ->  « Peut ajouter … »
   « Can change … »   ->  « Peut modifier … »
   « Can delete … »   ->  « Peut supprimer … »
   « Can view … »     ->  « Peut consulter … »
-  (noms de permissions Django stockés en anglais en base ; aucun effet
-   sur les codename, donc aucun effet sur has_perm / groupes / rôles)
+  (aucun effet sur les codename, donc aucun effet sur has_perm / groupes / rôles)
 
-INSTALLATION EXPRESS
-  1. Dézipper DANS le dossier de votre app Django (ex. profils/) :
-         unzip correctif-permissions-fr-a-coller.zip -d profils/
-     -> crée profils/integration_django/...
-  2. Dans profils/apps.py, connecter le signal dans ready() :
-         def ready(self):
-             from django.db.models.signals import post_migrate
-             from .integration_django.permissions_fr import traduire_permissions_post_migrate
-             post_migrate.connect(traduire_permissions_post_migrate, sender=self)
-  3. Simuler :   python manage.py traduire_permissions --dry-run
-  4. Appliquer : python manage.py traduire_permissions
-  5. Redémarrer le serveur, ouvrir la fenêtre : les cases sont en français.
+INSTALLATION EXPRESS (PowerShell, depuis le dossier du projet)
+  1. Dézipper DANS le dossier de votre app (ex. apps\common) :
+         Expand-Archive "$env:TEMP\correctif.zip" -DestinationPath "C:\chemin\vers\app" -Force
+  2. Appliquer :
+         py manage.py traduire_permissions
+  3. Redémarrer le serveur : les libellés de la fenêtre sont en français.
+
+Facultatif (futures migrations traduites automatiquement) : dans apps.py de
+l'app, connecter le signal dans ready() :
+    def ready(self):
+        from django.db.models.signals import post_migrate
+        from .integration_django.permissions_fr import traduire_permissions_post_migrate
+        post_migrate.connect(traduire_permissions_post_migrate, sender=self)
 
 RETOUR ARRIÈRE
-  python manage.py traduire_permissions --revert
+  py manage.py traduire_permissions --revert
