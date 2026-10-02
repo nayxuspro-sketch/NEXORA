@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Configurer les Droits : Direction &amp; Administration Générale — NEXORA</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="voile">
+    <section class="fenetre" role="dialog" aria-modal="true" aria-labelledby="titre-fenetre">
+
+      <!-- ===================== Barre de titre ===================== -->
+      <header class="titre-fenetre">
+        <div class="picto" aria-hidden="true">🛡</div>
+        <div>
+          <h1 id="titre-fenetre">Configurer les Droits</h1>
+          <p class="sous-titre">Direction &amp; Administration Générale</p>
+        </div>
+        <div class="controles-fenetre">
+          <button class="bouton-fenetre" type="button" title="Réduire la fenêtre" aria-label="Réduire la fenêtre">—</button>
+          <button class="bouton-fenetre" type="button" title="Agrandir la fenêtre" aria-label="Agrandir la fenêtre">▢</button>
+          <button class="bouton-fenetre" type="button" title="Fermer" aria-label="Fermer" id="bouton-fermer">✕</button>
+        </div>
+      </header>
+
+      <!-- ===================== Bandeau de contexte ===================== -->
+      <div class="contexte">
+        <div class="champ-contexte">
+          <label for="select-profil">Profil cible</label>
+          <select id="select-profil"></select>
+        </div>
+        <div class="champ-contexte">
+          <label for="select-structure">Structure</label>
+          <select id="select-structure"></select>
+        </div>
+        <div class="champ-contexte">
+          <label for="champ-periode">Période d'application</label>
+          <span class="valeur pale" id="champ-periode">Illimitée</span>
+        </div>
+        <div class="champ-contexte">
+          <label>Utilisateurs rattachés</label>
+          <span class="valeur" id="nombre-utilisateurs">—</span>
+        </div>
+        <div class="champ-contexte">
+          <label>Dernière modification</label>
+          <span class="valeur pale" id="derniere-modification">—</span>
+        </div>
+        <span class="badge-entite">Direction &amp; Administration Générale</span>
+      </div>
+
+      <!-- ===================== Onglets ===================== -->
+      <nav class="onglets" role="tablist" aria-label="Sections de la configuration des droits">
+        <button class="onglet" role="tab" id="onglet-matrice"   aria-controls="panneau-matrice"   aria-selected="true"  data-panneau="panneau-matrice">Matrice des droits <span class="compteur" id="compteur-matrice">0</span></button>
+        <button class="onglet" role="tab" id="onglet-circuits"  aria-controls="panneau-circuits"  aria-selected="false" data-panneau="panneau-circuits" tabindex="-1">Circuits de validation <span class="compteur" id="compteur-circuits">0</span></button>
+        <button class="onglet" role="tab" id="onglet-profils"   aria-controls="panneau-profils"   aria-selected="false" data-panneau="panneau-profils" tabindex="-1">Profils &amp; modèles <span class="compteur" id="compteur-profils">0</span></button>
+        <button class="onglet" role="tab" id="onglet-historique" aria-controls="panneau-historique" aria-selected="false" data-panneau="panneau-historique" tabindex="-1">Historique des modifications</button>
+      </nav>
+
+      <!-- ===================== Corps ===================== -->
+      <div class="corps">
+        <main class="zone-principale">
+
+          <!-- ---- Onglet : Matrice des droits ---- -->
+          <div role="tabpanel" id="panneau-matrice" aria-labelledby="onglet-matrice">
+            <div class="barre-outils">
+              <div class="recherche">
+                <span class="loupe" aria-hidden="true">🔍</span>
+                <input type="text" id="champ-recherche" placeholder="Rechercher un module, un droit…"
+                       aria-label="Rechercher un module ou un droit" autocomplete="off" />
+              </div>
+              <div class="champ-contexte">
+                <label for="select-niveau-defaut" style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--texte-faible);font-weight:600;">Niveau appliqué par défaut</label>
+                <select id="select-niveau-defaut"></select>
+              </div>
+              <button class="bouton" type="button" id="bouton-developper">Tout développer</button>
+              <button class="bouton" type="button" id="bouton-reduire">Tout réduire</button>
+              <button class="bouton" type="button" id="bouton-modifies" aria-pressed="false">Modifiés uniquement</button>
+              <button class="bouton" type="button" id="bouton-exporter">⭳ Exporter la configuration</button>
+              <button class="bouton" type="button" id="bouton-imprimer">🖨 Imprimer</button>
+            </div>
+            <div id="contenu-matrice"></div>
+          </div>
+
+          <!-- ---- Onglet : Circuits de validation ---- -->
+          <div role="tabpanel" id="panneau-circuits" aria-labelledby="onglet-circuits" hidden>
+            <h2 style="margin:0 0 4px;font-size:16px;">Circuits de validation &amp; seuils d'engagement</h2>
+            <p style="margin:0 0 14px;color:var(--texte-doux);font-size:13px;">
+              Définissez qui valide quoi, et jusqu'à quel montant (montants exprimés en francs CFA).
+            </p>
+            <div id="contenu-circuits"></div>
+
+            <div class="grille-deux">
+              <div class="carte">
+                <h3>Délégation &amp; suppléance</h3>
+                <div class="champ-ligne" style="margin-bottom:12px;">
+                  <button class="interrupteur" type="button" role="switch" aria-checked="true" id="switch-delegation" aria-label="Autoriser la délégation de validation"></button>
+                  <label for="switch-delegation" style="font-weight:600;">Autoriser la délégation de validation</label>
+                </div>
+                <div class="champ">
+                  <label for="select-delegue">Délégué</label>
+                  <select id="select-delegue"></select>
+                </div>
+                <div class="champ-ligne">
+                  <div class="champ" style="flex:1 1 auto;">
+                    <label for="date-debut">Du</label>
+                    <input type="date" id="date-debut" value="2026-10-05" />
+                  </div>
+                  <div class="champ" style="flex:1 1 auto;">
+                    <label for="date-fin">Au</label>
+                    <input type="date" id="date-fin" value="2026-10-19" />
+                  </div>
+                </div>
+                <div class="champ">
+                  <label for="champ-motif">Motif de la délégation</label>
+                  <input type="text" id="champ-motif" placeholder="Ex. : congé annuel, mission à l'étranger…" />
+                </div>
+                <div class="champ-ligne">
+                  <input type="checkbox" id="case-notifier" checked style="min-width:auto;" />
+                  <label for="case-notifier" style="font-weight:500;">Notifier le délégataire par courriel</label>
+                </div>
+              </div>
+
+              <div class="carte">
+                <h3>Règles appliquées au profil</h3>
+                <ul style="margin:0;padding-left:18px;color:var(--texte-doux);font-size:13px;line-height:1.7;">
+                  <li>Toute opération supérieure au seuil déclenche une double validation.</li>
+                  <li>Le délai de validation est exprimé en jours ouvrés.</li>
+                  <li>En cas de dépassement du délai, l'opération suit la règle « Au-delà du seuil ».</li>
+                  <li>Les validations et rejets sont journalisés dans le journal d'audit.</li>
+                  <li>La délégation prend fin automatiquement à la date indiquée.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- ---- Onglet : Profils & modèles ---- -->
+          <div role="tabpanel" id="panneau-profils" aria-labelledby="onglet-profils" hidden>
+            <div class="barre-outils">
+              <h2 style="margin:0;font-size:16px;">Profils &amp; modèles de droits</h2>
+              <span style="color:var(--texte-doux);font-size:13px;">Appliquez un modèle prêt à l'emploi ou enregistrez la configuration courante.</span>
+              <button class="bouton primaire" type="button" id="bouton-enregistrer-modele" style="margin-left:auto;">Enregistrer comme modèle</button>
+            </div>
+            <div class="grille-profils" id="contenu-profils"></div>
+          </div>
+
+          <!-- ---- Onglet : Historique ---- -->
+          <div role="tabpanel" id="panneau-historique" aria-labelledby="onglet-historique" hidden>
+            <h2 style="margin:0 0 4px;font-size:16px;">Historique des modifications</h2>
+            <p style="margin:0 0 14px;color:var(--texte-doux);font-size:13px;">Toutes les modifications de droits sont tracées.</p>
+            <div id="contenu-historique"></div>
+          </div>
+        </main>
+
+        <!-- ===================== Panneau latéral ===================== -->
+        <aside class="panneau-lateral" aria-label="Récapitulatif des droits">
+          <div class="carte">
+            <h3>Récapitulatif</h3>
+            <div class="barre-progression" aria-hidden="true">
+              <span class="b-positif" id="barre-autorises" style="width:0%"></span>
+              <span class="b-averti"  id="barre-partiels"  style="width:0%"></span>
+              <span class="b-negatif" id="barre-refuses"   style="width:0%"></span>
+            </div>
+            <div class="ligne-resume"><span>Droits accordés</span><span class="nombre positif" id="resume-accordes">0</span></div>
+            <div class="ligne-resume"><span>Droits partiels</span><span class="nombre averti" id="resume-partiels">0</span></div>
+            <div class="ligne-resume"><span>Droits refusés</span><span class="nombre negatif" id="resume-refuses">0</span></div>
+            <div class="ligne-resume" style="border-top:1px solid var(--bordure);margin-top:6px;padding-top:9px;">
+              <span>Modifications non enregistrées</span><span class="nombre averti" id="resume-modifies">0</span>
+            </div>
+            <div class="ligne-resume"><span>Niveau global du profil</span><span class="pastille-niveau accent" id="resume-niveau-global">—</span></div>
+          </div>
+
+          <div class="carte">
+            <h3>Contrôle de séparation des tâches</h3>
+            <div id="contenu-separation"></div>
+          </div>
+
+          <div class="carte">
+            <h3>Droits sensibles</h3>
+            <div class="alerte avertissement">
+              ⚠ La suppression, la signature électronique et la validation de paiement sont des droits sensibles :
+              leur attribution doit être justifiée et tracée.
+            </div>
+            <div id="liste-sensibles" style="font-size:12.5px;color:var(--texte-doux);"></div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- ===================== Pied de fenêtre ===================== -->
+      <footer class="pied">
+        <span class="mention">Les modifications ne sont appliquées qu'après enregistrement.</span>
+        <button class="bouton" type="button" id="bouton-reinitialiser">Réinitialiser</button>
+        <button class="bouton danger" type="button" id="bouton-annuler">Annuler</button>
+        <button class="bouton" type="button" id="bouton-enregistrer-appliquer">Enregistrer et appliquer</button>
+        <button class="bouton primaire" type="button" id="bouton-enregistrer">💾 Enregistrer</button>
+      </footer>
+    </section>
+  </div>
+
+  <div class="notifications" id="notifications" aria-live="polite" aria-atomic="false"></div>
+
+  <script src="donnees.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

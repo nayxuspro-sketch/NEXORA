@@ -1,0 +1,315 @@
+{
+  "meta": {
+    "langue": "fr-FR",
+    "version": "1.0.0",
+    "description": "Chaînes françaises de la fenêtre « Configurer les Droits : Direction & Administration Générale »."
+  },
+  "fenetre": {
+    "titre": "Configurer les Droits",
+    "sousTitre": "Direction & Administration Générale",
+    "badgeEntite": "Direction & Administration Générale",
+    "fermer": "Fermer",
+    "reduire": "Réduire la fenêtre",
+    "agrandir": "Agrandir la fenêtre"
+  },
+  "entete": {
+    "profilCible": "Profil cible",
+    "structure": "Structure",
+    "toutesStructures": "Toutes les structures",
+    "periode": "Période d'application",
+    "illimitee": "Illimitée",
+    "nombreUtilisateurs": "utilisateurs rattachés",
+    "derniereModification": "Dernière modification"
+  },
+  "onglets": {
+    "matrice": "Matrice des droits",
+    "circuits": "Circuits de validation",
+    "profils": "Profils & modèles",
+    "historique": "Historique des modifications"
+  },
+  "barreOutils": {
+    "rechercher": "Rechercher un module, un droit…",
+    "niveauParDefaut": "Niveau appliqué par défaut",
+    "developperTout": "Tout développer",
+    "reduireTout": "Tout réduire",
+    "afficherUniquementModifies": "Afficher uniquement les éléments modifiés",
+    "exporter": "Exporter la configuration",
+    "imprimer": "Imprimer"
+  },
+  "niveaux": {
+    "aucun": "Aucun",
+    "lecture": "Lecture",
+    "creation": "Création",
+    "modification": "Modification",
+    "suppression": "Suppression",
+    "complet": "Accès complet"
+  },
+  "actions": {
+    "consulter": "Consulter",
+    "creer": "Créer",
+    "modifier": "Modifier",
+    "supprimer": "Supprimer",
+    "valider": "Valider",
+    "rejeter": "Rejeter",
+    "signer": "Signer électroniquement",
+    "deleguer": "Déléguer",
+    "exporter": "Exporter",
+    "imprimer": "Imprimer",
+    "archiver": "Archiver",
+    "dupliquer": "Dupliquer"
+  },
+  "colonnes": {
+    "module": "Module / Fonctionnalité",
+    "niveau": "Niveau d'accès",
+    "actionsAutorisees": "Actions autorisées",
+    "portee": "Portée",
+    "etat": "État"
+  },
+  "portee": {
+    "personnelle": "Mes données uniquement",
+    "equipe": "Mon équipe",
+    "structure": "Ma structure",
+    "groupe": "Mon groupe de sociétés",
+    "totale": "Toutes les données"
+  },
+  "etats": {
+    "autorise": "Autorisé",
+    "refuse": "Refusé",
+    "partiel": "Partiel",
+    "modifie": "Modifié (non enregistré)",
+    "herite": "Hérité du profil parent"
+  },
+  "modules": {
+    "directionGenerale": {
+      "titre": "Direction Générale",
+      "description": "Pilotage stratégique et instances de gouvernance.",
+      "droits": {
+        "tableauDeBord": "Tableau de bord de direction",
+        "indicateurs": "Indicateurs de performance (KPI)",
+        "notesDeService": "Notes de service & décisions",
+        "conseilAdministration": "Conseil d'administration & procès-verbaux",
+        "budgetAnnuel": "Budget annuel et plan stratégique",
+        "delegationPouvoirs": "Délégations de pouvoirs et de signature"
+      }
+    },
+    "administrationGenerale": {
+      "titre": "Administration Générale",
+      "description": "Courrier, contrats et formalités de l'entreprise.",
+      "droits": {
+        "courrierArrive": "Courrier arrivé",
+        "courrierDepart": "Courrier départ",
+        "registreCourrier": "Registre du courrier",
+        "contrats": "Contrats & conventions",
+        "paraphes": "Paraphes et signatures",
+        "documentsOfficiels": "Documents officiels & pièces administratives",
+        "archivage": "Archivage & plan de classement"
+      }
+    },
+    "ressourcesHumaines": {
+      "titre": "Ressources Humaines",
+      "description": "Dossiers du personnel, temps, paie et recrutement.",
+      "droits": {
+        "dossiersPersonnel": "Dossiers du personnel",
+        "contratsTravail": "Contrats de travail & avenants",
+        "congesAbsences": "Congés & absences",
+        "pointage": "Pointages & horaires",
+        "paie": "Paie & bulletins",
+        "declarationsSociales": "Déclarations sociales",
+        "recrutement": "Recrutement & mobilité interne",
+        "formation": "Formation & évaluations",
+        "discipline": "Procédures disciplinaires"
+      }
+    },
+    "financesComptabilite": {
+      "titre": "Finances & Comptabilité",
+      "description": "Comptabilité, trésorerie, fiscalité et reporting.",
+      "droits": {
+        "ecrituresComptables": "Écritures comptables",
+        "journal": "Journaux & grand livre",
+        "rapprochement": "Rapprochement bancaire",
+        "tresorerie": "Trésorerie & placements",
+        "virements": "Virements & ordres de paiement",
+        "budget": "Budget & suivi budgétaire",
+        "declarationsFiscales": "Déclarations fiscales",
+        "cloture": "Clôture & bilan",
+        "reportingFinancier": "Reporting financier & tableaux de bord"
+      }
+    },
+    "achats": {
+      "titre": "Achats & Approvisionnements",
+      "description": "Fournisseurs, commandes et appels d'offres.",
+      "droits": {
+        "fournisseurs": "Fournisseurs & qualification",
+        "demandesAchat": "Demandes d'achat",
+        "commandes": "Commandes d'achat",
+        "appelsOffres": "Appels d'offres & consultation",
+        "reception": "Réception & conformité",
+        "facturesFournisseurs": "Factures fournisseurs",
+        "contratsCadres": "Contrats-cadres"
+      }
+    },
+    "juridique": {
+      "titre": "Juridique & Conformité",
+      "description": "Contentieux, conformité réglementaire et assurances.",
+      "droits": {
+        "contentieux": "Contentieux & litiges",
+        "conformite": "Conformité réglementaire",
+        "protectionDonnees": "Protection des données personnelles (RGPD/APDP)",
+        "assurances": "Assurances & sinistres",
+        "proprieteIntellectuelle": "Propriété intellectuelle & marques",
+        "registreTraitements": "Registre des traitements"
+      }
+    },
+    "servicesGeneraux": {
+      "titre": "Services Généraux & Patrimoine",
+      "description": "Moyens généraux, logistique et immobilisations.",
+      "droits": {
+        "immobilisations": "Immobilisations & inventaire physique",
+        "vehicules": "Parc automobile & carburant",
+        "locaux": "Locaux & entretien",
+        "securitePhysique": "Sécurité & contrôle d'accès",
+        "fraisGeneraux": "Frais généraux & notes de frais",
+        "fournitures": "Fournitures & petit matériel"
+      }
+    },
+    "informatique": {
+      "titre": "Informatique & Sécurité",
+      "description": "Comptes, habilitations et exploitation.",
+      "droits": {
+        "comptesUtilisateurs": "Comptes utilisateurs",
+        "habilitations": "Habilitations & rôles",
+        "journalAudit": "Journal d'audit & traçabilité",
+        "sauvegardes": "Sauvegardes & plan de reprise",
+        "parametrage": "Paramétrage applicatif",
+        "politiqueSecurite": "Politique de sécurité (PSSI)"
+      }
+    }
+  },
+  "circuits": {
+    "titre": "Circuits de validation & seuils d'engagement",
+    "sousTitre": "Définissez qui valide quoi, et jusqu'à quel montant.",
+    "colonneOperation": "Opération",
+    "colonneSeuil": "Seuil (FCFA)",
+    "colonneValidateur": "Validateur",
+    "colonneSecondValidateur": "Second validateur",
+    "colonneDelai": "Délai de validation",
+    "colonneAuDela": "Au-delà du seuil",
+    "sansObjet": "—",
+    "ajouterLigne": "Ajouter une opération",
+    "delegation": {
+      "titre": "Délégation & suppléance",
+      "activer": "Autoriser la délégation de validation",
+      "delegue": "Délégué",
+      "du": "Du",
+      "au": "Au",
+      "motif": "Motif de la délégation",
+      "motifPlaceholder": "Ex. : congé annuel, mission à l'étranger…",
+      "notifier": "Notifier le délégataire par courriel"
+    },
+    "operations": {
+      "engagementDepense": "Engagement de dépense",
+      "bonCommande": "Bon de commande",
+      "factureFournisseur": "Facture fournisseur",
+      "virement": "Virement bancaire",
+      "noteDeFrais": "Note de frais",
+      "recrutement": "Recrutement / embauche",
+      "congeExceptionnel": "Congé exceptionnel",
+      "contrat": "Contrat & convention",
+      "avoir": "Avoir / annulation de pièce"
+    },
+    "validateurs": {
+      "directeurGeneral": "Directeur Général",
+      "secretaireGeneral": "Secrétaire Général",
+      "directeurAdministratifFinancier": "Directeur Administratif et Financier",
+      "directeurRessourcesHumaines": "Directeur des Ressources Humaines",
+      "chefServiceComptabilite": "Chef de service Comptabilité",
+      "responsableAchats": "Responsable Achats",
+      "juriste": "Juriste d'entreprise",
+      "controleurGestion": "Contrôleur de gestion"
+    },
+    "delais": {
+      "unJour": "1 jour ouvré",
+      "deuxJours": "2 jours ouvrés",
+      "troisJours": "3 jours ouvrés",
+      "cinqJours": "5 jours ouvrés"
+    },
+    "escalade": {
+      "directionGenerale": "Escalade vers la Direction Générale",
+      "comiteDirection": "Comité de direction",
+      "blocage": "Blocage de l'opération",
+      "autorisationAutomatique": "Autorisation automatique"
+    }
+  },
+  "profils": {
+    "titre": "Profils & modèles de droits",
+    "sousTitre": "Appliquez un modèle prêt à l'emploi ou comparez deux profils.",
+    "appliquerModele": "Appliquer un modèle",
+    "comparer": "Comparer deux profils",
+    "profilA": "Profil A",
+    "profilB": "Profil B",
+    "enregistrerCommeModele": "Enregistrer la configuration comme modèle",
+    "nomModele": "Nom du modèle",
+    "liste": {
+      "directionGenerale": "Direction Générale — Accès complet",
+      "secretaireGeneral": "Secrétaire Général — Pilotage",
+      "daf": "Directeur Administratif et Financier",
+      "assistantDirection": "Assistant(e) de Direction",
+      "responsableRH": "Responsable Ressources Humaines",
+      "controleurGestion": "Contrôleur de gestion — Lecture seule",
+      "audit": "Auditeur interne — Lecture & export"
+    },
+    "detail": {
+      "modulesAutorises": "modules autorisés",
+      "utilisateurs": "Utilisateurs affectés",
+      "appliquer": "Appliquer ce modèle",
+      "apercu": "Voir le détail"
+    }
+  },
+  "historique": {
+    "titre": "Historique des modifications",
+    "sousTitre": "Toutes les modifications de droits sont tracées.",
+    "colonneDate": "Date",
+    "colonneUtilisateur": "Utilisateur",
+    "colonneModule": "Module",
+    "colonneAvant": "Avant",
+    "colonneApres": "Après",
+    "aucuneModification": "Aucune modification enregistrée pour cette session."
+  },
+  "resume": {
+    "titre": "Récapitulatif",
+    "droitsAccordes": "Droits accordés",
+    "droitsRefuses": "Droits refusés",
+    "droitsPartiels": "Droits partiels",
+    "modificationsEnAttente": "Modifications non enregistrées",
+    "niveauGlobal": "Niveau global du profil",
+    "avertissementSuppression": "Attention : la suppression est un droit sensible.",
+    "separationTaches": "Contrôle de séparation des tâches"
+  },
+  "separationTaches": {
+    "conforme": "Aucun conflit détecté",
+    "conflit": "Conflit détecté : {droit1} et {droit2} sur le module {module}",
+    "voir": "Voir le détail"
+  },
+  "pied": {
+    "enregistrer": "Enregistrer",
+    "enregistrerAppliquer": "Enregistrer et appliquer",
+    "annuler": "Annuler",
+    "reinitialiser": "Réinitialiser",
+    "obligatoire": "Les champs marqués d'un astérisque (*) sont obligatoires."
+  },
+  "messages": {
+    "enregistrementSucces": "Les droits du profil « {profil} » ont été enregistrés avec succès.",
+    "reinitialisation": "La configuration a été réinitialisée à son état initial.",
+    "aucunResultat": "Aucun droit ne correspond à votre recherche.",
+    "confirmationFermeture": "Des modifications ne sont pas enregistrées. Voulez-vous vraiment fermer la fenêtre ?",
+    "modeleApplique": "Le modèle « {modele} » a été appliqué.",
+    "modeleEnregistre": "Le modèle « {modele} » a été enregistré.",
+    "confirme": "Confirmer",
+    "annuler": "Annuler"
+  },
+  "accessibilite": {
+    "cocherModule": "Activer ou désactiver le module {module}",
+    "choisirNiveau": "Choisir le niveau d'accès du droit {droit}",
+    "actionAutorisee": "Action {action} sur le droit {droit}"
+  }
+}
