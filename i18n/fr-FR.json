@@ -4,6 +4,47 @@
     "version": "1.0.0",
     "description": "Chaînes françaises de la fenêtre « Configurer les Droits : Direction & Administration Générale »."
   },
+  "fenetreGrille": {
+    "titre": "Configurer les Droits",
+    "sousTitre": "Direction & Administration Générale",
+    "fermer": "Fermer",
+    "nomProfil": "Nom du Profil / Rôle Métier *",
+    "nomProfilObligatoire": "Le champ « Nom du Profil / Rôle Métier » est obligatoire.",
+    "grille": "Grille des Droits d'Accès & Permissions Granulaires",
+    "selectionnees": "{n} sélectionnée(s)",
+    "toutSelectionner": "Tout sélectionner",
+    "annuler": "Annuler",
+    "enregistrer": "Enregistrer le Profil et les Droits",
+    "enregistrementSucces": "Profil « {profil} » enregistré avec {n} droit(s) sélectionné(s).",
+    "fermetureSansEnregistrer": "Fenêtre fermée sans enregistrer les modifications.",
+    "confirmationFermeture": "Des modifications ne sont pas enregistrées. Voulez-vous vraiment fermer la fenêtre ?",
+    "matriceAvancee": "Matrice avancée des droits",
+    "sections": {
+      "utilisateursEquipes": "Gestion des Utilisateurs & Équipes",
+      "assistantIA": "Assistant IA & Règles d'Automatisation",
+      "directionAdministration": "Direction & Administration Générale"
+    }
+  },
+  "permissions": {
+    "add": "Peut ajouter",
+    "change": "Peut modifier",
+    "delete": "Peut supprimer",
+    "view": "Peut consulter",
+    "modele": "{verbe} {modele}",
+    "correspondanceAnglais": {
+      "Can add": "Peut ajouter",
+      "Can change": "Peut modifier",
+      "Can delete": "Peut supprimer",
+      "Can view": "Peut consulter"
+    },
+    "modeles": {
+      "utilisateur": "Utilisateur",
+      "journalExecutionRegle": "Journal d'Exécution Règle",
+      "regleAutomatisation": "Règle d'Automatisation",
+      "noteDeService": "Note de Service",
+      "documentAdministratif": "Document Administratif"
+    }
+  },
   "fenetre": {
     "titre": "Configurer les Droits",
     "sousTitre": "Direction & Administration Générale",
