@@ -35,6 +35,21 @@ VERBES_FR = {
 
 VERBES_EN = {fr: en for en, fr in VERBES_FR.items()}
 
+#: Noms de modèles laissés en anglais par Django (modèles internes ou sans
+#: ``verbose_name``). Appliqués en suffixe du libellé, après le verbe.
+NOMS_MODELES_FR = {
+    "log entry": "Entrée de journal",
+    "group": "Groupe",
+    "permission": "Permission",
+    "content type": "Type de contenu",
+    "session": "Session",
+    "store license": "Licence de magasin",
+    "purchase return item": "Ligne de retour fournisseur",
+    "sale return item": "Ligne de retour vente",
+}
+
+NOMS_MODELES_EN = {fr: en for en, fr in NOMS_MODELES_FR.items()}
+
 
 class Command(BaseCommand):
     help = (
@@ -57,19 +72,28 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         table = VERBES_EN if options["revert"] else VERBES_FR
+        modeles = NOMS_MODELES_EN if options["revert"] else NOMS_MODELES_FR
         a_modifier = []
         for permission in Permission.objects.all().order_by("content_type__app_label", "codename"):
             nom = permission.name
+            nouveau_nom = nom
             for ancien, nouveau in table.items():
                 prefixe = ancien + " "
-                if nom.startswith(prefixe):
-                    permission.name = nouveau + " " + nom[len(prefixe):]
-                    a_modifier.append(permission)
-                    self.stdout.write(
-                        "%s.%s : %s -> %s"
-                        % (permission.content_type.app_label, permission.codename, nom, permission.name)
-                    )
+                if nouveau_nom.startswith(prefixe):
+                    nouveau_nom = nouveau + " " + nouveau_nom[len(prefixe):]
                     break
+            for ancien, nouveau in modeles.items():
+                suffixe = " " + ancien
+                if nouveau_nom.endswith(suffixe):
+                    nouveau_nom = nouveau_nom[: -len(suffixe)] + " " + nouveau
+                    break
+            if nouveau_nom != nom:
+                permission.name = nouveau_nom
+                a_modifier.append(permission)
+                self.stdout.write(
+                    "%s.%s : %s -> %s"
+                    % (permission.content_type.app_label, permission.codename, nom, nouveau_nom)
+                )
         if not a_modifier:
             self.stdout.write(self.style.SUCCESS("Aucun nom de permission à traduire."))
             return
