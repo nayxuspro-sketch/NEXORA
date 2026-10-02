@@ -17,7 +17,7 @@ Usage :
 from django.contrib.auth.models import Permission
 from django.core.management.base import BaseCommand
 
-from ..permissions_fr import VERBES_FR
+from ...permissions_fr import VERBES_FR
 
 VERBES_EN = {fr: en for en, fr in VERBES_FR.items()}
 
@@ -49,7 +49,7 @@ class Command(BaseCommand):
             for ancien, nouveau in table.items():
                 prefixe = ancien + " "
                 if nom.startswith(prefixe):
-                    permission.name = nouveau + nom[len(prefixe):]
+                    permission.name = nouveau + " " + nom[len(prefixe):]
                     a_modifier.append(permission)
                     self.stdout.write(
                         "%s.%s : %s -> %s"

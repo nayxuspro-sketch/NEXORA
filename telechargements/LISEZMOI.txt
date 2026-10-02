@@ -1,0 +1,31 @@
+CORRECTIF — Traduction française des permissions Django
+Fenêtre « Configurer les Droits : Direction & Administration Générale »
+
+CONTENU
+  integration_django/            paquet à coller dans le dossier de votre app Django
+  PROCEDURE-INSTALLATION.md      procédure détaillée (étapes 0 à 7)
+  LISEZMOI.txt                   ce fichier
+
+CE QUE ÇA CORRIGE
+  « Can add … »      ->  « Peut ajouter … »
+  « Can change … »   ->  « Peut modifier … »
+  « Can delete … »   ->  « Peut supprimer … »
+  « Can view … »     ->  « Peut consulter … »
+  (noms de permissions Django stockés en anglais en base ; aucun effet
+   sur les codename, donc aucun effet sur has_perm / groupes / rôles)
+
+INSTALLATION EXPRESS
+  1. Dézipper DANS le dossier de votre app Django (ex. profils/) :
+         unzip correctif-permissions-fr-a-coller.zip -d profils/
+     -> crée profils/integration_django/...
+  2. Dans profils/apps.py, connecter le signal dans ready() :
+         def ready(self):
+             from django.db.models.signals import post_migrate
+             from .integration_django.permissions_fr import traduire_permissions_post_migrate
+             post_migrate.connect(traduire_permissions_post_migrate, sender=self)
+  3. Simuler :   python manage.py traduire_permissions --dry-run
+  4. Appliquer : python manage.py traduire_permissions
+  5. Redémarrer le serveur, ouvrir la fenêtre : les cases sont en français.
+
+RETOUR ARRIÈRE
+  python manage.py traduire_permissions --revert

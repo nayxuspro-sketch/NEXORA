@@ -85,7 +85,7 @@ def traduire_nom_permission(nom):
     for anglais, francais in VERBES_FR.items():
         prefixe = anglais + " "
         if nom.startswith(prefixe):
-            return francais + nom[len(prefixe):]
+            return francais + " " + nom[len(prefixe):]
     return nom
 
 

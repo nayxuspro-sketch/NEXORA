@@ -43,8 +43,10 @@ Copiez le dossier `integration_django/` dans une app Django existante
                 ├── __init__.py       (vide)
                 └── traduire_permissions.py
 
-Contrainte unique : conserver les deux niveaux de paquets, car la commande
-utilise l'import relatif `from ..permissions_fr import VERBES_FR`.
+Contrainte unique : conserver la structure interne du paquet
+(``integration_django/management/commands/``), car la commande utilise
+l'import relatif ``from ...permissions_fr import VERBES_FR`` (trois points :
+deux niveaux de paquets au-dessus de ``commands``).
 
 ## Étape 2 — Brancher le signal (futures migrations traduites automatiquement)
 
