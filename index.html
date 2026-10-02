@@ -135,7 +135,8 @@
   .bouton.primaire { background: var(--bleu); color: #fff; border: 1px solid var(--bleu); }
   .bouton.primaire:hover { background: var(--bleu-fonce); border-color: var(--bleu-fonce); }
 
-  .lien-discret { color: var(--texte-doux); font-size: 12px; text-decoration: none; margin-right: auto; align-self: center; }
+  .liens-pied { display: flex; gap: 16px; margin-right: auto; align-items: center; }
+  .lien-discret { color: var(--texte-doux); font-size: 12px; text-decoration: none; }
   .lien-discret:hover { color: var(--bleu-vif); }
 
   /* ---- Notification ---- */
@@ -175,7 +176,10 @@
     </div>
 
     <footer class="pied">
-      <a class="lien-discret" href="matrice-droits.html">Matrice avancée des droits</a>
+      <span class="liens-pied">
+        <a class="lien-discret" href="matrice-droits.html">Matrice avancée des droits</a>
+        <a class="lien-discret" href="telechargements/">📥 Télécharger le correctif Django</a>
+      </span>
       <button class="bouton secondaire" type="button" id="bouton-annuler">Annuler</button>
       <button class="bouton primaire" type="button" id="bouton-enregistrer">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
