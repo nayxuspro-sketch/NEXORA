@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Téléchargements — Correctif de traduction française des permissions</title>
+<style>
+  body { font: 15px/1.6 "Segoe UI", system-ui, Arial, sans-serif; background: #0b1220; color: #eef3fb; margin: 0; padding: 40px 18px; display: flex; justify-content: center; }
+  main { width: min(680px, 100%); }
+  h1 { font-size: 21px; margin: 0 0 4px; }
+  p.sous-titre { color: #9fb0c9; margin: 0 0 26px; }
+  a.carte {
+    display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit;
+    background: #13223c; border: 1px solid #22365a; border-radius: 12px;
+    padding: 15px 17px; margin-bottom: 12px;
+  }
+  a.carte:hover { border-color: #2f7bff; background: #182a47; }
+  a.carte .icone { font-size: 24px; }
+  a.carte .nom { font-weight: 700; }
+  a.carte .detail { color: #9fb0c9; font-size: 12.5px; }
+  .taille { margin-left: auto; color: #9fb0c9; font-size: 12.5px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Téléchargements — Correctif « Configurer les Droits »</h1>
+  <p class="sous-titre">Traduction française des permissions Django (« Can add … » → « Peut ajouter … »).</p>
+
+  <a class="carte" href="correctif-permissions-fr.zip" download>
+    <span class="icone">🗜</span>
+    <span>
+      <span class="nom">correctif-permissions-fr.zip</span><br />
+      <span class="detail">Archive complète : paquet integration_django, procédure d'installation, chaînes fr-FR, fenêtre de référence</span>
+    </span>
+    <span class="taille">15 Ko</span>
+  </a>
+
+  <a class="carte" href="../integration_django/permissions_fr.py" download>
+    <span class="icone">🐍</span>
+    <span>
+      <span class="nom">permissions_fr.py</span><br />
+      <span class="detail">Table de correspondance, filtre de template, signal post_migrate</span>
+    </span>
+  </a>
+
+  <a class="carte" href="../integration_django/management/commands/traduire_permissions.py" download>
+    <span class="icone">🐍</span>
+    <span>
+      <span class="nom">traduire_permissions.py</span><br />
+      <span class="detail">Commande manage.py ( --dry-run / --revert )</span>
+    </span>
+  </a>
+
+  <a class="carte" href="PROCEDURE-INSTALLATION.md" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">PROCEDURE-INSTALLATION.md</span><br />
+      <span class="detail">Procédure de mise à jour pas à pas (étapes 0 à 7)</span>
+    </span>
+  </a>
+
+  <a class="carte" href="../i18n/fr-FR.json" download>
+    <span class="icone">🌐</span>
+    <span>
+      <span class="nom">fr-FR.json</span><br />
+      <span class="detail">Chaînes françaises de la fenêtre et correspondance des verbes</span>
+    </span>
+  </a>
+
+  <a class="carte" href="../index.html">
+    <span class="icone">🪟</span>
+    <span>
+      <span class="nom">fenetre-configurer-droits.html</span><br />
+      <span class="detail">Ouvrir la fenêtre traduite (aperçu interactif)</span>
+    </span>
+  </a>
+</main>
+</body>
+</html>
