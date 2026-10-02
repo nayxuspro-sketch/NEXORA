@@ -49,30 +49,28 @@
   .encart ul { margin: 0; padding-left: 18px; color: var(--texte-doux); font-size: 12.5px; }
   .encart li { margin-bottom: 6px; }
 
-  /* ================= PIED DE FENÊTRE : DISPOSITION CORRIGÉE ================= */
+  /* ================= PIED DE FENÊTRE : GRILLE « 2 + 1 » (rendu final approuvé) ================= */
   .pied-fenetre {
-    display: flex;
-    align-items: center;          /* boutons alignés au centre, même hauteurs */
+    display: grid;
+    grid-template-columns: 1fr 1fr;   /* Annuler | Ouvrir dans un onglet, moitiés égales */
     gap: 10px;
-    flex-wrap: wrap;              /* repli propre sur écran étroit */
     padding: 16px 20px; margin-top: 14px;
     border-top: 1px solid var(--bordure);
   }
+  @media (max-width: 480px) { .pied-fenetre { grid-template-columns: 1fr; } }
   .pied-fenetre button {
-    white-space: nowrap;          /* LE libellé reste sur une seule ligne */
-    flex: 0 0 auto;               /* ne se fait plus compresser par le flex */
-    width: auto;                  /* annule toute largeur forcée */
-    height: auto;                 /* annule toute hauteur forcée */
+    white-space: nowrap;          /* le libellé reste sur une seule ligne */
+    width: 100%;                  /* chaque bouton remplit sa cellule */
     font: inherit; font-weight: 650; border-radius: 9px; cursor: pointer;
-    padding: 10px 16px; display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   }
   .pied-fenetre .btn-sombre { background: #16233c; color: var(--texte); border: 1px solid var(--bordure); }
   .pied-fenetre .btn-sombre:hover { border-color: var(--bleu); }
-  .pied-fenetre .btn-primaire { background: var(--bleu); color: #fff; border: 1px solid var(--bleu); margin-left: auto; }
+  .pied-fenetre .btn-primaire { background: var(--bleu); color: #fff; border: 1px solid var(--bleu); grid-column: 1 / -1; }
   .pied-fenetre .btn-primaire:hover { background: var(--bleu-fonce); }
 
   /* ---------- Simulation de l'ANCIEN défaut (pour comparaison) ---------- */
-  .fenetre.defaut .pied-fenetre { flex-wrap: nowrap; gap: 8px; }
+  .fenetre.defaut .pied-fenetre { display: flex; flex-wrap: nowrap; gap: 8px; }
   .fenetre.defaut .pied-fenetre .btn-onglet {
     white-space: normal; flex: 0 1 64px; width: 64px;   /* compression : le texte s'empile */
   }
@@ -150,18 +148,16 @@
   <div class="note-correctif">
     <h2>Correctif CSS appliqué ici (à recoller dans votre projet)</h2>
     <pre>.pied-fenetre {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;   /* Annuler | Ouvrir : moities egales */
   gap: 10px;
-  flex-wrap: wrap;              /* repli propre sur écran étroit */
 }
 .pied-fenetre button {
-  white-space: nowrap;          /* libellé sur UNE seule ligne */
-  flex: 0 0 auto;               /* plus jamais compressé */
-  width: auto;
-  height: auto;
+  white-space: nowrap;              /* libelle sur UNE seule ligne */
+  width: 100%;
 }
-.pied-fenetre .btn-primaire { margin-left: auto; }</pre>
+.pied-fenetre .btn-primaire { grid-column: 1 / -1; }  /* CTA pleine largeur */
+@media (max-width: 480px) { .pied-fenetre { grid-template-columns: 1fr; } }</pre>
   </div>
 
 <script>
