@@ -144,7 +144,8 @@ if (-not $restoreSucceeded) {
 
 Write-Output ''
 Write-Output 'Verifiez le nouveau mot de passe postgres a l invite. La saisie restera invisible.'
-& $psqlPath -X -h '127.0.0.1' -p '5432' -U 'postgres' -d 'postgres' -W -c 'SELECT current_user, current_database();'
+Write-Output 'Le script listera ensuite les roles et bases existants (consultation seule).'
+& $psqlPath -X -h '127.0.0.1' -p '5432' -U 'postgres' -d 'postgres' -W -c 'SELECT current_user, current_database();' -c 'SELECT rolname FROM pg_roles WHERE rolcanlogin ORDER BY rolname;' -c 'SELECT datname FROM pg_database WHERE NOT datistemplate ORDER BY datname;'
 $verifyExitCode = $LASTEXITCODE
 Write-Output ('Code retour de verification=' + $verifyExitCode)
 if ($verifyExitCode -eq 0) {
