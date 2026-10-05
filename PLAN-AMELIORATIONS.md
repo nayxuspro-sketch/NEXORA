@@ -30,10 +30,12 @@ Légende effort : S = < 2 h, M = 0,5 j, L = 1 j ou plus.
 
 ## P1 — Majeurs (premier mois d'exploitation)
 
-- [ ] **[2] Transactions de stock atomiques avec verrouillage** (L)
-  Tout décrément `StockLevel` / création `StockMovement` / ticket `Sale` dans
-  `transaction.atomic()` + `select_for_update()` ; idem clôture de session de caisse.
-  Vérifié par : section [2] de `py manage.py audit_production`.
+- [x] **[2] Courses concurrentes sur les parcours ventes/achats** (chantier ① terminé)
+  `sales/services.py` et `purchases/services.py` corrigés avec `select_for_update()` ;
+  `inventory/services.py` était déjà verrouillé et `inventory/views.py` délègue au service.
+  Vérifié par l'audit du 05/10/2026 à 15:19 : ventes et achats affichés `[OK]`.
+  **À part** : `ai_assistant/automation.py` reste `[ATTENTION]` dans le scan statique ;
+  vérifier séparément son périmètre si cette automatisation touche au stock ou à la caisse.
 - [ ] **Tests automatisés des parcours critiques** (L)
   Ticket de caisse, décrément de stock, retour vente, ouverture/clôture de session,
   contrôle des permissions par profil. `py manage.py test` dans la CI (ou script pré-commit).
@@ -107,4 +109,12 @@ P1 -> [2], etc.). Le rapport `.txt` horodaté sert de preuve d'état à chaque j
 
 **Note** : la ligne `audit_production.py [OK]` de la section [2] est un faux positif (le scanner détecte les mots-clés dans son propre code source) — à ignorer.
 
-**Ordre d'exécution réactualisé** : ① transactions stock (6 fichiers) → ② PostgreSQL → ③ config production (DEBUG/CORS/hosts + whitenoise + LOGGING) → ④ sauvegardes + serveurs en service Windows → ⑤ TLS + cookies sécurisés → ⑥ JWT blacklist.
+**Ordre d'exécution réactualisé** : ① transactions ventes/achats — terminé → ② PostgreSQL → ③ config production (DEBUG/CORS/hosts + whitenoise + LOGGING) → ④ sauvegardes + serveurs en service Windows → ⑤ TLS + cookies sécurisés → ⑥ JWT blacklist.
+
+## Mise à jour — audit après chantier ① (05/10/2026, 15:19)
+
+- `apps/sales/services.py` et `apps/purchases/services.py` sont désormais `[OK] atomic + select_for_update` ; `py manage.py check` ne signale aucune erreur.
+- `apps/inventory/services.py` est `[OK]` ; l'alerte sur `inventory/views.py` est un faux positif confirmé (la vue délègue à ce service). Les alertes de `pos/views.py`, `reports/views.py` et `ai_assistant/service.py` ne correspondent pas à des écritures concurrentes de stock dans les parcours analysés (sessions de caisse sans mouvement de stock, rapports/assistant en lecture seule).
+- `apps/ai_assistant/automation.py` reste `[ATTENTION] atomic sans select_for_update` : à examiner séparément si cette automatisation modifie réellement le stock ou la caisse.
+- **Prochain chantier : PostgreSQL.** L'application utilise toujours SQLite ; ses verrous `select_for_update()` ne protègent donc pas des accès concurrents tant que le moteur n'a pas été migré.
+- Diagnostic sans modification préparé : `telechargements/diagnostic_postgresql.ps1`. Il relève la version Django/pilote, le fichier settings actif, l'état local de PostgreSQL et les migrations ; mots de passe et `SECRET_KEY` ne sont pas affichés.
