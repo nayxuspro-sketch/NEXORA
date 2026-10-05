@@ -93,3 +93,18 @@ Légende effort : S = < 2 h, M = 0,5 j, L = 1 j ou plus.
 Relancer `py manage.py audit_production` après chaque lot : les tags
 `[CRITIQUE]` doivent disparaître section par section (P0 -> [1][3][4],
 P1 -> [2], etc.). Le rapport `.txt` horodaté sert de preuve d'état à chaque jalon.
+
+---
+
+## Constats réels — audit du 05/10/2026 (`audit_production_20261005_131845.txt`)
+
+| # | Constat | Valeur relevée | Impact sur le plan |
+|---|---|---|---|
+| 1 | Moteur de base | **SQLite** (`D:\NEXORA\db.sqlite3`, 844 Ko, `CONN_MAX_AGE=0`) | P0-1 confirmé — migration facile (base quasi vide) |
+| 2 | Transactions | `pos/views.py`, `inventory/views.py`, `reports/views.py`, `ai_assistant/service.py` **sans atomic** ; `sales/services.py`, `purchases/services.py`, `ai_assistant/automation.py` **atomic sans select_for_update** ; `inventory/services.py` OK | P1-6 **remonté en tête** : 6 fichiers à corriger avant toute vente réelle |
+| 3 | Config | `DEBUG=True` 🔴, `ALLOWED_HOSTS=['*']`, **CORS toutes origines** 🔴 ; SECRET_KEY via env ✅, JWT rotation ✅ ; blacklist, whitenoise, LOGGING, cookies sécurisés absents | P0-3 confirmé ; P2-12/13 et P1-8 à faire |
+| 4 | Sauvegardes | **0 trouvée** 🔴 ; volumes 7 j = 0 partout, 3 utilisateurs actifs | P0-4 confirmé ; le système n'est pas encore exploité → durcir MAINTENANT, sans données à risque |
+
+**Note** : la ligne `audit_production.py [OK]` de la section [2] est un faux positif (le scanner détecte les mots-clés dans son propre code source) — à ignorer.
+
+**Ordre d'exécution réactualisé** : ① transactions stock (6 fichiers) → ② PostgreSQL → ③ config production (DEBUG/CORS/hosts + whitenoise + LOGGING) → ④ sauvegardes + serveurs en service Windows → ⑤ TLS + cookies sécurisés → ⑥ JWT blacklist.
