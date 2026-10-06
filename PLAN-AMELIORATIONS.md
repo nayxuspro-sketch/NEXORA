@@ -22,8 +22,10 @@ Légende effort : S = < 2 h, M = 0,5 j, L = 1 j ou plus.
   Comment : `pip install waitress` puis `waitress-serve --threads=8 --port=8000 config.wsgi:application` ;
   front : `npm run build` + `npm run start` ; les deux en **services Windows** (nssm) avec redémarrage auto.
 - [ ] **[3] Fermer la configuration de production** (S)
-  `DEBUG = False`, `ALLOWED_HOSTS` = domaine interne uniquement,
-  `CORS_ALLOWED_ORIGINS` = origine du front uniquement, `SECRET_KEY` via variable d'environnement.
+  Audit en lecture seule préparé dans `telechargements/audit-securite-production.zip` ; il n’a pas
+  encore été exécuté sur le Windows de l’utilisateur. Après examen de sa sortie, corriger
+  `DEBUG`, `ALLOWED_HOSTS`, CORS et la gestion de `SECRET_KEY` sur les vrais fichiers Django,
+  puis recontrôler. Ne pas modifier ces réglages à l’aveugle.
 - [ ] **[4] Sauvegardes automatisées + test de restauration** (M)
   `telechargements/sauvegarder-postgresql.ps1` prépare une sauvegarde manuelle vérifiée de `nexora_db`
   avec `pg_dump`/`pg_restore --list` (script non encore exécuté sur le Windows de l’utilisateur).
@@ -136,4 +138,5 @@ P1 -> [2], etc.). Le rapport `.txt` horodaté sert de preuve d'état à chaque j
 - Le parcours de vente a été validé par l’utilisateur : ticket, décrément de stock, paiement et caisse cohérents.
 - Aucun transfert ou réimport n’est à refaire. Le serveur actif reste le serveur de développement Django, réservé au local.
 - Une procédure et un lanceur de sauvegarde logique manuelle sont maintenant préparés dans `telechargements/sauvegarde-postgresql.zip`. Le script n’a pas encore été exécuté sur Windows ; il vérifie la lisibilité de l’archive, mais ne réalise pas un test complet de restauration ni une copie hors poste.
-- Prochaine priorité avant déploiement : vérifier la configuration réellement chargée (`DEBUG`, `ALLOWED_HOSTS`, CORS, secret, cookies/TLS, journalisation), puis mettre en place les sauvegardes automatisées et les services de production. Les sources Django de l’installation Windows ne sont pas présentes dans ce dépôt ; ne pas modifier ces paramètres à l’aveugle.
+- Prochaine priorité avant déploiement : exécuter `telechargements/audit-securite-production.zip` pour relever en lecture seule la configuration réellement chargée (`DEBUG`, `ALLOWED_HOSTS`, CORS, secret masqué, cookies/TLS, journalisation), puis corriger les fichiers Django réels à partir du rapport. Le script d’audit n’a pas encore été exécuté sur Windows. Les sources Django de l’installation Windows ne sont pas présentes dans ce dépôt ; ne pas modifier ces paramètres à l’aveugle.
+- La sauvegarde manuelle préparée précédemment reste elle aussi à exécuter sur Windows, copier hors poste et compléter par un test de restauration isolé.
