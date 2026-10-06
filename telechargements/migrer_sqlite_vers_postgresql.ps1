@@ -15,7 +15,7 @@ $verifyPath = Join-Path $project ('postgresql_verification_' + $stamp + '.json')
 
 $environmentNames = @(
     'DB_ENGINE', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT',
-    'PGPASSWORD', 'NEXORA_SOURCE_DB', 'NEXORA_BACKUP_PATH', 'NEXORA_FIXTURE_PATH',
+    'PGPASSWORD', 'PYTHONUTF8', 'NEXORA_SOURCE_DB', 'NEXORA_BACKUP_PATH', 'NEXORA_FIXTURE_PATH',
     'NEXORA_FIXTURE_BEFORE', 'NEXORA_FIXTURE_AFTER'
 )
 $oldEnvironment = @{}
@@ -96,12 +96,15 @@ try {
     Write-Output ''
     Write-Output '=== 2. Export complet des donnees SQLite ==='
     $oldEngine = [System.Environment]::GetEnvironmentVariable('DB_ENGINE', 'Process')
+    $oldPythonUtf8 = [System.Environment]::GetEnvironmentVariable('PYTHONUTF8', 'Process')
     $env:DB_ENGINE = 'sqlite'
+    $env:PYTHONUTF8 = '1'
     try {
         & py manage.py dumpdata --natural-foreign --natural-primary --exclude contenttypes --exclude auth.permission --exclude sessions --indent 2 --output $fixturePath
         $dumpExitCode = $LASTEXITCODE
     } finally {
         Restore-ProcessEnvironmentValue -Name 'DB_ENGINE' -Value $oldEngine
+        Restore-ProcessEnvironmentValue -Name 'PYTHONUTF8' -Value $oldPythonUtf8
     }
     if ($dumpExitCode -ne 0 -or -not (Test-Path -LiteralPath $fixturePath)) {
         throw 'dumpdata SQLite a echoue. La base source reste inchangee.'
@@ -204,16 +207,30 @@ try {
 
     Write-Output ''
     Write-Output '=== 6. Import des donnees SQLite ==='
-    & py manage.py loaddata $fixturePath
-    if ($LASTEXITCODE -ne 0) { throw 'loaddata a echoue. SQLite et sa copie de secours restent intactes.' }
+    $oldPythonUtf8 = [System.Environment]::GetEnvironmentVariable('PYTHONUTF8', 'Process')
+    $env:PYTHONUTF8 = '1'
+    try {
+        & py manage.py loaddata $fixturePath
+        $loadExitCode = $LASTEXITCODE
+    } finally {
+        Restore-ProcessEnvironmentValue -Name 'PYTHONUTF8' -Value $oldPythonUtf8
+    }
+    if ($loadExitCode -ne 0) { throw 'loaddata a echoue. SQLite et sa copie de secours restent intactes.' }
 
     Write-Output ''
     Write-Output '=== 7. Verification Django et comparaison des objets ==='
     & py manage.py check --database default
     if ($LASTEXITCODE -ne 0) { throw 'manage.py check a echoue sur PostgreSQL.' }
 
-    & py manage.py dumpdata --natural-foreign --natural-primary --exclude contenttypes --exclude auth.permission --exclude sessions --indent 2 --output $verifyPath
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $verifyPath)) {
+    $oldPythonUtf8 = [System.Environment]::GetEnvironmentVariable('PYTHONUTF8', 'Process')
+    $env:PYTHONUTF8 = '1'
+    try {
+        & py manage.py dumpdata --natural-foreign --natural-primary --exclude contenttypes --exclude auth.permission --exclude sessions --indent 2 --output $verifyPath
+        $verifyDumpExitCode = $LASTEXITCODE
+    } finally {
+        Restore-ProcessEnvironmentValue -Name 'PYTHONUTF8' -Value $oldPythonUtf8
+    }
+    if ($verifyDumpExitCode -ne 0 -or -not (Test-Path -LiteralPath $verifyPath)) {
         throw 'Impossible de re-exporter les donnees PostgreSQL pour comparaison.'
     }
     $oldBeforeEnvironment = [System.Environment]::GetEnvironmentVariable('NEXORA_FIXTURE_BEFORE', 'Process')
@@ -258,6 +275,7 @@ try {
         }
     }
     Restore-ProcessEnvironmentValue -Name 'PGPASSWORD' -Value $oldEnvironment['PGPASSWORD']
+    Restore-ProcessEnvironmentValue -Name 'PYTHONUTF8' -Value $oldEnvironment['PYTHONUTF8']
     Restore-ProcessEnvironmentValue -Name 'NEXORA_SOURCE_DB' -Value $oldEnvironment['NEXORA_SOURCE_DB']
     Restore-ProcessEnvironmentValue -Name 'NEXORA_BACKUP_PATH' -Value $oldEnvironment['NEXORA_BACKUP_PATH']
     Restore-ProcessEnvironmentValue -Name 'NEXORA_FIXTURE_PATH' -Value $oldEnvironment['NEXORA_FIXTURE_PATH']
