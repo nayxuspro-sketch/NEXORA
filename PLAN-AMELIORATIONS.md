@@ -138,8 +138,8 @@ P1 -> [2], etc.). Le rapport `.txt` horodaté sert de preuve d'état à chaque j
 - Le parcours de vente a été validé par l’utilisateur : ticket, décrément de stock, paiement et caisse cohérents.
 - Aucun transfert ou réimport n’est à refaire. Le serveur actif reste le serveur de développement Django, réservé au local.
 - Une procédure et un lanceur de sauvegarde logique manuelle sont maintenant préparés dans `telechargements/sauvegarde-postgresql.zip`. Le script n’a pas encore été exécuté sur Windows ; il vérifie la lisibilité de l’archive, mais ne réalise pas un test complet de restauration ni une copie hors poste.
-- Prochaine priorité avant déploiement : exécuter `telechargements/audit-securite-production.zip` pour relever en lecture seule la configuration réellement chargée (`DEBUG`, `ALLOWED_HOSTS`, CORS, secret masqué, cookies/TLS, journalisation), puis corriger les fichiers Django réels à partir du rapport. Le script d’audit n’a pas encore été exécuté sur Windows. Les sources Django de l’installation Windows ne sont pas présentes dans ce dépôt ; ne pas modifier ces paramètres à l’aveugle.
-- La sauvegarde manuelle préparée précédemment reste elle aussi à exécuter sur Windows, copier hors poste et compléter par un test de restauration isolé.
+- L’audit de sécurité a été exécuté sur Windows ; ses résultats sont consignés ci-dessous. Les sources Django réelles ne sont pas présentes dans ce dépôt ; inspecter le fichier sans exposer de secret avant de préparer un correctif ciblé.
+- La sauvegarde manuelle préparée précédemment reste à exécuter sur Windows, copier hors poste et compléter par un test de restauration isolé.
 
 ## Résultats de l’audit préproduction — 06/10/2026
 
@@ -149,5 +149,5 @@ P1 -> [2], etc.). Le rapport `.txt` horodaté sert de preuve d'état à chaque j
 - `XFrameOptionsMiddleware` absent ; `LOGGING` sans handlers configurés ; Whitenoise absent ; `MEDIA_ROOT` non défini (à confirmer selon le stockage réel des fichiers).
 - JWT : rotation active, mais access token 60 min, refresh token 168 h et blacklist absente ; réduire les durées et ajouter la révocation après sauvegarde et validation des migrations.
 - `check --deploy` a retourné le code 0, mais **72 avertissements restent présents**. Les avertissements `drf_spectacular.W001/W002` concernent surtout le schéma OpenAPI (authenticator personnalisé, serializers, annotations) ; ils ne sont pas à confondre avec les alertes de sécurité Django.
-- Anomalie de provenance : plusieurs avertissements OpenAPI pointent vers des sources sur un lecteur différent de `D:\NEXORA`. Avant tout patch, exécuter `telechargements/verifier-chemin-django.zip` : il n’accède ni à la base ni aux secrets et indique seulement si les packages résolus correspondent au dossier courant.
-- `SECRET_KEY` est présente et dépasse 50 caractères, mais cet audit ne confirme pas si elle provient bien d’une variable d’environnement ; vérifier la source sans jamais afficher sa valeur.
+- Le vérificateur de chemin a répondu `RESULT=PROJECT_IMPORTS_MATCH_CURRENT_FOLDER` : les packages `config` et `apps` sont résolus dans le dossier courant. Les chemins différents affichés par drf-spectacular ne justifient donc pas de déplacer le projet ; ils peuvent provenir de métadonnées de compilation anciennes. L’indicateur `MANAGE_PY_IMPORT_PATH_MODIFICATION=YES` de cette première version reposait sur une recherche de texte et ne prouve pas une mutation réelle.
+- `SECRET_KEY` est présente et dépasse 50 caractères, mais l’audit ne confirme pas si elle provient bien d’une variable d’environnement ; vérifier la source sans jamais afficher sa valeur. Inspection statique ciblée préparée : `telechargements/inspecter-settings-securite.zip` (sans connexion à la base ni affichage de secrets).

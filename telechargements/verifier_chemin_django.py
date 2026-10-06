@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Verifie sans importer Django ou toucher a la base ou aux secrets quel code Python est resolu."""
 
+import ast
 import importlib.machinery
 import os
 import re
@@ -32,6 +33,25 @@ def package_locations(spec):
     return []
 
 
+def sys_path_mutation(tree):
+    def is_sys_path(node):
+        if isinstance(node, ast.Attribute) and node.attr == "path":
+            return isinstance(node.value, ast.Name) and node.value.id == "sys"
+        if isinstance(node, ast.Subscript):
+            return is_sys_path(node.value)
+        return False
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(is_sys_path(target) for target in targets):
+                return True
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if node.func.attr in ("append", "extend", "insert") and is_sys_path(node.func.value):
+                return True
+    return False
+
+
 root = Path(__file__).resolve().parent
 manage = root / "manage.py"
 print("PROJECT_ROOT_HAS_MANAGE_PY=" + yes_no(manage.is_file()))
@@ -51,7 +71,11 @@ match = re.search(
 )
 settings_module = match.group(1) if match else "UNRESOLVED"
 print("DJANGO_SETTINGS_MODULE=" + settings_module)
-print("MANAGE_PY_IMPORT_PATH_MODIFICATION=" + yes_no("sys.path" in source or "PYTHONPATH" in source))
+try:
+    manage_tree = ast.parse(source)
+    print("MANAGE_PY_ACTUAL_SYS_PATH_MUTATION=" + yes_no(sys_path_mutation(manage_tree)))
+except SyntaxError:
+    print("MANAGE_PY_ACTUAL_SYS_PATH_MUTATION=UNREADABLE")
 
 settings_package = settings_module.split(".", 1)[0] if settings_module != "UNRESOLVED" else "config"
 settings_spec = importlib.machinery.PathFinder.find_spec(settings_package, sys.path)
