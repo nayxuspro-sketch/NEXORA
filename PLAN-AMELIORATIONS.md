@@ -140,3 +140,14 @@ P1 -> [2], etc.). Le rapport `.txt` horodaté sert de preuve d'état à chaque j
 - Une procédure et un lanceur de sauvegarde logique manuelle sont maintenant préparés dans `telechargements/sauvegarde-postgresql.zip`. Le script n’a pas encore été exécuté sur Windows ; il vérifie la lisibilité de l’archive, mais ne réalise pas un test complet de restauration ni une copie hors poste.
 - Prochaine priorité avant déploiement : exécuter `telechargements/audit-securite-production.zip` pour relever en lecture seule la configuration réellement chargée (`DEBUG`, `ALLOWED_HOSTS`, CORS, secret masqué, cookies/TLS, journalisation), puis corriger les fichiers Django réels à partir du rapport. Le script d’audit n’a pas encore été exécuté sur Windows. Les sources Django de l’installation Windows ne sont pas présentes dans ce dépôt ; ne pas modifier ces paramètres à l’aveugle.
 - La sauvegarde manuelle préparée précédemment reste elle aussi à exécuter sur Windows, copier hors poste et compléter par un test de restauration isolé.
+
+## Résultats de l’audit préproduction — 06/10/2026
+
+- Connexion toujours confirmée sur PostgreSQL 18.4, `nexora` / `nexora_db` ; `CONN_MAX_AGE=0` et `ATOMIC_REQUESTS=False` sont à évaluer sous charge.
+- **Risques bloquants avant exposition réseau :** `DEBUG=True`, `ALLOWED_HOSTS=['*']` et CORS ouvert à toutes les origines. Le serveur actuel est local seulement ; ne pas exposer cette configuration au LAN/Internet.
+- **Ne pas activer maintenant** redirection HTTPS, cookies `Secure` ou HSTS tant que TLS/reverse proxy n’est pas configuré : cela casserait l’accès HTTP local actuel. À planifier avec le déploiement HTTPS.
+- `XFrameOptionsMiddleware` absent ; `LOGGING` sans handlers configurés ; Whitenoise absent ; `MEDIA_ROOT` non défini (à confirmer selon le stockage réel des fichiers).
+- JWT : rotation active, mais access token 60 min, refresh token 168 h et blacklist absente ; réduire les durées et ajouter la révocation après sauvegarde et validation des migrations.
+- `check --deploy` a retourné le code 0, mais **72 avertissements restent présents**. Les avertissements `drf_spectacular.W001/W002` concernent surtout le schéma OpenAPI (authenticator personnalisé, serializers, annotations) ; ils ne sont pas à confondre avec les alertes de sécurité Django.
+- Anomalie de provenance : plusieurs avertissements OpenAPI pointent vers des sources sur un lecteur différent de `D:\NEXORA`. Avant tout patch, exécuter `telechargements/verifier-chemin-django.zip` : il n’accède ni à la base ni aux secrets et indique seulement si les packages résolus correspondent au dossier courant.
+- `SECRET_KEY` est présente et dépasse 50 caractères, mais cet audit ne confirme pas si elle provient bien d’une variable d’environnement ; vérifier la source sans jamais afficher sa valeur.
