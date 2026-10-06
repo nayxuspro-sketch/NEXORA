@@ -1,0 +1,27 @@
+SAUVEGARDE MANUELLE DE NEXORA — POSTGRESQL
+
+OBJECTIF
+Créer une archive logique lisible de la base PostgreSQL nexora_db, sans modifier la base, les migrations ou settings.py.
+
+INSTALLATION
+1. Téléchargez sauvegarde-postgresql.zip.
+2. Extrayez ses trois fichiers dans D:\NEXORA, à côté de manage.py.
+3. Lancez sauvegarder-postgresql.bat.
+
+EXÉCUTION
+- Le service postgresql-x64-18 doit déjà être démarré.
+- Le script utilise pg_dump et pg_restore version 18.
+- Saisissez le mot de passe du rôle applicatif nexora à l’invite masquée. Ne l’envoyez pas dans le chat.
+- Le script crée D:\NEXORA\sauvegardes-postgresql\nexora_db_<horodatage>.dump.
+- Il contrôle que pg_restore --list peut lire l’archive et affiche sa taille et son empreinte SHA-256.
+- L’application peut rester ouverte : pg_dump effectue une sauvegarde cohérente pendant que PostgreSQL fonctionne.
+- Le script ne lance pas migrate, ne modifie aucune donnée et ne supprime aucune ancienne sauvegarde.
+
+IMPORTANT — PROTECTION ET LIMITES
+- Une archive contient les données de la base : gardez-la dans un emplacement sécurisé. Ne la publiez pas, ne la joignez pas à un ticket et ne la commitez pas dans Git.
+- Copiez chaque sauvegarde réussie sur un disque externe ou un NAS distinct. Une copie sur le même disque ne protège pas d’une panne ou d’un rançongiciel.
+- pg_restore --list vérifie la lisibilité de l’archive, mais ne remplace pas un test complet de restauration dans une base de test séparée.
+- Le fichier couvre uniquement la base PostgreSQL nexora_db : il n’inclut pas les fichiers MEDIA, les autres bases, les rôles globaux ni la configuration du serveur.
+- Ne restaurez jamais cette archive directement sur la base active sans procédure de restauration validée et sauvegarde préalable.
+
+La sauvegarde automatisée, la copie hors poste et le test de restauration restent à mettre en place avant tout déploiement en production.

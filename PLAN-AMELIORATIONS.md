@@ -10,10 +10,13 @@ Légende effort : S = < 2 h, M = 0,5 j, L = 1 j ou plus.
 
 ## P0 — Bloquants avant l'ouverture en magasin
 
-- [ ] **[1] PostgreSQL à la place de SQLite** (M→L)
-  Pourquoi : écritures sérialisées -> « database is locked » dès 10-15 postes.
-  Comment : installer PostgreSQL 16, `dumpdata` -> `loaddata` (ou pgloader si déjà PG-compatible),
-  `DATABASES` dans settings, `CONN_MAX_AGE = 60`.
+- [x] **[1] Migration SQLite vers PostgreSQL** (M→L)
+  Réalisée et vérifiée le 06/10/2026 : 55 objets comparés à l’identique ; connexion applicative
+  confirmée sur `nexora` / `nexora_db`. Le lanceur PostgreSQL Windows a été exécuté avec succès,
+  `manage.py check` est propre et une vente a été vérifiée de bout en bout (ticket, stock,
+  paiement et caisse). Ne pas relancer la migration ni réimporter les données.
+  À contrôler encore dans l’audit de production : réglage réel de `CONN_MAX_AGE` et comportement
+  des connexions sous charge.
 - [ ] **[1] Serveurs de production des deux côtés** (M)
   Pourquoi : `next dev` et `runserver` observés = non robustes, mono-processus.
   Comment : `pip install waitress` puis `waitress-serve --threads=8 --port=8000 config.wsgi:application` ;
@@ -22,8 +25,10 @@ Légende effort : S = < 2 h, M = 0,5 j, L = 1 j ou plus.
   `DEBUG = False`, `ALLOWED_HOSTS` = domaine interne uniquement,
   `CORS_ALLOWED_ORIGINS` = origine du front uniquement, `SECRET_KEY` via variable d'environnement.
 - [ ] **[4] Sauvegardes automatisées + test de restauration** (M)
-  pg_dump quotidien + copie NAS/externe + restauration testée trimestriellement ;
-  conserver 14 générations.
+  `telechargements/sauvegarder-postgresql.ps1` prépare une sauvegarde manuelle vérifiée de `nexora_db`
+  avec `pg_dump`/`pg_restore --list` (script non encore exécuté sur le Windows de l’utilisateur).
+  Le lot reste incomplet jusqu’à la copie NAS/externe, une restauration de test réussie,
+  l’automatisation quotidienne et la conservation de 14 générations.
 - [ ] **[3] TLS interne + cookies sécurisés** (M)
   Caddy ou nginx en reverse proxy (certificat interne LAN) ;
   `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, `SECURE_PROXY_SSL_HEADER`.
@@ -98,7 +103,10 @@ P1 -> [2], etc.). Le rapport `.txt` horodaté sert de preuve d'état à chaque j
 
 ---
 
-## Constats réels — audit du 05/10/2026 (`audit_production_20261005_131845.txt`)
+## Constats initiaux pré-migration — audit du 05/10/2026 (`audit_production_20261005_131845.txt`)
+
+> Les valeurs de ce relevé décrivent l’état **avant** la migration PostgreSQL. Elles ne doivent
+> pas être lues comme un diagnostic de l’installation actuelle ; un nouvel audit reste à exécuter.
 
 | # | Constat | Valeur relevée | Impact sur le plan |
 |---|---|---|---|
@@ -116,7 +124,16 @@ P1 -> [2], etc.). Le rapport `.txt` horodaté sert de preuve d'état à chaque j
 - `apps/sales/services.py` et `apps/purchases/services.py` sont désormais `[OK] atomic + select_for_update` ; `py manage.py check` ne signale aucune erreur.
 - `apps/inventory/services.py` est `[OK]` ; l'alerte sur `inventory/views.py` est un faux positif confirmé (la vue délègue à ce service). Les alertes de `pos/views.py`, `reports/views.py` et `ai_assistant/service.py` ne correspondent pas à des écritures concurrentes de stock dans les parcours analysés (sessions de caisse sans mouvement de stock, rapports/assistant en lecture seule).
 - `apps/ai_assistant/automation.py` reste `[ATTENTION] atomic sans select_for_update` : à examiner séparément si cette automatisation modifie réellement le stock ou la caisse.
-- **Prochain chantier : PostgreSQL.** L'application utilise toujours SQLite ; ses verrous `select_for_update()` ne protègent donc pas des accès concurrents tant que le moteur n'a pas été migré.
+- **À l'époque de cet audit : prochain chantier PostgreSQL.** L'application utilisait SQLite ; ce constat historique a été résolu depuis par la migration vérifiée du 06/10/2026.
 - Diagnostic sans modification préparé : `telechargements/diagnostic_postgresql.ps1`. Il relève la version Django/pilote, le fichier settings actif, l'état local de PostgreSQL et les migrations ; mots de passe et `SECRET_KEY` ne sont pas affichés.
 - 05/10/2026 : copie SQLite pré-migration créée (`D:\NEXORA\db.sqlite3.pre-postgresql-20261005_155943.bak`, 864256 octets), `PRAGMA integrity_check=ok`. C'est un instantané ponctuel, pas encore une stratégie de sauvegarde automatisée.
 - Récupération du compte administrateur PostgreSQL préparée : `telechargements/reinitialiser_acces_postgresql.ps1` ajoute temporairement une règle `trust` strictement locale, change le mot de passe avec l'invite masquée, puis restaure `pg_hba.conf` et redémarre le service.
+
+## État confirmé après migration — 06/10/2026
+
+- La connexion du lanceur Windows a réussi sur PostgreSQL (`nexora` / `nexora_db`) ; `manage.py check` ne signale aucun problème.
+- Le modèle Utilisateur est visible dans Django Admin et la liste des comptes a été vérifiée.
+- Le parcours de vente a été validé par l’utilisateur : ticket, décrément de stock, paiement et caisse cohérents.
+- Aucun transfert ou réimport n’est à refaire. Le serveur actif reste le serveur de développement Django, réservé au local.
+- Une procédure et un lanceur de sauvegarde logique manuelle sont maintenant préparés dans `telechargements/sauvegarde-postgresql.zip`. Le script n’a pas encore été exécuté sur Windows ; il vérifie la lisibilité de l’archive, mais ne réalise pas un test complet de restauration ni une copie hors poste.
+- Prochaine priorité avant déploiement : vérifier la configuration réellement chargée (`DEBUG`, `ALLOWED_HOSTS`, CORS, secret, cookies/TLS, journalisation), puis mettre en place les sauvegardes automatisées et les services de production. Les sources Django de l’installation Windows ne sont pas présentes dans ce dépôt ; ne pas modifier ces paramètres à l’aveugle.

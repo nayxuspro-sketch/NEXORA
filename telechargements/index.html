@@ -53,6 +53,41 @@
     <span class="taille">PowerShell</span>
   </a>
 
+  <h2>Sauvegarde manuelle PostgreSQL</h2>
+  <p class="sous-titre">Crée une archive de nexora_db sans modifier la base. À copier ensuite sur un disque externe ou un NAS ; le test complet de restauration reste à faire.</p>
+  <a class="carte" href="sauvegarde-postgresql.zip" download>
+    <span class="icone">🛡️</span>
+    <span>
+      <span class="nom">sauvegarde-postgresql.zip</span><br />
+      <span class="detail">À extraire dans D:\NEXORA ; invite masquée, vérification de l’archive, aucune migration ni suppression</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="sauvegarder-postgresql.bat" download>
+    <span class="icone">▶️</span>
+    <span>
+      <span class="nom">sauvegarder-postgresql.bat</span><br />
+      <span class="detail">Point d’entrée à lancer après extraction des fichiers à côté de manage.py</span>
+    </span>
+    <span class="taille">BAT</span>
+  </a>
+  <a class="carte" href="sauvegarder-postgresql.ps1" download>
+    <span class="icone">🔐</span>
+    <span>
+      <span class="nom">sauvegarder-postgresql.ps1</span><br />
+      <span class="detail">Compagnon du BAT : pg_dump PostgreSQL 18, saisie masquée et archive contrôlée</span>
+    </span>
+    <span class="taille">PowerShell</span>
+  </a>
+  <a class="carte" href="LISEZMOI-sauvegarde-postgresql.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-sauvegarde-postgresql.txt</span><br />
+      <span class="detail">Installation, vérification et limites de la sauvegarde</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+
   <h2>Migration SQLite vers PostgreSQL</h2>
   <p class="sous-titre">Transfert vérifié et réversible pour l’installation Windows dans D:\NEXORA.</p>
   <a class="carte" href="migrer_sqlite_vers_postgresql.ps1" download>

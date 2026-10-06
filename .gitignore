@@ -1,0 +1,4 @@
+# Donnees de production et rapports generees localement : ne jamais publier dans Git.
+/sauvegardes-postgresql/
+*.dump
+/audit_production_*.txt
