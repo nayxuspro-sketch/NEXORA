@@ -22,10 +22,10 @@ Légende effort : S = < 2 h, M = 0,5 j, L = 1 j ou plus.
   Comment : `pip install waitress` puis `waitress-serve --threads=8 --port=8000 config.wsgi:application` ;
   front : `npm run build` + `npm run start` ; les deux en **services Windows** (nssm) avec redémarrage auto.
 - [ ] **[3] Fermer la configuration de production** (S)
-  Audit en lecture seule préparé dans `telechargements/audit-securite-production.zip` ; il n’a pas
-  encore été exécuté sur le Windows de l’utilisateur. Après examen de sa sortie, corriger
-  `DEBUG`, `ALLOWED_HOSTS`, CORS et la gestion de `SECRET_KEY` sur les vrais fichiers Django,
-  puis recontrôler. Ne pas modifier ces réglages à l’aveugle.
+  Audit exécuté et source identifiée : `D:\NEXORA\config\settings.py`. Profil conditionnel préparé
+  dans `telechargements/appliquer-profil-production.zip` ; il n’a pas encore été appliqué sur Windows.
+  Il reste inactif en local et refuse le mode production tant que les hôtes et le reverse proxy HTTPS
+  ne sont pas explicitement configurés.
 - [ ] **[4] Sauvegardes automatisées + test de restauration** (M)
   `telechargements/sauvegarder-postgresql.ps1` prépare une sauvegarde manuelle vérifiée de `nexora_db`
   avec `pg_dump`/`pg_restore --list` (script non encore exécuté sur le Windows de l’utilisateur).
@@ -149,5 +149,7 @@ P1 -> [2], etc.). Le rapport `.txt` horodaté sert de preuve d'état à chaque j
 - `XFrameOptionsMiddleware` absent ; `LOGGING` sans handlers configurés ; Whitenoise absent ; `MEDIA_ROOT` non défini (à confirmer selon le stockage réel des fichiers).
 - JWT : rotation active, mais access token 60 min, refresh token 168 h et blacklist absente ; réduire les durées et ajouter la révocation après sauvegarde et validation des migrations.
 - `check --deploy` a retourné le code 0, mais **72 avertissements restent présents**. Les avertissements `drf_spectacular.W001/W002` concernent surtout le schéma OpenAPI (authenticator personnalisé, serializers, annotations) ; ils ne sont pas à confondre avec les alertes de sécurité Django.
-- Le vérificateur de chemin a répondu `RESULT=PROJECT_IMPORTS_MATCH_CURRENT_FOLDER` : les packages `config` et `apps` sont résolus dans le dossier courant. Les chemins différents affichés par drf-spectacular ne justifient donc pas de déplacer le projet ; ils peuvent provenir de métadonnées de compilation anciennes. L’indicateur `MANAGE_PY_IMPORT_PATH_MODIFICATION=YES` de cette première version reposait sur une recherche de texte et ne prouve pas une mutation réelle.
-- `SECRET_KEY` est présente et dépasse 50 caractères, mais l’audit ne confirme pas si elle provient bien d’une variable d’environnement ; vérifier la source sans jamais afficher sa valeur. Inspection statique ciblée préparée : `telechargements/inspecter-settings-securite.zip` (sans connexion à la base ni affichage de secrets).
+- Le vérificateur de chemin a répondu `RESULT=PROJECT_IMPORTS_MATCH_CURRENT_FOLDER` : les packages `config` et `apps` sont résolus dans le dossier courant. Les chemins différents affichés par drf-spectacular ne justifient donc pas de déplacer le projet ; ils peuvent provenir de métadonnées de compilation anciennes. L’indicateur `MANAGE_PY_IMPORT_PATH_MODIFICATION=YES` de la première version reposait sur une recherche de texte et ne prouvait pas une mutation ; le contrôle est corrigé par analyse AST.
+- L’inspection statique confirme `config/settings.py` à la racine du projet : `DEBUG` et `SECRET_KEY` proviennent d’expressions d’environnement ; `ALLOWED_HOSTS` est statique, CORS autorise tout ; le middleware de sécurité existe, mais pas `XFrameOptionsMiddleware`; aucune configuration `LOGGING`, blacklist JWT, Whitenoise ou `MEDIA_ROOT` explicite n’a été trouvée.
+- `telechargements/appliquer-profil-production.zip` ajoute maintenant un profil dormant : il ne change pas le mode local et exige des hôtes explicites ainsi qu’un reverse proxy HTTPS pour démarrer en production. Le patch n’a pas été appliqué sur Windows. Le lanceur PostgreSQL local a été actualisé pour forcer temporairement `NEXORA_ENVIRONMENT=development`.
+- `SECRET_KEY` est présente et dépasse 50 caractères, mais la valeur n’est jamais affichée et l’audit ne vérifie pas l’absence d’une valeur de repli statique.

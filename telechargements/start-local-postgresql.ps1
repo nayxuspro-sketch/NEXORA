@@ -6,7 +6,7 @@ $ErrorActionPreference = 'Continue'
 $project = $PSScriptRoot
 $manage = Join-Path $project 'manage.py'
 $serviceName = 'postgresql-x64-18'
-$environmentNames = @('DB_ENGINE', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT')
+$environmentNames = @('DB_ENGINE', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT', 'NEXORA_ENVIRONMENT')
 $oldEnvironment = @{}
 foreach ($name in $environmentNames) {
     $oldEnvironment[$name] = [System.Environment]::GetEnvironmentVariable($name, 'Process')
@@ -29,6 +29,7 @@ try {
     $env:DB_USER = 'nexora'
     $env:DB_HOST = '127.0.0.1'
     $env:DB_PORT = '5432'
+    $env:NEXORA_ENVIRONMENT = 'development'
 
     $secret = Read-Host 'Mot de passe applicatif du role nexora (saisie masquee)' -AsSecureString
     if ($null -eq $secret -or $secret.Length -eq 0) {

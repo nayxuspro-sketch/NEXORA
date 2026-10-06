@@ -2,3 +2,5 @@
 /sauvegardes-postgresql/
 *.dump
 /audit_production_*.txt
+/config/settings.py.pre-nexora-profile-*.bak
+/config/settings.py.nexora-profile-*.tmp
