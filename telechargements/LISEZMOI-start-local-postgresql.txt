@@ -1,0 +1,14 @@
+LANCEMENT LOCAL NEXORA AVEC POSTGRESQL
+
+1. Arretez tout runserver deja ouvert avec Ctrl+C.
+2. Extrayez start-local-postgresql.bat et start-local-postgresql.ps1 dans D:\NEXORA (a cote de manage.py).
+3. Lancez start-local-postgresql.bat.
+4. A l'invite masquee, saisissez le mot de passe du role applicatif nexora.
+5. Le lanceur verifie current_user=nexora, current_database=nexora_db, execute manage.py check, puis demarre Django sur 127.0.0.1:8010.
+
+Ce lanceur n'installe ni ne met a jour les dependances, n'applique pas de migrations au demarrage et ne modifie pas settings.py. Le mot de passe n'est pas ecrit sur disque; il reste dans l'environnement du processus durant le serveur.
+
+Ouvrez l'interface/API locale via le port 8010. L'URL racine Django peut repondre 404 si seule l'API et l'admin y sont configurees.
+Pour une migration de code ulterieure, appliquez les migrations explicitement apres sauvegarde et verification de DB_ENGINE=postgresql.
+
+Retour arriere: arreter ce lanceur avec Ctrl+C et relancer l'ancien demarrage SQLite. Attention: les nouvelles donnees ecrites dans PostgreSQL ne seront pas dans SQLite.
