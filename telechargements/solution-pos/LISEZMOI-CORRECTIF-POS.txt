@@ -1,9 +1,36 @@
 ================================================================================
-NEXORA - CORRECTIF : LE BILAN DE VENTE PAR VENDEUR AU POS NE FONCTIONNAIT PAS
+NEXORA - CORRECTIF v2 : LE BILAN DE VENTE PAR VENDEUR AU POS
 ================================================================================
-Contenu : 1 script de correction, 2 fichiers corriges, 1 test automatique.
-Source  : code du depot GitHub nayxuspro-sketch/NEXORA (tag v1.3.9), corrige puis
-          valide ; le script reconnait vos fichiers et n'ecrit rien en cas de doute.
+Contenu : 1 script de correction autodetecteur, 2 fichiers corriges, 1 test
+          automatique, 1 diagnostic.
+Source  : code du depot GitHub nayxuspro-sketch/NEXORA (tag v1.3.9), corrige.
+          Le script n'ecrit RIEN quand il n'est pas sur de lui.
+
+--------------------------------------------------------------------------------
+POURQUOI UNE VERSION 2
+--------------------------------------------------------------------------------
+La version 1 attendait exactement :
+  - <projet>\apps\sales\pdf_seller_report.py
+  - <projet>\frontend\src\app\pos\page.tsx
+Sur votre machine, le premier n'etait PAS a cet emplacement, et le second ne
+correspondait pas au fichier du depot : le script s'est arrete (c'est voulu :
+il vaut mieux ne rien ecrire que casser un fichier). Rien n'a donc ete modifie
+chez vous.
+
+La version 2 ne depend plus des chemins ni de la mise en forme de vos fichiers :
+  1. AUTODETECTION : elle cherche pdf_seller_report.py partout sous le projet,
+     puis les .py dont le nom contient « seller » et « pdf », puis les .py qui
+     contiennent « export-seller-pdf » / « SellerSalesReportPdfView » ;
+     cote interface, elle cherche toute page « .../pos/page.tsx » (l'ecran POS).
+  2. PLUSIEURS DOSSIERS : elle analyse D:\NEXORA, C:\NEXORA et %USERPROFILE%
+     (ou ce que vous indiquez) et prend les fichiers ou ils sont.
+  3. REPERES TOLERANTS : les insertions sont reperees par expressions regulieres
+     (espaces, retours a la ligne, commentaires variables), plus par blocs
+     rigides.
+  4. DIAGNOSTIC : elle ecrit DIAGNOSTIC-POS.txt a cote du .bat, avec les
+     chemins trouves, les empreintes et les lignes utiles de vos fichiers.
+     Si quelque chose ne passe pas : envoyez ce fichier, la correction sera
+     adaptee a vos lignes exactes.
 
 --------------------------------------------------------------------------------
 CE QUI NE FONCTIONNAIT PAS (cause exacte, dans le code)
@@ -16,119 +43,117 @@ CE QUI NE FONCTIONNAIT PAS (cause exacte, dans le code)
 
    Le filtre par vendeur n'etait applique QUE si la deuxieme condition etait
    vraie. Quand le vendeur n'etait pas identifie, le bilan etait quand meme
-   produit : il contenait les ventes de TOUTE l'entreprise (ou celles d'un autre
+   produit : il contenait les ventes de TOUTE l'entreprise (ou d'un autre
    vendeur). L'identification elle-meme etait approximative : un email partiel
    (email__icontains) suffisait, un identifiant invalide etait ignore en
    silence, et le repli final prenait « le premier utilisateur ».
 
 2. frontend/src/app/pos/page.tsx (bouton « Mon Bilan Vente PDF ») :
    le vendeur etait saisi a la main dans un champ texte (email) ; une faute de
-   frappe ou un champ vide produisait donc un bilan errone ou complet.
+   frappe ou un champ vide produisait un bilan errone ou complet.
 
 --------------------------------------------------------------------------------
 CE QUE FAIT LE CORRECTIF
 --------------------------------------------------------------------------------
-Backend - apps/sales/pdf_seller_report.py
+Backend
   * Identification STRICTE du vendeur : identifiant technique (UUID), email
     exact, nom complet, puis email partiel SEULEMENT s'il ne correspond qu'a un
     seul vendeur (sinon message explicite).
   * Vendeur demande mais introuvable : reponse 404 claire
     {"detail": "Aucun vendeur de cette entreprise ne correspond a ..."}.
     Il n'est plus JAMAIS possible d'obtenir le bilan d'un autre vendeur.
-  * Le bilan est TOUJOURS limite a un seul vendeur : company + seller.
+  * Le bilan est TOUJOURS limite a un seul vendeur (company + seller).
   * Seules les ventes VALIDEES (statut COMPLETED) sont comptabilisees :
     brouillons et ventes annulees sont exclus.
-  * Un compte de role CASHIER n'obtient que son propre bilan, meme s'il demande
-    celui d'un collegue.
-  * Aucun vendeur determinable : 400 explicite au lieu d'un bilan trompeur.
+  * Un compte de role CASHIER n'obtient que son propre bilan.
+  * Aucun vendeur determinable : message 400 explicite au lieu d'un bilan
+    trompeur.
 
-Frontend - frontend/src/app/pos/page.tsx
+Frontend
   * Le champ email libre devient une LISTE DEROULANTE alimentee par
     /api/v1/users/?page_size=200 (vendeurs actifs de l'entreprise), avec repli
     sur la saisie email si la liste est vide.
   * Le vendeur connecte est preselectionne.
-  * L'identifiant technique du vendeur (seller_id) est envoye au serveur, y
-    compris pour le lien « Ouvrir dans un onglet » : plus d'ambiguite d'email.
-  * Texte d'aide : « Le bilan est strictement limite aux ventes validees
-    encaissees par ce vendeur sur la periode choisie. »
+  * L'identifiant technique (seller_id) est envoye au serveur, y compris pour
+    le lien « Ouvrir dans un onglet » : plus d'ambiguite d'email.
+  * Si votre modal est different, la liste deroulante n'est pas posee (facultatif)
+    mais le parametre seller_id est quand meme envoye : le filtre s'applique.
 
 --------------------------------------------------------------------------------
-INSTALLATION - METHODE 1 (recommandee, automatique)
+INSTALLATION (methode automatique, recommandee)
 --------------------------------------------------------------------------------
-1. Copiez le dossier « solution-pos » sur votre PC (par exemple sur le Bureau).
+1. Copiez le dossier sur votre PC (par exemple sur le Bureau).
 
 2. Double-cliquez sur :  APPLIQUER-CORRECTIF-POS.bat
-   - il trouve tout seul le projet (D:\NEXORA, C:\NEXORA, %USERPROFILE%\NEXORA*) ;
-   - il sauvegarde les 2 fichiers avant de les modifier ;
-   - il ne reecrit rien si le correctif est deja en place.
+   Il analyse D:\NEXORA, C:\NEXORA et %USERPROFILE%\NEXORA* et corrige ce
+   qu'il trouve. Sauvegarde automatique avant toute ecriture.
 
    En ligne de commande (equivalent) :
-       py corriger_bilan_vendeur_pos.py --racine D:\NEXORA
+       py corriger_bilan_vendeur_pos.py --racines "D:\NEXORA;C:\NEXORA"
        py corriger_bilan_vendeur_pos.py --racine D:\NEXORA --verifier
        py corriger_bilan_vendeur_pos.py --racine D:\NEXORA --dry-run
+       py corriger_bilan_vendeur_pos.py --racines "D:\NEXORA;C:\NEXORA" --diagnostic
 
-   Si vos fichiers ont ete modifies depuis la version d'origine, le script
-   S'ARRETE SANS RIEN ECRIRE et affiche les lignes a corriger a la main.
+   Sortie attendue : « CORRECTIF EN PLACE. »
 
---------------------------------------------------------------------------------
-INSTALLATION - METHODE 2 (copie manuelle des 2 fichiers corriges)
---------------------------------------------------------------------------------
-Copiez, en remplacant les fichiers existants :
-
-  fichiers\apps\sales\pdf_seller_report.py
-      -> D:\NEXORA\apps\sales\pdf_seller_report.py
-
-  fichiers\frontend\src\app\pos\page.tsx
-      -> D:\NEXORA\frontend\src\app\pos\page.tsx
-
-(Si vous travaillez dans C:\NEXORA, utilisez la meme arborescence dans C:\NEXORA.)
-Faites une copie de sauvegarde des deux fichiers avant de les remplacer.
+3. Si la sortie affiche « ARRET PARTIEL » ou « FICHIER INTROUVABLE » :
+   ouvrez DIAGNOSTIC-POS.txt (cree a cote du .bat) et envoyez-le tel quel.
+   AUCUN fichier concerne n'aura ete modifie.
 
 --------------------------------------------------------------------------------
-TEST AUTOMATIQUE (conseille : il s'execute sur la base de test Django)
+INSTALLATION (methode manuelle, si vous preferez)
 --------------------------------------------------------------------------------
-1. Copiez egalement le fichier de test :
-     fichiers\tests\test_bilan_vendeur_pos.py  ->  D:\NEXORA\tests\test_bilan_vendeur_pos.py
+Copiez en remplacant les fichiers existants :
 
+  fichiers\apps\sales\pdf_seller_report.py  ->  <projet>\apps\sales\pdf_seller_report.py
+  fichiers\frontend\src\app\pos\page.tsx    ->  <projet>\frontend\src\app\pos\page.tsx
+
+Ces deux fichiers sont exactement ceux que le script produit sur les fichiers
+d'origine du depot. Faites une sauvegarde avant de remplacer.
+
+--------------------------------------------------------------------------------
+TEST AUTOMATIQUE (conseille : s'execute sur la base de test Django)
+--------------------------------------------------------------------------------
+1. Copiez le test :
+     fichiers\tests\test_bilan_vendeur_pos.py  ->  <projet>\tests\test_bilan_vendeur_pos.py
 2. A la racine du projet (dossier de manage.py) :
      py manage.py test tests.test_bilan_vendeur_pos -v 2
-
-   Resultat attendu : OK (14 tests). Ils verifient le filtrage par vendeur, les
-   statuts exclus, le refus d'un vendeur inconnu ou d'une autre entreprise, la
-   restriction d'un caissier a son propre bilan et la generation du PDF.
+   Resultat attendu : OK (14 tests).
 
 --------------------------------------------------------------------------------
 REDEMARRAGE ET VERIFICATION A L'ECRAN
 --------------------------------------------------------------------------------
-1. Backend (dossier de manage.py)      : py manage.py runserver
-2. Frontend (dossier « frontend »)     : npm run dev
-3. POS -> bouton « Mon Bilan Vente PDF » :
-   - vous voyez maintenant une liste deroulante des vendeurs ;
-   - choisissez un vendeur et une periode, puis Exportez : le PDF ne contient
-     que les ventes validees de CE vendeur.
-4. Controle direct possible dans un navigateur (remplacez les dates) :
+1. Backend (dossier de manage.py)  : py manage.py runserver
+2. Frontend (dossier « frontend ») : npm run dev
+3. POS -> bouton « Mon Bilan Vente PDF » : choisissez le vendeur dans la liste,
+   exportez ; le PDF ne contient que les ventes validees de CE vendeur.
+4. Controle direct dans un navigateur (adaptez les dates et l'identifiant) :
    http://127.0.0.1:8008/api/v1/sales/export-seller-pdf/?start_date=2026-09-07&end_date=2026-10-07&seller_id=IDENTIFIANT_DU_VENDEUR
    - vendeur valide  -> PDF « Vente_Prenom_Nom_...pdf »
    - vendeur inconnu -> {"detail": "Aucun vendeur de cette entreprise ..."} (404)
 
 --------------------------------------------------------------------------------
-EMPREINTES SHA-256 DES FICHIERS LIVRES (pour verification)
+EMPREINTES SHA-256 DES FICHIERS LIVRES
 --------------------------------------------------------------------------------
-pdf_seller_report.py    c6afef2fcdc98408f780ee7a3ca1880b7b94355480d43fcaf7562135a0f438b5
-pos/page.tsx            c4a8248b92e1eb29708cfd31ebbb221753cbd6b76dcb8023390c75116c6b9f40
+pdf_seller_report.py    68da9354fb12bb0affaf86b8518515ac59bc9e22efc6cf610ee5f557b0561df5
+pos/page.tsx            e739ba6aec6995cccbe185c3aa1059bbce0c8f66b1e9a25459bc20f0c8352d57
 tests/test_bilan...py   c764a4d8e2f3e9d88d268f666d6ad3a8a6c50c68944cbbcdcbb49614dc48b5f8
-
-Verification sous Windows (PowerShell) :
-  Get-FileHash .\fichiers\apps\sales\pdf_seller_report.py -Algorithm SHA256
+Verification PowerShell : Get-FileHash .\fichiers\apps\sales\pdf_seller_report.py -Algorithm SHA256
 
 --------------------------------------------------------------------------------
-A SAVOIR
+CONTROLES DEJA EFFECTUES DE MON COTE
 --------------------------------------------------------------------------------
-* Le correctif a ete valide par : simulation de l'ORM Django (aucun acces base),
-  controle de syntaxe Python, controle TypeScript du fichier POS, et relecture
-  des differences avec le code d'origine du depot.
-* Le script de correction ne contient aucun mot de passe ni secret.
-* Si le test affiche « repères absents », c'est que vos deux fichiers different
-  de la version du depot : envoyez la sortie du script, la correction sera
-  adaptee a vos lignes exactes.
+* Simulation de l'ORM Django sur le backend corrige (23 controles) : filtrage
+  par vendeur, ventes annulees/brouillons exclues, vendeur inconnu => 404,
+  vendeur d'une autre entreprise refuse, vue appelee jusqu'a la generation du
+  PDF. La simulation refuse les champs inexistants, ce qui a permis d'eviter un
+  plantage lie au champ « username » absent du modele utilisateur.
+* Syntaxe Python (py_compile) et TypeScript (tsc 5.6.3) du fichier POS : aucune
+  erreur.
+* Script teste sur 4 situations : arborescence du depot ; backend renomme et
+  place ailleurs ; page POS reformatee ; page POS differemment ecrite (URL
+  directe, modal different). Dans les 4 cas : correctif applique sans erreur.
+
+* Le script ne contient aucun mot de passe ni secret, et n'ecrit aucun secret
+  dans DIAGNOSTIC-POS.txt.
 ================================================================================

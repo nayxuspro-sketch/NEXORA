@@ -26,15 +26,23 @@
   <h1>Téléchargements NEXORA</h1>
   <p class="sous-titre">Scripts et correctifs locaux pour l’application.</p>
 
-  <h2>✅ CORRECTIF POS — bilan de vente par vendeur (le bouton qui ne marchait pas)</h2>
-  <p class="sous-titre">Cause trouvée dans le code réel du dépôt : le filtre par vendeur n’était appliqué que si le vendeur était identifié, donc le bilan additionnait les ventes de toute l’entreprise. Corrigé, avec liste déroulante des vendeurs dans le POS.</p>
+  <h2>✅ CORRECTIF POS v2 — bilan de vente par vendeur (le bouton qui ne marchait pas)</h2>
+  <p class="sous-titre">Cause trouvée dans le code réel du dépôt : le filtre par vendeur n’était appliqué que si le vendeur était identifié, donc le bilan additionnait les ventes de toute l’entreprise. La v2 <strong>retrouve vos fichiers où qu’ils soient</strong> (même si <code>apps\sales\pdf_seller_report.py</code> n’est pas à l’emplacement du dépôt) et écrit un diagnostic si elle hésite.</p>
   <a class="carte" href="correctif-bilan-vendeur-pos.zip" download>
     <span class="icone">📦</span>
     <span>
       <span class="nom">correctif-bilan-vendeur-pos.zip</span><br />
-      <span class="detail">Tout-en-un : lanceur APPLIQUER-CORRECTIF-POS.bat (détecte D:\NEXORA / C:\NEXORA), script Python avec sauvegarde, les 2 fichiers corrigés, 14 tests Django et le LISEZMOI</span>
+      <span class="detail">Tout-en-un v2 : lanceur APPLIQUER-CORRECTIF-POS.bat (analyse D:\NEXORA, C:\NEXORA, %USERPROFILE%), script autodétecteur avec sauvegarde, les 2 fichiers corrigés, 14 tests Django, LISEZMOI et diagnostic DIAGNOSTIC-POS.txt</span>
     </span>
-    <span class="taille">36 Ko</span>
+    <span class="taille">40 Ko</span>
+  </a>
+  <a class="carte" href="solution-pos/APPLIQUER-CORRECTIF-POS.bat" download>
+    <span class="icone">▶️</span>
+    <span>
+      <span class="nom">APPLIQUER-CORRECTIF-POS.bat</span><br />
+      <span class="detail">Double-clic : détecte le projet, corrige, sauvegarde, et vous dit quoi faire ensuite. En cas d’échec, il crée DIAGNOSTIC-POS.txt à côté de lui</span>
+    </span>
+    <span class="taille">2 Ko</span>
   </a>
   <a class="carte" href="solution-pos/fichiers/apps/sales/pdf_seller_report.py" download>
     <span class="icone">🐍</span>
@@ -42,7 +50,7 @@
       <span class="nom">apps/sales/pdf_seller_report.py</span><br />
       <span class="detail">Backend corrigé : vendeur identifié strictement (UUID/email exact), 404 si introuvable, bilan limité aux ventes validées de CE vendeur</span>
     </span>
-    <span class="taille">29 Ko</span>
+    <span class="taille">30 Ko</span>
   </a>
   <a class="carte" href="solution-pos/fichiers/frontend/src/app/pos/page.tsx" download>
     <span class="icone">⚛️</span>
@@ -56,11 +64,10 @@
     <span class="icone">📄</span>
     <span>
       <span class="nom">LISEZMOI-CORRECTIF-POS.txt</span><br />
-      <span class="detail">Installation en 2 méthodes, test automatique (py manage.py test tests.test_bilan_vendeur_pos), vérification à l’écran et empreintes SHA-256</span>
+      <span class="detail">Pourquoi la v1 s’est arrêtée chez vous, ce que fait la v2, installation, test automatique, vérification à l’écran et empreintes SHA-256</span>
     </span>
-    <span class="taille">8 Ko</span>
+    <span class="taille">9 Ko</span>
   </a>
-
 
   <h2>Démarrage local avec PostgreSQL</h2>
   <p class="sous-titre">Remplace le démarrage automatique sur SQLite ; saisie du mot de passe masquée, sans migration ni réinstallation des dépendances à chaque lancement.</p>

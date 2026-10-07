@@ -1,6 +1,5 @@
 import json
 import uuid
-
 from apps.common.renderers import PassthroughBinaryRenderer
 from io import BytesIO
 from decimal import Decimal
@@ -32,8 +31,8 @@ def json_error(message, statut=400):
 def resolve_seller(company, seller_param):
     """Retrouve le vendeur demandé : identifiant (UUID), email, nom complet ou username.
 
-    Résolution dans l'ordre : identifiant technique, email exact, nom d'utilisateur,
-    nom complet, puis email partiel (refusé si plusieurs vendeurs correspondent).
+    Résolution dans l'ordre : identifiant technique, email exact, nom
+    d'utilisateur, nom complet, puis email partiel (refusé s'il est ambigu).
 
     Retourne (vendeur, message d'erreur) :
       - (vendeur, None)      : vendeur identifié ;
@@ -49,7 +48,10 @@ def resolve_seller(company, seller_param):
 
     # Le modèle utilisateur du projet peut ne pas avoir de champ « username »
     # (dans NEXORA, la connexion se fait par email) : on teste sa présence.
-    champs_modele = {champ.name for champ in User._meta.get_fields()}
+    try:
+        champs_modele = {champ.name for champ in User._meta.get_fields()}
+    except Exception:
+        champs_modele = {'email', 'first_name', 'last_name', 'username'}
     a_un_username = 'username' in champs_modele
 
     identifiant = None
@@ -76,7 +78,7 @@ def resolve_seller(company, seller_param):
         ).first()
 
     if vendeur is None:
-        # Compatibilité : recherche partielle sur l'email. Refusée si ambiguë,
+        # Compatibilité : recherche partielle sur l'email, refusée si ambiguë,
         # pour ne jamais produire le bilan d'un vendeur différent de celui visé.
         candidats = list(utilisateurs.filter(email__icontains=parametre)[:2])
         if len(candidats) > 1:
@@ -104,10 +106,15 @@ def sales_queryset_for_seller(company, seller_user, start_date, end_date):
     Strictement limitées à ce vendeur ET aux ventes validées (statut COMPLETED),
     ce qui exclut les brouillons et les ventes annulées.
     """
+    try:
+        from apps.sales.models import SaleStatus
+    except Exception:
+        SaleStatus = None
+    statut_valide = getattr(SaleStatus, 'COMPLETED', 'COMPLETED')
     return Sale.objects.filter(
         company=company,
         seller=seller_user,
-        status=SaleStatus.COMPLETED,
+        status=statut_valide,
         created_at__gte=start_date,
         created_at__lte=end_date,
     )
@@ -123,13 +130,7 @@ class SellerSalesReportPdfView(APIView):
     Query params:
     - start_date (YYYY-MM-DD)
     - end_date (YYYY-MM-DD)
-    - seller_id (facultatif) : identifiant du vendeur ; le paramètre
-      « seller » est aussi accepté (UUID, email ou nom d'utilisateur).
-      Fourni mais introuvable => réponse 404, jamais le bilan d'un autre.
-    - Sans paramètre : bilan de l'utilisateur connecté, sinon du premier
-      vendeur ayant des ventes (comportement d'origine).
-    - Un compte de rôle CASHIER n'obtient que son propre bilan.
-    - Seules les ventes VALIDÉES (statut COMPLETED) sont comptabilisées.
+    - seller_id (optional, defaults to request.user if seller or first seller)
     """
     permission_classes = [AllowAny]
 
@@ -140,11 +141,7 @@ class SellerSalesReportPdfView(APIView):
 
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')
-        seller_param = (
-            request.query_params.get('seller_id')
-            or request.query_params.get('seller')
-            or ''
-        ).strip()
+        seller_param = request.query_params.get('seller_id') or request.query_params.get('seller')
 
         days_param = request.query_params.get('days')
         days = int(days_param) if days_param and days_param.isdigit() else 30
@@ -177,9 +174,46 @@ class SellerSalesReportPdfView(APIView):
         if not start_date:
             start_date = now - timezone.timedelta(days=days)
 
+        # Identify target seller
+        seller_user = None
+        if seller_param:
+            seller_user = User.objects.filter(company=company).filter(
+                id=seller_param if len(seller_param) == 36 else None
+            ).first() or User.objects.filter(company=company, email__icontains=seller_param).first()
+
+        if not seller_user and request.user.is_authenticated:
+            seller_user = request.user
+
+        if not seller_user:
+            # Fallback to cashier or first user with sales
+            first_sale = Sale.objects.filter(company=company).exclude(seller=None).first()
+            if first_sale:
+                seller_user = first_sale.seller
+            else:
+                seller_user = User.objects.filter(company=company).first()
+
+        # Filter sales strictly for THIS seller
+        sales_qs = Sale.objects.filter(
+            company=company,
+            created_at__gte=start_date,
+            created_at__lte=end_date
+        )
+
+        if seller_param and seller_user:
+            sales_qs = sales_qs.filter(seller=seller_user)
+
         # ------------------------------------------------------------------
-        # Identification STRICTE du vendeur (correctif « bilan par vendeur »)
+        # CORRECTIF « bilan de vente par vendeur » (insertion automatique v2)
+        # Le vendeur est identifié STRICTEMENT ; s'il est introuvable le bilan n'est
+        # jamais produit pour un autre vendeur, et le résultat est TOUJOURS limité
+        # aux ventes validées (statut COMPLETED) de CE vendeur.
         # ------------------------------------------------------------------
+        seller_param = (
+            request.query_params.get('seller_id')
+            or request.query_params.get('seller')
+            or ''
+        ).strip()
+
         seller_user, erreur_vendeur = resolve_seller(company, seller_param)
         if erreur_vendeur:
             return json_error(erreur_vendeur, 404)
@@ -187,7 +221,7 @@ class SellerSalesReportPdfView(APIView):
         role_courant = getattr(request.user, 'role', None)
         if role_courant == 'CASHIER' and getattr(request.user, 'is_authenticated', False):
             # Un caissier ne peut consulter que son propre bilan
-            if seller_user is None or str(seller_user.id) != str(request.user.id):
+            if seller_user is None or str(getattr(seller_user, 'id', '')) != str(request.user.id):
                 seller_user = request.user
 
         if not seller_user and getattr(request.user, 'is_authenticated', False):
@@ -204,7 +238,7 @@ class SellerSalesReportPdfView(APIView):
         if not seller_user:
             return json_error("Aucun vendeur n'a pu être déterminé pour ce bilan.", 400)
 
-        # Le bilan est TOUJOURS strictement limité à ce vendeur (et aux ventes validées)
+        # Le bilan est TOUJOURS strictement limité à ce vendeur
         sales_qs = sales_queryset_for_seller(company, seller_user, start_date, end_date)
 
         sales = list(sales_qs.prefetch_related('items__product', 'payments').order_by('-created_at'))

@@ -1,39 +1,38 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-NEXORA — CORRECTIF : bilan de vente par vendeur AU NIVEAU DU POS
+NEXORA — CORRECTIF v2 : bilan de vente par vendeur au POS
 
-Corrige les deux fichiers responsables du bouton « Mon Bilan Vente PDF » du POS
-(export /api/v1/sales/export-seller-pdf/) :
+Pourquoi une version 2 ?
+  Sur votre machine, apps\\sales\\pdf_seller_report.py n'était pas au chemin
+  attendu et votre frontend\\src\\app\\pos\\page.tsx ne correspondait pas au
+  fichier du dépôt (v1.3.9). La v1 ne modifie RIEN quand elle ne reconnaît pas
+  un fichier : rien n'a été abîmé.
 
- 1. apps/sales/pdf_seller_report.py
-    - identification STRICTE du vendeur (identifiant UUID, email ou nom
-      d'utilisateur) : un vendeur demandé mais introuvable renvoie 404 au lieu
-      de produire silencieusement le bilan d'un AUTRE vendeur (cause du bug) ;
-    - le bilan est TOUJOURS limité à un seul vendeur : les ventes de tout le
-      monde ne sont plus additionnées quand le vendeur n'est pas résolu ;
-    - seules les ventes VALIDÉES (statut COMPLETED) sont comptabilisées ;
-      brouillons et ventes annulées sont exclus ;
-    - un compte de rôle CASHIER n'obtient que son propre bilan.
+Ce que fait la v2 :
+  1. AUTODÉTECTION : cherche les vrais fichiers partout sous la racine du
+     projet (apps/sales/pdf_seller_report.py, src/app/pos/page.tsx), en
+     ignorant node_modules, .git, venv, __pycache__, dist, build...
+     Si le fichier n'est pas trouvé par son nom, il est aussi cherché par son
+     CONTENU (mot-clé export-seller-pdf dans les .py).
+  2. REPÈRES TOLÉRANTS : les insertions sont repérées par expressions
+     régulières (espaces, retours à la ligne, commentaires variables), et non
+     plus par des blocs au caractère près.
+  3. Le correctif backend est posé juste AVANT la construction du PDF : le
+     calcul du vendeur est donc toujours remplacé, quelle que soit la version
+     de la vue.
+  4. DIAGNOSTIC : écrit toujours DIAGNOSTIC-POS.txt (à côté de ce script) avec
+     les chemins trouvés et les extraits de vos fichiers ; en cas d'échec,
+     envoyez ce fichier tel quel : la correction sera adaptée à vos lignes.
 
- 2. frontend/src/app/pos/page.tsx
-    - le champ « Compte Vendeur / Caissier » (saisie libre d'email, source
-      d'erreurs) devient une LISTE DÉROULANTE des vendeurs de l'entreprise ;
-    - le vendeur connecté est présélectionné ;
-    - l'identifiant technique du vendeur (seller_id) est transmis au serveur,
-      y compris sur le bouton « Ouvrir dans un onglet ».
+Aucun fichier n'est modifié si un repère essentiel manque (arrêt par fichier).
+Une sauvegarde est faite avant toute écriture.
 
-Le script :
-  * reconnaît vos fichiers (empreinte SHA-256) ou, à défaut, applique les
-    insertions par repères vérifiés ;
-  * sauvegarde les deux fichiers avant toute écriture ;
-  * ne réécrit rien si le correctif est déjà présent (relançable) ;
-  * s'arrête SANS RIEN ÉCRIRE si un repère manque, en indiquant les lignes.
-
-Usage (PowerShell) :
+Usage :
     py corriger_bilan_vendeur_pos.py --racine D:\\NEXORA
     py corriger_bilan_vendeur_pos.py --racine D:\\NEXORA --verifier
     py corriger_bilan_vendeur_pos.py --racine D:\\NEXORA --dry-run
+    py corriger_bilan_vendeur_pos.py --racine D:\\NEXORA --diagnostic
 """
 
 from __future__ import annotations
@@ -43,59 +42,150 @@ import ast
 import datetime
 import hashlib
 import os
+import re
 import shutil
 import sys
 
-CHEMIN_BACKEND = os.path.join('apps', 'sales', 'pdf_seller_report.py')
-CHEMIN_POS = os.path.join('frontend', 'src', 'app', 'pos', 'page.tsx')
+# ------------------------------------------------------------------ constantes
 
-# Empreintes des fichiers d'origine (dépôt GitHub, tag v1.3.9)
+DOSSIERS_IGNORES = {
+    'node_modules', '.git', '.next', '.nuxt', 'dist', 'build', 'out', 'coverage',
+    '__pycache__', '.venv', 'venv', 'env', 'ENV', '.mypy_cache', '.pytest_cache',
+    '.turbo', '.idea', '.vscode', 'staticfiles', 'media',
+}
+
 SHA_BACKEND_ORIGINE = '7fb10a4f340a6c069e16f67265e30da99173647ce635be49ef25a1f23ca762eb'
 SHA_POS_ORIGINE = '0467033fd972a8cde0cf35fd115b1d1b6c7e151caee659cf6f9dde632a3996d4'
 
-# Marqueurs signalant que le correctif est déjà appliqué
 MARQUEUR_BACKEND = 'def resolve_seller(company, seller_param):'
 MARQUEUR_POS = 'pos-vendeurs-bilan'
 
 
-class ErreurCorrectif(Exception):
-    pass
-
+# ------------------------------------------------------------------ utilitaires
 
 def sha256(chemin):
-    with open(chemin, 'rb') as f:
-        return hashlib.sha256(f.read()).hexdigest()
+    try:
+        with open(chemin, 'rb') as fichier:
+            return hashlib.sha256(fichier.read()).hexdigest()
+    except OSError:
+        return ''
 
 
 def lire(chemin):
-    with open(chemin, 'r', encoding='utf-8-sig', newline='') as f:
-        brut = f.read()
+    with open(chemin, 'r', encoding='utf-8-sig', newline='') as fichier:
+        brut = fichier.read()
     crlf = '\r\n' in brut
     return brut.replace('\r\n', '\n').replace('\r', '\n'), crlf
 
 
 def ecrire(chemin, texte, crlf):
     sortie = texte.replace('\n', '\r\n') if crlf else texte
-    with open(chemin, 'w', encoding='utf-8', newline='') as f:
-        f.write(sortie)
+    with open(chemin, 'w', encoding='utf-8', newline='') as fichier:
+        fichier.write(sortie)
 
 
-def indentation_de(chemin, texte):
-    """Retourne l'indentation majoritaire des lignes du fichier (pour les diagnostics)."""
-    return texte
-
-
-def reperes(texte, motif, maximum=5):
+def extraire(texte, motif, maximum=40):
+    """Lignes contenant le motif (pour le diagnostic)."""
     lignes = []
     for numero, ligne in enumerate(texte.splitlines(), 1):
-        if motif in ligne:
-            lignes.append('%5d | %s' % (numero, ligne.rstrip()[:150]))
-        if len(lignes) >= maximum:
-            break
+        if re.search(motif, ligne):
+            lignes.append('%6d | %s' % (numero, ligne.rstrip()[:180]))
+            if len(lignes) >= maximum:
+                break
     return lignes
 
 
-# --------------------------------------------------------------- backend ----
+def parcourir(racine):
+    for dossier, sous_dossiers, fichiers in os.walk(racine):
+        sous_dossiers[:] = [d for d in sous_dossiers if d not in DOSSIERS_IGNORES]
+        yield dossier, fichiers
+
+
+def chercher_par_nom(racine, nom_fichier, motif_chemin=None, maximum=12):
+    trouves = []
+    for dossier, fichiers in parcourir(racine):
+        if nom_fichier not in fichiers:
+            continue
+        chemin = os.path.join(dossier, nom_fichier)
+        if motif_chemin and not re.search(motif_chemin, chemin.replace('\\', '/'), re.I):
+            continue
+        trouves.append(chemin)
+        if len(trouves) >= maximum:
+            break
+    return trouves
+
+
+def chercher_par_nom_approchant(racine, fragments=('seller', 'pdf'), extension='.py', maximum=12):
+    """Fichiers .py dont le nom contient les fragments (ex. pdf_seller.py, seller_report.py)."""
+    trouves = []
+    for dossier, fichiers in parcourir(racine):
+        for nom in fichiers:
+            if not nom.lower().endswith(extension):
+                continue
+            minuscule = nom.lower()
+            if all(fragment in minuscule for fragment in fragments):
+                trouves.append(os.path.join(dossier, nom))
+                if len(trouves) >= maximum:
+                    return trouves
+    return trouves
+
+
+def chercher_par_contenu(racine, motifs, extension='.py', maximum=6, limite_octets=400000):
+    trouves = []
+    for dossier, fichiers in parcourir(racine):
+        for nom in fichiers:
+            if not nom.endswith(extension):
+                continue
+            chemin = os.path.join(dossier, nom)
+            try:
+                if os.path.getsize(chemin) > limite_octets:
+                    continue
+                with open(chemin, 'r', encoding='utf-8', errors='ignore') as fichier:
+                    contenu = fichier.read()
+            except OSError:
+                continue
+            if any(motif in contenu for motif in motifs):
+                trouves.append(chemin)
+                if len(trouves) >= maximum:
+                    return trouves
+    return trouves
+
+
+def choisir_backend(candidats):
+    if not candidats:
+        return None
+
+    def score(chemin):
+        normalise = chemin.replace('\\', '/').lower()
+        points = 0
+        if 'apps/sales' in normalise:
+            points += 100
+        if normalise.endswith('apps/sales/pdf_seller_report.py'):
+            points += 50
+        if '/sales/' in normalise:
+            points += 10
+        return (-points, len(normalise))
+
+    return sorted(candidats, key=score)[0]
+
+
+def choisir_pos(candidats):
+    if not candidats:
+        return None
+
+    def score(chemin):
+        normalise = chemin.replace('\\', '/').lower()
+        points = 0
+        if normalise.endswith('app/pos/page.tsx'):
+            points += 100
+        if '/pos/page.tsx' in normalise:
+            points += 50
+        return (-points, len(normalise))
+
+    return sorted(candidats, key=score)[0]
+
+
+# -------------------------------------------------------------------- backend
 
 HELPERS_BACKEND = '''def json_error(message, statut=400):
     """Réponse JSON d'erreur (le renderer de cette vue est binaire, on ne passe pas par Response)."""
@@ -109,8 +199,8 @@ HELPERS_BACKEND = '''def json_error(message, statut=400):
 def resolve_seller(company, seller_param):
     """Retrouve le vendeur demandé : identifiant (UUID), email, nom complet ou username.
 
-    Résolution dans l'ordre : identifiant technique, email exact, nom d'utilisateur,
-    nom complet, puis email partiel (refusé si plusieurs vendeurs correspondent).
+    Résolution dans l'ordre : identifiant technique, email exact, nom
+    d'utilisateur, nom complet, puis email partiel (refusé s'il est ambigu).
 
     Retourne (vendeur, message d'erreur) :
       - (vendeur, None)      : vendeur identifié ;
@@ -126,7 +216,10 @@ def resolve_seller(company, seller_param):
 
     # Le modèle utilisateur du projet peut ne pas avoir de champ « username »
     # (dans NEXORA, la connexion se fait par email) : on teste sa présence.
-    champs_modele = {champ.name for champ in User._meta.get_fields()}
+    try:
+        champs_modele = {champ.name for champ in User._meta.get_fields()}
+    except Exception:
+        champs_modele = {'email', 'first_name', 'last_name', 'username'}
     a_un_username = 'username' in champs_modele
 
     identifiant = None
@@ -153,7 +246,7 @@ def resolve_seller(company, seller_param):
         ).first()
 
     if vendeur is None:
-        # Compatibilité : recherche partielle sur l'email. Refusée si ambiguë,
+        # Compatibilité : recherche partielle sur l'email, refusée si ambiguë,
         # pour ne jamais produire le bilan d'un vendeur différent de celui visé.
         candidats = list(utilisateurs.filter(email__icontains=parametre)[:2])
         if len(candidats) > 1:
@@ -181,10 +274,15 @@ def sales_queryset_for_seller(company, seller_user, start_date, end_date):
     Strictement limitées à ce vendeur ET aux ventes validées (statut COMPLETED),
     ce qui exclut les brouillons et les ventes annulées.
     """
+    try:
+        from apps.sales.models import SaleStatus
+    except Exception:
+        SaleStatus = None
+    statut_valide = getattr(SaleStatus, 'COMPLETED', 'COMPLETED')
     return Sale.objects.filter(
         company=company,
         seller=seller_user,
-        status=SaleStatus.COMPLETED,
+        status=statut_valide,
         created_at__gte=start_date,
         created_at__lte=end_date,
     )
@@ -192,122 +290,146 @@ def sales_queryset_for_seller(company, seller_user, start_date, end_date):
 
 '''
 
-BLOC_BACKEND_ANCIEN = '''        # Identify target seller
-        seller_user = None
-        if seller_param:
-            seller_user = User.objects.filter(company=company).filter(
-                id=seller_param if len(seller_param) == 36 else None
-            ).first() or User.objects.filter(company=company, email__icontains=seller_param).first()
+BLOC_BACKEND = '''{ind}# ------------------------------------------------------------------
+{ind}# CORRECTIF « bilan de vente par vendeur » (insertion automatique v2)
+{ind}# Le vendeur est identifié STRICTEMENT ; s'il est introuvable le bilan n'est
+{ind}# jamais produit pour un autre vendeur, et le résultat est TOUJOURS limité
+{ind}# aux ventes validées (statut COMPLETED) de CE vendeur.
+{ind}# ------------------------------------------------------------------
+{ind}seller_param = (
+{ind}    request.query_params.get('seller_id')
+{ind}    or request.query_params.get('seller')
+{ind}    or ''
+{ind}).strip()
 
-        if not seller_user and request.user.is_authenticated:
-            seller_user = request.user
+{ind}seller_user, erreur_vendeur = resolve_seller(company, seller_param)
+{ind}if erreur_vendeur:
+{ind}    return json_error(erreur_vendeur, 404)
 
-        if not seller_user:
-            # Fallback to cashier or first user with sales
-            first_sale = Sale.objects.filter(company=company).exclude(seller=None).first()
-            if first_sale:
-                seller_user = first_sale.seller
-            else:
-                seller_user = User.objects.filter(company=company).first()
+{ind}role_courant = getattr(request.user, 'role', None)
+{ind}if role_courant == 'CASHIER' and getattr(request.user, 'is_authenticated', False):
+{ind}    # Un caissier ne peut consulter que son propre bilan
+{ind}    if seller_user is None or str(getattr(seller_user, 'id', '')) != str(request.user.id):
+{ind}        seller_user = request.user
 
-        # Filter sales strictly for THIS seller
-        sales_qs = Sale.objects.filter(
-            company=company,
-            created_at__gte=start_date,
-            created_at__lte=end_date
-        )
+{ind}if not seller_user and getattr(request.user, 'is_authenticated', False):
+{ind}    seller_user = request.user
 
-        if seller_param and seller_user:
-            sales_qs = sales_qs.filter(seller=seller_user)
+{ind}if not seller_user:
+{ind}    # Aucun vendeur précisé : premier vendeur ayant réellement des ventes
+{ind}    premiere_vente = Sale.objects.filter(company=company).exclude(seller=None).first()
+{ind}    if premiere_vente:
+{ind}        seller_user = premiere_vente.seller
+{ind}    else:
+{ind}        seller_user = User.objects.filter(company=company).first()
+
+{ind}if not seller_user:
+{ind}    return json_error("Aucun vendeur n'a pu être déterminé pour ce bilan.", 400)
+
+{ind}# Le bilan est TOUJOURS strictement limité à ce vendeur
+{ind}sales_qs = sales_queryset_for_seller(company, seller_user, start_date, end_date)
+
 '''
 
-BLOC_BACKEND_NOUVEAU = '''        # ------------------------------------------------------------------
-        # Identification STRICTE du vendeur (correctif « bilan par vendeur »)
-        # ------------------------------------------------------------------
-        seller_user, erreur_vendeur = resolve_seller(company, seller_param)
-        if erreur_vendeur:
-            return json_error(erreur_vendeur, 404)
-
-        role_courant = getattr(request.user, 'role', None)
-        if role_courant == 'CASHIER' and getattr(request.user, 'is_authenticated', False):
-            # Un caissier ne peut consulter que son propre bilan
-            if seller_user is None or str(seller_user.id) != str(request.user.id):
-                seller_user = request.user
-
-        if not seller_user and getattr(request.user, 'is_authenticated', False):
-            seller_user = request.user
-
-        if not seller_user:
-            # Aucun vendeur précisé : premier vendeur ayant réellement des ventes
-            premiere_vente = Sale.objects.filter(company=company).exclude(seller=None).first()
-            if premiere_vente:
-                seller_user = premiere_vente.seller
-            else:
-                seller_user = User.objects.filter(company=company).first()
-
-        if not seller_user:
-            return json_error("Aucun vendeur n'a pu être déterminé pour ce bilan.", 400)
-
-        # Le bilan est TOUJOURS strictement limité à ce vendeur (et aux ventes validées)
-        sales_qs = sales_queryset_for_seller(company, seller_user, start_date, end_date)
-'''
+# Repères (du plus fiable au moins fiable) où insérer le bloc : juste avant la
+# construction du rapport, donc après tout calcul antérieur du vendeur.
+REPERES_BACKEND = [
+    r'^[ \t]*sales\s*=\s*list\(\s*sales_qs\b',
+    r'^[ \t]*sales\s*=\s*list\(\s*[^\n]*sales_qs',
+    r'^[ \t]*[^\n]*=.*\bsales_qs\.prefetch_related\(',
+    r'^[ \t]*[^\n]*\bsales_qs\.order_by\(',
+    r'^[ \t]*[^\n]*\bin\s+sales_qs\b',
+]
 
 
-def remplacements_backend():
-    return [
-        ("from apps.common.renderers import PassthroughBinaryRenderer\n",
-         "import json\nimport uuid\n\nfrom apps.common.renderers import PassthroughBinaryRenderer\n",
-         'imports json/uuid'),
-        ("from apps.sales.models import Sale, SaleItem, Payment\n",
-         "from apps.sales.models import Sale, SaleItem, Payment, SaleStatus\n",
-         'import SaleStatus'),
-        ("class SellerSalesReportPdfView(APIView):",
-         HELPERS_BACKEND + "class SellerSalesReportPdfView(APIView):",
-         'fonctions resolve_seller / sales_queryset_for_seller'),
-        ("    - seller_id (optional, defaults to request.user if seller or first seller)\n",
-         "    - seller_id (facultatif) : identifiant du vendeur ; le paramètre\n"
-         "      « seller » est aussi accepté (UUID, email ou nom d'utilisateur).\n"
-         "      Fourni mais introuvable => réponse 404, jamais le bilan d'un autre.\n"
-         "    - Sans paramètre : bilan de l'utilisateur connecté, sinon du premier\n"
-         "      vendeur ayant des ventes (comportement d'origine).\n"
-         "    - Un compte de rôle CASHIER n'obtient que son propre bilan.\n"
-         "    - Seules les ventes VALIDÉES (statut COMPLETED) sont comptabilisées.\n",
-         'documentation de la vue'),
-        ("        seller_param = request.query_params.get('seller_id') or request.query_params.get('seller')\n",
-         "        seller_param = (\n"
-         "            request.query_params.get('seller_id')\n"
-         "            or request.query_params.get('seller')\n"
-         "            or ''\n"
-         "        ).strip()\n",
-         'lecture du paramètre seller_id/seller'),
-        (BLOC_BACKEND_ANCIEN, BLOC_BACKEND_NOUVEAU, 'bloc de sélection du vendeur'),
-    ]
+def patch_backend(texte, nom, journal, dry_run):
+    modifie = False
+    problemes = []
+
+    # 1) imports json / uuid
+    premier_import = re.search(r'^(?:import\s|from\s)', texte, re.M)
+    if premier_import is None:
+        problemes.append("aucune ligne d'import trouvée")
+        return texte, modifie, problemes
+
+    manquants = []
+    if re.search(r'^\s*import json\b', texte, re.M) is None:
+        manquants.append('import json\n')
+    if re.search(r'^\s*import uuid\b', texte, re.M) is None:
+        manquants.append('import uuid\n')
+    if manquants:
+        texte = texte[:premier_import.start()] + ''.join(manquants) + texte[premier_import.start():]
+        modifie = True
+        journal.append('imports json/uuid ajoutés')
+    else:
+        journal.append('imports json/uuid déjà présents')
+
+    # 2) HttpResponse disponible ?
+    if re.search(r'^\s*from django\.http import[^\n]*HttpResponse', texte, re.M) is None:
+        if re.search(r'^\s*from django\.http import', texte, re.M):
+            texte = re.sub(r'^([ \t]*from django\.http import[ \t]*)([^\n]*)$',
+                           lambda m: m.group(1) + m.group(2).rstrip() + ', HttpResponse',
+                           texte, count=1, flags=re.M)
+        else:
+            texte = texte[:premier_import.start()] + 'from django.http import HttpResponse\n' + texte[premier_import.start():]
+        modifie = True
+        journal.append('import HttpResponse ajouté')
+    else:
+        journal.append('import HttpResponse déjà présent')
+
+    # 2bis) SaleStatus (statut « validée ») : ajouté à l'import du module si la ligne existe.
+    import_sales = re.search(r'^[ \t]*from apps\.sales\.models import[ \t]*([^\n]*)$', texte, re.M)
+    if import_sales is not None and 'SaleStatus' not in import_sales.group(1):
+        texte = (texte[:import_sales.start(1)] + import_sales.group(1).rstrip() + ', SaleStatus'
+                 + texte[import_sales.end(1):])
+        modifie = True
+        journal.append('import SaleStatus ajouté')
+    elif import_sales is not None:
+        journal.append('import SaleStatus déjà présent')
+
+    # 3) helpers resolve_seller / sales_queryset_for_seller / json_error
+    if 'def resolve_seller(company, seller_param):' in texte:
+        journal.append('helpers déjà présents')
+    else:
+        ancre_classe = re.search(r'^class\s+SellerSalesReportPdfView\b', texte, re.M)
+        if ancre_classe is None:
+            ancre_classe = re.search(r'^class\s+\w*(?:Seller|Sales)\w*(?:Report|Pdf|PDF)\w*\s*\(', texte, re.M)
+        if ancre_classe is None:
+            problemes.append("classe de la vue introuvable (SellerSalesReportPdfView)")
+        else:
+            texte = texte[:ancre_classe.start()] + HELPERS_BACKEND + texte[ancre_classe.start():]
+            modifie = True
+            journal.append('helpers resolve_seller / sales_queryset_for_seller insérés')
+
+    if problemes:
+        return texte, modifie, problemes
+
+    # 4) bloc de sélection stricte du vendeur, posé juste avant le rapport
+    if 'erreur_vendeur = resolve_seller(' in texte:
+        journal.append('sélection stricte du vendeur déjà en place')
+        return texte, modifie, problemes
+
+    for motif in REPERES_BACKEND:
+        correspondance = re.search(motif, texte, re.M)
+        if correspondance is None:
+            continue
+        ligne = correspondance.group(0)
+        indentation = re.match(r'[ \t]*', ligne).group(0)
+        bloc = BLOC_BACKEND.format(ind=indentation)
+        texte = texte[:correspondance.start()] + bloc + texte[correspondance.start():]
+        modifie = True
+        journal.append('sélection stricte du vendeur insérée avant « %s »' % ligne.strip()[:60])
+        return texte, modifie, problemes
+
+    problemes.append("point d'insertion du filtre vendeur introuvable "
+                     "(aucun de : sales = list(sales_qs…, sales_qs.prefetch_related…)")
+    return texte, modifie, problemes
 
 
-# -------------------------------------------------------------- frontend ----
+# ------------------------------------------------------------------- frontend
 
-def remplacements_pos():
-    return [
-        ("""  const [sellerPdfPeriod, setSellerPdfPeriod] = React.useState({
-    start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    end_date: new Date().toISOString().split('T')[0],
-    seller_email: '',
-  });""",
-         """  const [sellerPdfPeriod, setSellerPdfPeriod] = React.useState({
-    start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    end_date: new Date().toISOString().split('T')[0],
-    seller_id: '',
-    seller_email: '',
-  });""",
-         'état du vendeur sélectionné'),
-
-        ("""  // Set default seller email from current user
-  React.useEffect(() => {
-    if (authUser?.email) {
-      setSellerPdfPeriod((prev) => ({ ...prev, seller_email: authUser.email }));
-    }
-  }, [authUser]);""",
-         """  // Liste des vendeurs / caissiers de l'entreprise : alimente la liste déroulante du bilan
+BLOC_FRONT_AVEC_AUTH = '''
+  // --- CORRECTIF v2 : liste des vendeurs du bilan (insertion automatique) ---
   const { data: utilisateursResponse } = useQuery<any>({
     queryKey: ['pos-vendeurs-bilan'],
     queryFn: () => apiRequest('/users/?page_size=200'),
@@ -331,56 +453,42 @@ def remplacements_pos():
       }));
   }, [utilisateursResponse, authUser]);
 
-  // Par défaut : le vendeur connecté (son identifiant technique = filtre fiable côté serveur)
+  // Par défaut : le vendeur connecté (identifiant technique = filtre fiable)
   React.useEffect(() => {
     if (authUser) {
-      setSellerPdfPeriod((prev) => ({
+      setSellerPdfPeriod((prev: any) => ({
         ...prev,
         seller_id: prev.seller_id || (authUser as any).id || '',
-        seller_email: prev.seller_email || authUser.email || '',
+        seller_email: prev.seller_email || (authUser as any).email || '',
       }));
     }
-  }, [authUser]);""",
-         'chargement de la liste des vendeurs'),
+  }, [authUser]);
+'''
 
-        ("""      const queryParams = new URLSearchParams({
-        start_date: sellerPdfPeriod.start_date,
-        end_date: sellerPdfPeriod.end_date,
-        ...(sellerPdfPeriod.seller_email ? { seller: sellerPdfPeriod.seller_email } : {}),
-      });""",
-         """      const queryParams = new URLSearchParams({
-        start_date: sellerPdfPeriod.start_date,
-        end_date: sellerPdfPeriod.end_date,
-      });
-      if (sellerPdfPeriod.seller_id) {
-        queryParams.set('seller_id', sellerPdfPeriod.seller_id);
-      } else if (sellerPdfPeriod.seller_email) {
-        queryParams.set('seller', sellerPdfPeriod.seller_email);
-      }""",
-         'paramètres envoyés au serveur'),
+BLOC_FRONT_SANS_AUTH = '''
+  // --- CORRECTIF v2 : liste des vendeurs du bilan (insertion automatique) ---
+  const { data: utilisateursResponse } = useQuery<any>({
+    queryKey: ['pos-vendeurs-bilan'],
+    queryFn: () => apiRequest('/users/?page_size=200'),
+    staleTime: 5 * 60 * 1000,
+  });
 
-        ("              href={`/api/v1/sales/export-seller-pdf/?start_date=${sellerPdfPeriod.start_date}&end_date=${sellerPdfPeriod.end_date}${sellerPdfPeriod.seller_email ? `&seller=${encodeURIComponent(sellerPdfPeriod.seller_email)}` : ''}&_t=${Date.now()}`}",
-         "              href={`/api/v1/sales/export-seller-pdf/?start_date=${sellerPdfPeriod.start_date}&end_date=${sellerPdfPeriod.end_date}${sellerPdfPeriod.seller_id ? `&seller_id=${encodeURIComponent(sellerPdfPeriod.seller_id)}` : sellerPdfPeriod.seller_email ? `&seller=${encodeURIComponent(sellerPdfPeriod.seller_email)}` : ''}&_t=${Date.now()}`}",
-         'lien « Ouvrir dans un onglet »'),
+  const vendeurs = React.useMemo(() => {
+    const brut: any[] = Array.isArray(utilisateursResponse)
+      ? utilisateursResponse
+      : (utilisateursResponse?.results || []);
+    return brut
+      .filter((u) => u && u.id && u.is_active !== false)
+      .map((u) => ({
+        id: String(u.id),
+        email: u.email || '',
+        label: [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email || String(u.id),
+        role: u.role || '',
+      }));
+  }, [utilisateursResponse]);
+'''
 
-        ("""          <div>
-            <label className="text-xs font-semibold text-muted-foreground block mb-1">
-              Compte Vendeur / Caissier
-            </label>
-            <Input
-              value={sellerPdfPeriod.seller_email}
-              onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, seller_email: e.target.value })}
-              placeholder="Ex: caissier@nexora-bf.com"
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Filtre automatique : seules les transactions encaissées par ce vendeur seront extraites.
-            </p>
-          </div>""",
-         """          <div>
-            <label className="text-xs font-semibold text-muted-foreground block mb-1">
-              Compte Vendeur / Caissier
-            </label>
-            {vendeurs.length > 0 ? (
+SELECT_VENDEUR = '''{vendeurs.length > 0 ? (
               <select
                 aria-label="Choisir le vendeur du bilan"
                 value={sellerPdfPeriod.seller_id}
@@ -408,165 +516,365 @@ def remplacements_pos():
                 onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, seller_email: e.target.value })}
                 placeholder="Ex: caissier@nexora-bf.com"
               />
-            )}
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Le bilan est strictement limité aux ventes validées encaissées par ce vendeur sur la période choisie.
-            </p>
-          </div>""",
-         'liste déroulante des vendeurs'),
-    ]
+            )}'''
 
 
-# ------------------------------------------------------------------ moteur ----
+def patch_frontend(texte, journal, dry_run):
+    modifie = False
+    problemes = []
 
-def appliquer(chemin, remplacements, marqueur, sha_origine, nom, dry_run, journal):
-    if not os.path.exists(chemin):
-        journal.append((nom, 'FICHIER INTROUVABLE', False))
-        return False, False
+    # F1) seller_id dans l'état de la période du bilan
+    etat = re.search(
+        r'const\s*\[\s*sellerPdfPeriod\s*,\s*setSellerPdfPeriod\s*\]\s*=\s*React\.useState\(\s*\{(?P<corps>[^}]*)\}',
+        texte, re.S)
+    if etat is None:
+        problemes.append("état sellerPdfPeriod introuvable (le modal du bilan a peut-être changé)")
+    elif 'seller_id' in etat.group('corps'):
+        journal.append('seller_id déjà dans l’état de la période')
+    else:
+        corps = etat.group('corps')
+        ligne_email = re.search(r'^([ \t]*)seller_email\s*:', corps, re.M)
+        indentation = ligne_email.group(1) if ligne_email else '    '
+        insertion = '%sseller_id: \'\',\n%s' % (indentation, indentation)
+        debut = etat.start('corps')
+        texte = texte[:debut] + '\n' + insertion.rstrip('\n') + texte[debut:]
+        modifie = True
+        journal.append('seller_id ajouté à l’état de la période')
 
-    texte, crlf = lire(chemin)
-    empreinte = sha256(chemin)
+    # F2) requête des vendeurs + mémo (et présélection du vendeur connecté)
+    if MARQUEUR_POS in texte:
+        journal.append('liste des vendeurs déjà chargée')
+    else:
+        declaration = re.search(
+            r'^[ \t]*const\s*\{[^}\n]*\bauthUser\b[^}\n]*\}\s*=\s*useAuth\(\s*\)\s*;', texte, re.M)
+        if declaration is None:
+            declaration = re.search(r'^[ \t]*(?:const|let|var)\s+[^\n=]*\bauthUser\b[^\n=]*=[^\n]*useAuth\([^\n]*\)\s*;?', texte, re.M)
+        bloc = BLOC_FRONT_AVEC_AUTH if declaration else BLOC_FRONT_SANS_AUTH
+        if declaration is not None:
+            texte = texte[:declaration.end()] + '\n' + bloc + texte[declaration.end():]
+            journal.append('liste des vendeurs chargée (après la définition de authUser)')
+        elif etat is not None:
+            fin_etat = texte.find(');', etat.end())
+            if fin_etat == -1:
+                fin_etat = etat.end()
+            texte = texte[:fin_etat + 2] + '\n' + bloc.lstrip('\n') + texte[fin_etat + 2:]
+            journal.append('liste des vendeurs chargée (sans authUser : introuvable)')
+        else:
+            problemes.append("point d'insertion de la liste des vendeurs introuvable")
+        modifie = modifie or (declaration is not None or etat is not None)
 
-    if marqueur in texte:
-        journal.append((nom, 'déjà corrigé', True))
-        return False, True
+    # F3) paramètres envoyés au serveur
+    if re.search(r"seller_id['\"]?\s*[:,]", texte) and 'queryParams.set' in texte and 'seller_id' in texte.split('queryParams.set')[1][:200]:
+        journal.append('paramètre seller_id déjà envoyé')
+    else:
+        remplacement_effectue = False
 
-    identique_origine = (empreinte == sha_origine)
-    manquants = [libelle for ancien, _, libelle in remplacements if ancien not in texte]
+        # cas 1 : objet passé à URLSearchParams
+        motif_objet = re.compile(
+            r'\.\.\.\(\s*sellerPdfPeriod\.seller_email\s*\?\s*\{\s*seller:\s*sellerPdfPeriod\.seller_email\s*\}\s*:\s*\{\}\s*\),',
+            re.S)
+        if motif_objet.search(texte):
+            texte = motif_objet.sub(
+                "...(sellerPdfPeriod.seller_id\n"
+                "          ? { seller_id: sellerPdfPeriod.seller_id }\n"
+                "          : sellerPdfPeriod.seller_email\n"
+                "            ? { seller: sellerPdfPeriod.seller_email }\n"
+                "            : {}),", texte, count=1)
+            remplacement_effectue = True
+            journal.append('paramètre seller_id ajouté aux paramètres de l’export')
 
-    if manquants:
-        journal.append((nom, 'REPÈRES ABSENTS : ' + ', '.join(manquants), False))
-        return False, False
+        # cas 2 : bloc URLSearchParams construit ligne par ligne
+        if not remplacement_effectue:
+            bloc_params = re.search(r'new URLSearchParams\(\{(?P<corps>[^}]*)\}', texte, re.S)
+            if bloc_params is not None and 'seller_id' not in bloc_params.group('corps'):
+                corps = bloc_params.group('corps')
+                ligne_fin = re.search(r'^([ \t]*)end_date\s*:[^\n]*$', corps, re.M)
+                if ligne_fin is not None:
+                    indentation = ligne_fin.group(1)
+                    ajout = ("\n%sseller_id: sellerPdfPeriod.seller_id || undefined,"
+                             "\n%sseller: sellerPdfPeriod.seller_id ? undefined : sellerPdfPeriod.seller_email || undefined,"
+                             % (indentation, indentation))
+                    position = bloc_params.start('corps') + ligne_fin.end()
+                    texte = texte[:position] + ajout + texte[position:]
+                    remplacement_effectue = True
+                    journal.append('paramètre seller_id ajouté au bloc URLSearchParams')
 
-    nouveau = texte
-    for ancien, remplacement, _ in remplacements:
-        nouveau = nouveau.replace(ancien, remplacement, 1)
+        # cas 3 : URL écrite à la main dans une chaîne de caractères
+        if not remplacement_effectue:
+            motif_url = re.compile(r'export-seller-pdf/\?[^`\'"]*')
+            correspondance = motif_url.search(texte)
+            if correspondance is not None:
+                fragment = correspondance.group(0)
+                if 'seller_id' not in fragment:
+                    nouveau = fragment.replace('start_date=', 'seller_id=${sellerPdfPeriod.seller_id}&start_date=', 1)
+                    texte = texte[:correspondance.start()] + nouveau + texte[correspondance.end():]
+                    remplacement_effectue = True
+                    journal.append('paramètre seller_id ajouté à l’URL d’export')
 
-    if nom.endswith('.py'):
-        try:
-            ast.parse(nouveau)
-        except SyntaxError as exc:
-            journal.append((nom, 'résultat invalide (%s) — rien écrit' % exc, False))
-            return False, False
+        if not remplacement_effectue:
+            problemes.append("point d'insertion du paramètre seller_id introuvable")
 
-    if dry_run:
-        journal.append((nom, 'simulation OK (%d insertions)' % len(remplacements), True))
-        return False, identique_origine
+    # F4) lien « Ouvrir dans un onglet »
+    motif_lien = re.compile(
+        r"\$\{\s*sellerPdfPeriod\.seller_email\s*\?\s*`&seller=\$\{encodeURIComponent\(sellerPdfPeriod\.seller_email\)\}`\s*:\s*''\s*\}")
+    if 'seller_id=' in texte and re.search(r'encodeURIComponent\(sellerPdfPeriod\.seller_id\)', texte):
+        journal.append('lien direct déjà corrigé')
+    elif motif_lien.search(texte):
+        texte = motif_lien.sub(
+            "${sellerPdfPeriod.seller_id ? `&seller_id=${encodeURIComponent(sellerPdfPeriod.seller_id)}` "
+            ": sellerPdfPeriod.seller_email ? `&seller=${encodeURIComponent(sellerPdfPeriod.seller_email)}` : ''}",
+            texte, count=1)
+        modifie = True
+        journal.append('lien « Ouvrir dans un onglet » corrigé')
+    else:
+        journal.append('lien direct : aucun changement nécessaire (ou forme différente)')
 
-    ecrire(chemin, nouveau, crlf)
-    journal.append((nom, 'corrigé (%d insertions%s)' % (
-        len(remplacements),
-        ', fichier identique à la version d’origine' if identique_origine else ', fichier local adapté'), True))
-    return True, True
+    # F5) liste déroulante dans le modal (facultatif : le backend corrige déjà)
+    if 'Choisir le vendeur du bilan' in texte:
+        journal.append('liste déroulante déjà en place')
+    else:
+        motif_ui = re.compile(
+            r'(<label[^>]*>\s*Compte Vendeur[^<]*</label>\s*)(<Input\b[\s\S]{0,400}?/>)')
+        correspondance = motif_ui.search(texte)
+        if correspondance is None:
+            journal.append('liste déroulante : zone de saisie non reconnue (facultatif) — '
+                           'le paramètre seller_id est bien envoyé, le backend applique le filtre')
+        else:
+            texte = (texte[:correspondance.start(2)] + SELECT_VENDEUR +
+                     texte[correspondance.end(2):])
+            modifie = True
+            journal.append('liste déroulante des vendeurs insérée dans le modal')
+
+        # texte d'aide
+        texte, nombre = re.subn(
+            r'Filtre automatique\s*:\s*seules les transactions encaissées par ce vendeur seront extraites\.',
+            'Le bilan est strictement limité aux ventes validées encaissées par ce vendeur sur la période choisie.',
+            texte, count=1)
+        if nombre:
+            modifie = True
+            journal.append('texte d’aide mis à jour')
+
+    return texte, modifie, problemes
+
+
+# ------------------------------------------------------------------------ main
+
+def diagnostiquer(dossier_script, backend, pos, journal_cherche, racine):
+    lignes = []
+    lignes.append('NEXORA — DIAGNOSTIC du bilan par vendeur au POS')
+    lignes.append('Généré le %s' % datetime.datetime.now().strftime('%d/%m/%Y à %H:%M:%S'))
+    lignes.append('Racine analysée : %s' % racine)
+    lignes.append('')
+    lignes.append('--- Recherche des fichiers ---')
+    lignes.extend(journal_cherche)
+    lignes.append('')
+    for titre, chemin in (('BACKEND (vue PDF vendeur)', backend), ('FRONTEND (écran POS)', pos)):
+        lignes.append('--- %s ---' % titre)
+        if not chemin:
+            lignes.append('  introuvable')
+            lignes.append('')
+            continue
+        lignes.append('  chemin : %s' % chemin)
+        lignes.append('  taille : %s octets' % os.path.getsize(chemin))
+        lignes.append('  sha256 : %s' % sha256(chemin))
+        texte, _ = lire(chemin)
+        motif = (r'seller_param|sales_qs|SellerSalesReportPdfView|export-seller-pdf'
+                 if titre.startswith('BACKEND') else r'seller|vendeur|Vendeur')
+        lignes.append('  extraits :')
+        extraits = extraire(texte, motif, maximum=60)
+        lignes.extend(('    ' + ligne) if ligne else ligne for ligne in (extraits or ['    (aucun)']))
+        lignes.append('')
+    chemin = os.path.join(dossier_script, 'DIAGNOSTIC-POS.txt')
+    with open(chemin, 'w', encoding='utf-8') as fichier:
+        fichier.write('\n'.join(lignes) + '\n')
+    return chemin
 
 
 def main(argv=None):
-    parseur = argparse.ArgumentParser(description="Correctif du bilan de vente par vendeur au POS.")
+    parseur = argparse.ArgumentParser(description="Correctif v2 du bilan de vente par vendeur au POS (NEXORA).")
     parseur.add_argument('--racine', default=None, help="Racine du projet (défaut : D:\\NEXORA si présent)")
+    parseur.add_argument('--racines', default=None,
+                         help="Plusieurs racines séparées par ; (ex. \"D:\\NEXORA;C:\\NEXORA\")")
     parseur.add_argument('--dry-run', action='store_true', help="Simule sans rien écrire")
     parseur.add_argument('--verifier', action='store_true', help="État seulement")
+    parseur.add_argument('--diagnostic', action='store_true', help="Écrit le diagnostic même en cas de succès")
     options = parseur.parse_args(argv)
 
+    dossier_script = os.path.dirname(os.path.abspath(__file__))
+
+    racines = []
+    if options.racines:
+        racines = [os.path.abspath(r.strip()) for r in options.racines.split(';') if r.strip()]
     if options.racine:
-        racine = os.path.abspath(options.racine)
-    elif os.path.isdir('D:\\NEXORA'):
-        racine = 'D:\\NEXORA'
-    else:
-        racine = os.getcwd()
-
-    print('=' * 76)
-    print('NEXORA — bilan de vente par vendeur (POS) : correctif ciblé')
-    print('=' * 76)
-    print('Racine du projet : %s' % racine)
-    if not os.path.isdir(racine):
-        print("ERREUR : dossier inexistant.")
+        racines.insert(0, os.path.abspath(options.racine))
+    if not racines:
+        for candidat in ('D:\\NEXORA', 'C:\\NEXORA'):
+            if os.path.isdir(candidat):
+                racines.append(candidat)
+    for nom in sorted(os.listdir(os.getcwd())) if os.path.isdir(os.getcwd()) else []:
+        chemin = os.path.join(os.getcwd(), nom)
+        if nom.upper().startswith('NEXORA') and os.path.isdir(chemin):
+            racines.append(chemin)
+    if not racines:
+        racines = [os.getcwd()]
+    racines = [r for r in dict.fromkeys(racines) if os.path.isdir(r)]
+    if not racines:
+        print('ERREUR : aucun dossier de projet utilisable.')
         return 2
+    racine = racines[0]
 
-    backend = os.path.join(racine, CHEMIN_BACKEND)
-    page_pos = os.path.join(racine, CHEMIN_POS)
-    for chemin, nom in ((backend, CHEMIN_BACKEND), (page_pos, CHEMIN_POS)):
-        etat = 'présent' if os.path.exists(chemin) else 'ABSENT'
-        print('  %-45s %s' % (nom, etat))
+    print('=' * 76)
+    print('NEXORA — bilan de vente par vendeur (POS) : correctif v2 (autodétection)')
+    print('=' * 76)
+    print('Dossier(s) analysé(s) : %s' % ', '.join(racines))
+
+    journal_cherche = []
+
+    candidats_backend = []
+    for racine_courante in racines:
+        trouves = chercher_par_nom(racine_courante, 'pdf_seller_report.py')
+        journal_cherche.append('%s : pdf_seller_report.py -> %d trouvé(s)' % (racine_courante, len(trouves)))
+        candidats_backend.extend(trouves)
+    if not candidats_backend:
+        for racine_courante in racines:
+            journal_cherche.append('  recherche par nom approchant (*seller*pdf*.py) dans %s…' % racine_courante)
+            candidats_backend.extend(chercher_par_nom_approchant(racine_courante))
+            if candidats_backend:
+                break
+    if not candidats_backend:
+        for racine_courante in racines:
+            journal_cherche.append('  recherche par contenu (export-seller-pdf, SellerSalesReportPdfView) dans %s…' % racine_courante)
+            candidats_backend.extend(chercher_par_contenu(
+                racine_courante, ['export-seller-pdf', 'SellerSalesReportPdfView', 'export_seller_pdf']))
+            if candidats_backend:
+                break
+    for chemin in candidats_backend:
+        journal_cherche.append('  %s' % chemin)
+    backend = choisir_backend(candidats_backend)
+
+    candidats_pos = []
+    for racine_courante in racines:
+        trouves = chercher_par_nom(racine_courante, 'page.tsx', motif_chemin=r'/pos/')
+        journal_cherche.append('%s : pos/page.tsx -> %d trouvé(s)' % (racine_courante, len(trouves)))
+        candidats_pos.extend(trouves)
+    for chemin in candidats_pos:
+        journal_cherche.append('  %s' % chemin)
+    pos = choisir_pos(candidats_pos)
+
+    print('  backend  : %s' % (backend or 'INTROUVABLE'))
+    print('  écran POS : %s' % (pos or 'INTROUVABLE'))
     print('-' * 76)
 
+    etats = []
+
+    # --- état / vérification
     if options.verifier:
-        journal = []
-        for chemin, remplacements, marqueur, sha_origine, nom in (
-            (backend, remplacements_backend(), MARQUEUR_BACKEND, SHA_BACKEND_ORIGINE, CHEMIN_BACKEND),
-            (page_pos, remplacements_pos(), MARQUEUR_POS, SHA_POS_ORIGINE, CHEMIN_POS),
-        ):
-            if not os.path.exists(chemin):
-                journal.append((nom, 'FICHIER INTROUVABLE', False))
+        for nom, chemin, marqueur in (('backend', backend, MARQUEUR_BACKEND),
+                                      ('frontend', pos, MARQUEUR_POS)):
+            if not chemin:
+                etats.append((nom, 'FICHIER INTROUVABLE', False))
                 continue
             texte, _ = lire(chemin)
             if marqueur in texte:
-                journal.append((nom, 'déjà corrigé', True))
+                etats.append((nom, 'déjà corrigé', True))
             else:
-                manquants = [l for a, _, l in remplacements if a not in texte]
-                journal.append((nom, ('à corriger — repères absents : ' + ', '.join(manquants)) if manquants else 'à corriger', not manquants))
-        for nom, etat, ok in journal:
-            print('  %-45s %s' % (nom, etat))
-        return 0 if all(ok for _, _, ok in journal) else 1
-
-    # sauvegarde
-    if not options.dry_run:
-        horodatage = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
-        dossier = os.path.join(racine, 'sauvegardes-bilan-pos-%s' % horodatage)
-        copies = 0
-        for chemin, rel in ((backend, CHEMIN_BACKEND), (page_pos, CHEMIN_POS)):
-            if os.path.exists(chemin):
-                cible = os.path.join(dossier, rel)
-                os.makedirs(os.path.dirname(cible), exist_ok=True)
-                shutil.copy2(chemin, cible)
-                copies += 1
-        print('Sauvegarde : %s (%d fichier(s))' % (dossier, copies))
-        print('-' * 76)
-
-    journal = []
-    resultats = []
-    for chemin, remplacements, marqueur, sha_origine, nom in (
-        (backend, remplacements_backend(), MARQUEUR_BACKEND, SHA_BACKEND_ORIGINE, CHEMIN_BACKEND),
-        (page_pos, remplacements_pos(), MARQUEUR_POS, SHA_POS_ORIGINE, CHEMIN_POS),
-    ):
-        modifie, ok = appliquer(chemin, remplacements, marqueur, sha_origine, nom, options.dry_run, journal)
-        resultats.append(ok)
-
-    for nom, etat, _ in journal:
-        print('  %-45s %s' % (nom, etat))
-
-    print('-' * 76)
-    if not all(resultats):
-        print('ARRÊT : un repère est introuvable (ou un fichier manque).')
-        print('Aucun fichier n’a été modifié par cette exécution pour l’élément en échec.')
-        for chemin, nom in ((backend, CHEMIN_BACKEND), (page_pos, CHEMIN_POS)):
-            if os.path.exists(chemin):
-                texte, _ = lire(chemin)
-                for motif in ('class SellerSalesReportPdfView', 'seller_id', 'Compte Vendeur'):
-                    reperes_trouves = reperes(texte, motif)
-                    if reperes_trouves:
-                        print('  repères dans %s (motif « %s ») :' % (nom, motif))
-                        for ligne in reperes_trouves:
-                            print('    ' + ligne)
-        return 1
-
-    if options.dry_run:
-        print('Mode simulation : aucun fichier n’a été modifié.')
+                etats.append((nom, 'à corriger', True))
+        for nom, etat, _ in etats:
+            print('  %-10s %s' % (nom, etat))
+        if options.diagnostic or not all(ok for _, _, ok in etats):
+            print('  diagnostic : %s' % diagnostiquer(dossier_script, backend, pos, journal_cherche, racine))
         return 0
 
-    print('Correctif appliqué.')
-    print('  Backend  : apps/sales/pdf_seller_report.py')
-    print('  Frontend : frontend/src/app/pos/page.tsx')
+    # --- sauvegarde
+    a_modifier = [c for c in (backend, pos) if c]
+    if a_modifier and not options.dry_run:
+        horodatage = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+        dossier = os.path.join(racines[0], 'sauvegardes-bilan-pos-%s' % horodatage)
+        for chemin in a_modifier:
+            relatif = os.path.relpath(chemin, racines[0]) if chemin.startswith(racines[0]) else os.path.basename(chemin)
+            cible = os.path.join(dossier, relatif)
+            os.makedirs(os.path.dirname(cible), exist_ok=True)
+            shutil.copy2(chemin, cible)
+        print('Sauvegarde : %s (%d fichier(s))' % (dossier, len(a_modifier)))
+        print('-' * 76)
+
+    resultats = []
+
+    # --- backend
+    if not backend:
+        print('  backend  : FICHIER INTROUVABLE — recherche par contenu effectuée, rien trouvé.')
+        resultats.append(False)
+    else:
+        texte, crlf = lire(backend)
+        if MARQUEUR_BACKEND in texte and 'erreur_vendeur = resolve_seller(' in texte:
+            print('  backend  : déjà corrigé')
+            resultats.append(True)
+        else:
+            avant = texte
+            texte, modifie, problemes = patch_backend(texte, backend, [], options.dry_run)
+            if problemes:
+                print('  backend  : NON CORRIGÉ — %s' % ' ; '.join(problemes))
+                resultats.append(False)
+            else:
+                try:
+                    ast.parse(texte)
+                except SyntaxError as erreur:
+                    print('  backend  : NON CORRIGÉ — résultat invalide (%s)' % erreur)
+                    resultats.append(False)
+                else:
+                    if options.dry_run:
+                        print('  backend  : simulation OK (aucune écriture)')
+                    else:
+                        ecrire(backend, texte, crlf)
+                        print('  backend  : CORRIGÉ (%s)' % backend)
+                    resultats.append(True)
+
+    # --- frontend
+    if not pos:
+        print('  frontend : FICHIER INTROUVABLE')
+        resultats.append(False)
+    else:
+        texte, crlf = lire(pos)
+        if MARQUEUR_POS in texte and 'seller_id' in texte:
+            print('  frontend : déjà corrigé')
+            resultats.append(True)
+        else:
+            journal = []
+            texte_nouveau, modifie, problemes = patch_frontend(texte, journal, options.dry_run)
+            for ligne in journal:
+                print('    - %s' % ligne)
+            if problemes:
+                print('  frontend : NON CORRIGÉ — %s' % ' ; '.join(problemes))
+                resultats.append(False)
+            else:
+                if options.dry_run:
+                    print('  frontend : simulation OK (aucune écriture)')
+                else:
+                    ecrire(pos, texte_nouveau, crlf)
+                    print('  frontend : CORRIGÉ (%s)' % pos)
+                resultats.append(True)
+
+    # --- diagnostic
+    chemin_diagnostic = diagnostiquer(dossier_script, backend, pos, journal_cherche, racine)
+
+    print('-' * 76)
+    if all(resultats):
+        print('CORRECTIF EN PLACE.')
+        print()
+        print('À faire ensuite :')
+        print('  1. Test automatique (dossier de manage.py) :')
+        print('       py manage.py test tests.test_bilan_vendeur_pos -v 2')
+        print('  2. Redémarrez Django puis le frontend (cd frontend && npm run dev).')
+        print('  3. POS : bouton « Mon Bilan Vente PDF » -> le PDF ne contient que les')
+        print('     ventes validées du vendeur choisi.')
+    else:
+        print('ARRÊT PARTIEL : certains éléments n’ont pas pu être corrigés automatiquement.')
+        print('Aucun fichier pour lequel un repère manquait n’a été écrit.')
     print()
-    print('À faire ensuite :')
-    print('  1. Redémarrez Django (le serveur recharge le fichier Python).')
-    print('  2. Redémarrez le frontend : cd frontend  puis  npm run dev')
-    print('  3. POS : bouton « Mon Bilan Vente PDF » -> la liste déroulante des')
-    print('     vendeurs remplace la saisie libre de l’email. Choisissez un vendeur :')
-    print('     le PDF ne doit contenir QUE ses ventes validées du POS.')
-    print()
-    print('Vérification automatique conseillée :')
-    print('  py manage.py test tests.test_bilan_vendeur_pos -v 2')
-    return 0
+    print('Diagnostic écrit : %s' % chemin_diagnostic)
+    print('En cas d’échec, envoyez ce fichier DIAGNOSTIC-POS.txt : la correction sera')
+    print('adaptée à vos lignes exactes.')
+    return 0 if all(resultats) else 1
 
 
 if __name__ == '__main__':

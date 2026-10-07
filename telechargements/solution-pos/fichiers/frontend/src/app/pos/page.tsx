@@ -90,6 +90,42 @@ export default function PosPage() {
 
   // Modals
   const { user: authUser } = useAuth();
+
+  // --- CORRECTIF v2 : liste des vendeurs du bilan (insertion automatique) ---
+  const { data: utilisateursResponse } = useQuery<any>({
+    queryKey: ['pos-vendeurs-bilan'],
+    queryFn: () => apiRequest('/users/?page_size=200'),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const vendeurs = React.useMemo(() => {
+    const brut: any[] = Array.isArray(utilisateursResponse)
+      ? utilisateursResponse
+      : (utilisateursResponse?.results || []);
+    // L'endpoint /users/ n'est pas filtré par entreprise : on ne garde que la nôtre
+    const monEntreprise = (authUser as any)?.company_id || (authUser as any)?.company?.id || '';
+    return brut
+      .filter((u) => u && u.id && u.is_active !== false)
+      .filter((u) => !monEntreprise || !u.company || u.company === monEntreprise)
+      .map((u) => ({
+        id: String(u.id),
+        email: u.email || '',
+        label: [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email || String(u.id),
+        role: u.role || '',
+      }));
+  }, [utilisateursResponse, authUser]);
+
+  // Par défaut : le vendeur connecté (identifiant technique = filtre fiable)
+  React.useEffect(() => {
+    if (authUser) {
+      setSellerPdfPeriod((prev: any) => ({
+        ...prev,
+        seller_id: prev.seller_id || (authUser as any).id || '',
+        seller_email: prev.seller_email || (authUser as any).email || '',
+      }));
+    }
+  }, [authUser]);
+
   // Clôture Caisse & Rapport Z Modal State
   const [isCloseRegisterModalOpen, setIsCloseRegisterModalOpen] = React.useState(false);
   const [closingCashAmount, setClosingCashAmount] = React.useState('');
@@ -145,45 +181,18 @@ export default function PosPage() {
   // Seller Sales PDF Export Modal State
   const [isSellerPdfModalOpen, setIsSellerPdfModalOpen] = React.useState(false);
   const [sellerPdfPeriod, setSellerPdfPeriod] = React.useState({
+    seller_id: '',
+    
     start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end_date: new Date().toISOString().split('T')[0],
-    seller_id: '',
     seller_email: '',
   });
   const [isExportingSellerPdf, setIsExportingSellerPdf] = React.useState(false);
 
-  // Liste des vendeurs / caissiers de l'entreprise : alimente la liste déroulante du bilan
-  const { data: utilisateursResponse } = useQuery<any>({
-    queryKey: ['pos-vendeurs-bilan'],
-    queryFn: () => apiRequest('/users/?page_size=200'),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const vendeurs = React.useMemo(() => {
-    const brut: any[] = Array.isArray(utilisateursResponse)
-      ? utilisateursResponse
-      : (utilisateursResponse?.results || []);
-    // L'endpoint /users/ n'est pas filtré par entreprise : on ne garde que la nôtre
-    const monEntreprise = (authUser as any)?.company_id || (authUser as any)?.company?.id || '';
-    return brut
-      .filter((u) => u && u.id && u.is_active !== false)
-      .filter((u) => !monEntreprise || !u.company || u.company === monEntreprise)
-      .map((u) => ({
-        id: String(u.id),
-        email: u.email || '',
-        label: [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email || String(u.id),
-        role: u.role || '',
-      }));
-  }, [utilisateursResponse, authUser]);
-
-  // Par défaut : le vendeur connecté (son identifiant technique = filtre fiable côté serveur)
+  // Set default seller email from current user
   React.useEffect(() => {
-    if (authUser) {
-      setSellerPdfPeriod((prev) => ({
-        ...prev,
-        seller_id: prev.seller_id || (authUser as any).id || '',
-        seller_email: prev.seller_email || authUser.email || '',
-      }));
+    if (authUser?.email) {
+      setSellerPdfPeriod((prev) => ({ ...prev, seller_email: authUser.email }));
     }
   }, [authUser]);
 
@@ -193,12 +202,12 @@ export default function PosPage() {
       const queryParams = new URLSearchParams({
         start_date: sellerPdfPeriod.start_date,
         end_date: sellerPdfPeriod.end_date,
+        ...(sellerPdfPeriod.seller_id
+          ? { seller_id: sellerPdfPeriod.seller_id }
+          : sellerPdfPeriod.seller_email
+            ? { seller: sellerPdfPeriod.seller_email }
+            : {}),
       });
-      if (sellerPdfPeriod.seller_id) {
-        queryParams.set('seller_id', sellerPdfPeriod.seller_id);
-      } else if (sellerPdfPeriod.seller_email) {
-        queryParams.set('seller', sellerPdfPeriod.seller_email);
-      }
       await downloadPdfFile(
         `/api/v1/sales/export-seller-pdf/?${queryParams.toString()}`,
         `Vente_Vendeur_${sellerPdfPeriod.start_date}_${sellerPdfPeriod.end_date}.pdf`
