@@ -28,6 +28,16 @@ class BusinessIntelligenceSellerFilterTests(BaseNexoraTestCase):
         response = self.client_a.get('/api/v1/reports/bi-analytics/?days=30&view=executive&seller_id=abc')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_bi_analytics_filtre_vendeur_inexistant(self):
+        """Un vendeur inexistant donne un bilan vide : le filtre agit réellement."""
+        response = self.client_a.get(
+            '/api/v1/reports/bi-analytics/?days=3650&view=executive&seller_id=999999999'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['selected_seller'], '999999999')
+        self.assertEqual(response.data['sales_overview']['sales_count'], 0)
+        self.assertEqual(response.data['sellers_performance'], [])
+
     def test_bi_analytics_filtre_par_vendeur(self):
         """Avec seller_id, seules les ventes de ce vendeur sont comptabilisées."""
         base = self.client_a.get('/api/v1/reports/bi-analytics/?days=3650&view=executive')

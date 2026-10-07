@@ -37,6 +37,31 @@ CE QUE FAIT CE CORRECTIF
    - affiche le périmètre analysé dans l’encart « Analyse Explicative » ;
    - conserve le filtre lors de l’export PDF.
 
+SI LE SCRIPT A INDIQUÉ « corrigé par insertions ciblées »
+---------------------------------------------------------
+Cette ligne signifie que votre page.tsx différait de la version examinée : la
+première passe n'avait alors posé que l'état React et la clé de requête, SANS
+la liste déroulante ni l'envoi de « seller_id ». Deux solutions, au choix :
+
+  A. Le plus simple : relancez corriger-filtre-vendeur-bi.bat.
+     Le script détecte maintenant une correction partielle et exécute
+     automatiquement le compléteur (completer_filtre_vendeur_bi.py).
+
+  B. Ou lancez directement completer-filtre-vendeur-bi.bat.
+
+Le compléteur vérifie séparément les 7 éléments et n'ajoute que ceux qui
+manquent : état React, type de réponse, clé de requête, appel API avec
+seller_id, liste déroulante, rappel du périmètre, export PDF. Il écrit une
+sauvegarde horodatée avant de modifier le fichier. Si un élément critique est
+introuvable, il s'arrête SANS rien écrire et affiche les lignes de repère à
+coller dans la conversation.
+
+Pour connaître l'état sans rien modifier :
+    py completer_filtre_vendeur_bi.py --racine D:\NEXORA --verifier
+    py corriger_filtre_vendeur_bi.py --racine D:\NEXORA --verifier
+        (affiche « correction PARTIELLE » tant que la liste déroulante
+         ou l'envoi de seller_id manquent)
+
 PÉRIMÈTRE ET NUANCES
 --------------------
 - « Stock & Valorisation » et « Comptes clients enregistrés » restent des

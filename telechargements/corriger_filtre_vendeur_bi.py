@@ -314,7 +314,9 @@ def patcher_frontend(racine: str, chemin_modele: str, dry_run: bool) -> str:
     if MARQUEUR_DERNIER in nouveau_txt:
         raise ErreurCorrectif("Le modèle page-bi-filtre-vendeur.tsx a été altéré : utilisez le fichier d'origine.")
 
-    if 'selectedSeller' in source:
+    if ('selectedSeller' in source
+            and 'seller_id=${selectedSeller}' in source
+            and 'Filtrer le bilan par vendeur' in source):
         return "déjà corrigé (aucune modification)"
 
     if actuel == SHA_PAGE_ORIGINAL:
@@ -323,38 +325,40 @@ def patcher_frontend(racine: str, chemin_modele: str, dry_run: bool) -> str:
         shutil.copyfile(chemin_modele, chemin)
         return "corrigé (version avec sélecteur vendeur installée)"
 
-    # Le fichier a changé depuis l'extraction : on tente les insertions ciblées.
-    paires = [
-        (
-            "  const [days, setDays] = React.useState<number>(30);",
-            "  const [days, setDays] = React.useState<number>(30);\n"
-            "  // Filtre vendeur : '' = tous les vendeurs, sinon identifiant du vendeur sélectionné\n"
-            "  const [selectedSeller, setSelectedSeller] = React.useState<string>('');",
-            'etats',
-        ),
-        (
-            "queryKey: ['bi-analytics', selectedView, days],",
-            "queryKey: ['bi-analytics', selectedView, days, selectedSeller],",
-            'cle-requete',
-        ),
-    ]
-    modifie = source
-    for ancien, remplacement, libelle in paires:
-        if ancien not in modifie:
-            raise ErreurCorrectif(
-                "page.tsx a été modifié depuis l'extraction (empreinte %s) et l'ancre « %s » est absente.\n"
-                "Aucune modification n'a été écrite : envoyez la version actuelle de page.tsx." % (actuel[:12], libelle)
-            )
-        modifie = modifie.replace(ancien, remplacement, 1)
+    # Le fichier a changé depuis l'extraction : on délègue au compléteur, qui vérifie
+    # chaque élément séparément et n'écrit que ce qui manque réellement.
+    completeur = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'completer_filtre_vendeur_bi.py')
+    if not os.path.exists(completeur):
+        raise ErreurCorrectif(
+            "page.tsx a été modifié depuis l'extraction (empreinte %s) : lancez "
+            "completer_filtre_vendeur_bi.py, livré dans le même ZIP." % actuel[:12]
+        )
 
-    if 'selectedSeller' not in modifie:
-        raise ErreurCorrectif("page.tsx : insertion impossible (aucune modification écrite).")
+    import importlib.util
 
+    specification = importlib.util.spec_from_file_location('completer_filtre_vendeur_bi', completeur)
+    module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(module)
+
+    texte, crlf = module.lire(chemin)
+    journal = []
+    nouveau = module.completer_page(texte, journal)
+    critiques = [nom for nom, statut, critique in journal if critique and statut not in ('déjà présent', 'ajouté')]
+    if critiques:
+        raise ErreurCorrectif(
+            "page.tsx a été modifié depuis l'extraction (empreinte %s) et ces éléments ne peuvent pas "
+            "être insérés automatiquement : %s.\nRien n'a été écrit : lancez "
+            "completer_filtre_vendeur_bi.py --verifier pour obtenir les repères de lignes."
+            % (actuel[:12], ', '.join(critiques))
+        )
+    if nouveau == texte:
+        return "déjà corrigé (aucune modification)"
+    complements = sum(1 for _, statut, _ in journal if statut == 'ajouté')
     if dry_run:
-        return "simulation OK (page.tsx modifié par insertions ciblées)"
+        return "simulation OK (%d complément(s) par insertions ciblées)" % complements
 
-    ecrire_texte(chemin, modifie)
-    return "corrigé par insertions ciblées (le fichier avait été modifié depuis l'extraction)"
+    module.ecrire(chemin, nouveau, crlf)
+    return "complété par insertions ciblées (%d complément(s))" % complements
 
 
 # --------------------------------------------------------------------------
@@ -400,7 +404,16 @@ def main(argv=None) -> int:
             print("Backend  : %s" % exc)
         try:
             page = lire_texte(os.path.join(racine, CHEMIN_PAGE))
-            print("Frontend : %s" % ("déjà corrigé" if 'selectedSeller' in page else "à corriger"))
+            complet = ('selectedSeller' in page
+                       and 'seller_id=${selectedSeller}' in page
+                       and 'Filtrer le bilan par vendeur' in page)
+            if complet:
+                etat = "déjà corrigé"
+            elif 'selectedSeller' in page:
+                etat = "correction PARTIELLE (complétez avec completer_filtre_vendeur_bi.py)"
+            else:
+                etat = "à corriger"
+            print("Frontend : %s" % etat)
         except OSError as exc:
             print("Frontend : %s" % exc)
         return 0

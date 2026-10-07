@@ -58,6 +58,24 @@ TOUS LES CONTRÔLES SONT PASSÉS
    - seller_id=abc : réponse 400, jamais d'erreur 500 ;
    - available_sellers reste complet quel que soit le filtre appliqué.
 
+4. Contrôle du complément de l'interface (completer_filtre_vendeur_bi.py)
+   Le premier correctif a signalé « corrigé par insertions ciblées » : votre
+   page.tsx avait changé depuis l'extraction, donc la liste déroulante et
+   l'envoi de seller_id manquaient. Le compléteur livré a été testé sur 5 cas :
+
+   - fichier d'origine reconstitué au bit près -> résultat strictement
+     identique à la version de référence (même SHA-256) ;
+   - fichier partiellement corrigé (état + clé de requête déjà posés, comme
+     sur votre machine) -> complété, résultat identique à la référence ;
+   - fichier déjà complet -> aucune écriture ;
+   - repère principal absent -> repli sur le repère secondaire, insertion OK ;
+   - repères du sélecteur totalement absents -> ARRÊT SANS ÉCRITURE avec les
+     numéros de lignes à envoyer pour un correctif sur mesure.
+
+   La détection « déjà corrigé » du script principal a aussi été durcie : un
+   état seulement partiel est désormais signalé « correction PARTIELLE » au
+   lieu d'être annoncé comme terminé.
+
 Ce qui reste à vérifier SUR VOTRE MACHINE :
    - python manage.py check (lancé par le script) ;
    - python manage.py test tests.test_bi_vendeur_filtre -v 2 (proposé par le script) ;
