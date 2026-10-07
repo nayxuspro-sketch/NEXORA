@@ -2,7 +2,10 @@
 NEXORA - CORRECTIF POS v3 : LE BILAN DE VENTE PAR VENDEUR
 ================================================================================
 
-A LANCER, EN PREMIER ET SEUL :   CORRIGER-POS-AUTONOME.bat
+DEUX FICHIERS, DEUX ETAPES :
+   1. CORRIGER-POS-AUTONOME.bat      -> applique le correctif
+   2. TESTER-BILAN-VENDEUR-POS.bat   -> verifie le resultat (attendu : OK, 14 tests)
+Les deux sont AUTONOMES : chacun contient deja tout ce qu'il lui faut.
 
 C'est un fichier UNIQUE et AUTONOME : le programme de correction est inclus
 dedans. Vous pouvez le poser n'importe ou, meme dans C:\NEXORA, et faire un
@@ -60,7 +63,27 @@ Equivalents en ligne de commande (si vous avez extrait tout le dossier) :
    py corriger_bilan_vendeur_pos.py --racines "C:\NEXORA" --dry-run
 
 --------------------------------------------------------------------------------
-RESULTAT DE VOTRE DERNIERE EXECUTION (07/10 15:31)
+RESULTAT DE VOS DEUX DERNIERES EXECUTIONS
+--------------------------------------------------------------------------------
+1) 07/10 15:31 - PREMIERE APPLICATION : reussie sur C:\NEXORA
+   (projet choisi automatiquement : score 1390, contre 99 pour le couple melange
+   C: + D: ; indices : node_modules, .next, package.json, manage.py, db.sqlite3).
+   Vous n'avez plus besoin de relancer ce fichier : il n'a plus rien a faire.
+
+2) 07/10 15:39 - RELANCE : le script a repondu
+       backend : deja corrige / frontend : deja corrige
+       CORRECTIF EN PLACE.
+   C'est le comportement attendu : relancer le correctif ne casse rien et ne
+   modifie rien quand tout est deja en place (chaque fichier deja corrige est
+   simplement verifie). La sauvegarde a tout de meme ete faite par precaution.
+
+3) CE QU'IL RESTE A FAIRE : LANCER LE TEST, PAS LE CORRECTIF.
+   Double-clic sur TESTER-BILAN-VENDEUR-POS.bat (fichier autonome, 23 Ko).
+   Il ecrit lui-meme le test dans <projet>\tests\, puis lance manage.py test.
+   Resultat attendu : OK, 14 tests.
+
+--------------------------------------------------------------------------------
+RESULTAT DE LA PREMIERE APPLICATION (07/10 15:31) - detail
 --------------------------------------------------------------------------------
 Le correctif est APPLIQUE sur C:\NEXORA :
   - projet choisi : C:\NEXORA  (score 1390, contre 99 pour le couple melange
@@ -76,8 +99,8 @@ Le correctif est APPLIQUE sur C:\NEXORA :
         l. 403     : sales = list(sales_qs...) -> le PDF utilise donc le NOTRE
   - ecran POS : seller_id dans l'etat, liste deroulante des vendeurs, envoi de
     seller_id (repli email), lien "Ouvrir dans un onglet" corrige, texte d'aide.
-Aucun fichier n'a ete casse : l'ancien correctif et le nouvel effet par defaut
-de authUser sont conserves, ils ne genent pas.
+Aucun fichier n'a ete casse : l'ancien correctif et l'effet par defaut de
+authUser sont conserves, ils ne genent pas le resultat.
 
 --------------------------------------------------------------------------------
 CONTENU DU DOSSIER
@@ -138,7 +161,10 @@ EMPREINTES SHA-256 DES FICHIERS CORRIGES (v3)
 --------------------------------------------------------------------------------
 pdf_seller_report.py    382c15ff010874e998b58d88ca53df07878376370ef50a78df928f7f2164e02a
 pos/page.tsx            e739ba6aec6995cccbe185c3aa1059bbce0c8f66b1e9a25459bc20f0c8352d57
-tests/test_bilan...py   9f702e9b44c91b9b16cc54a821487c267a6859d8d0d1dde22f6c8d2dec3102ef
+tests/test_bilan...py   6e21ca9f44107ac5f982e88978289abfdfb55509829ac6bfe82393b9766e58e6
+corriger_bilan...py     3f067aaddda7eb35bce78214668c409b9329998ba2636e6d8f7dbdcc0ec3b366
+CORRIGER-POS-AUTONOME   d229d3d72f89562682cca3e390ba64b34e0723c85343da96f67d7e586deaa04f
+TESTER-BILAN-VENDEUR    05d352c096208df4d313072f5a110597029b9c0c01e28f8a7c0baef3cf357d6f
 Verification PowerShell : Get-FileHash .\fichiers\apps\sales\pdf_seller_report.py -Algorithm SHA256
 
 --------------------------------------------------------------------------------
@@ -157,6 +183,12 @@ CONTROLES DEJA EFFECTUES
 * Syntaxe Python (py_compile) et TypeScript (tsc 5.6.3) : aucune erreur.
 * .bat controles : aucun echo avec parenthese dans un bloc if, parentheses
   equilibrees, lignes CRLF simples, base64 qui se decode a l'identique.
+
+Outils inclus dans ce dossier (pour information, non necessaires a l'usage) :
+  outils/generer_lanceurs.py   regenere les deux .bat a partir des sources, en
+                               verifiant que le base64 contenu est bien identique
+  outils/verifier_correctif.py rejoue le bilan vendeur sans Django (21 controles,
+                               vue executee jusqu'a la generation du PDF)
 
 Aucun mot de passe ni secret dans ces fichiers ; DIAGNOSTIC-POS.txt ne contient
 que des chemins et des extraits de code.

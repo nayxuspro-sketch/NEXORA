@@ -887,7 +887,7 @@ def main(argv=None):
     racine = racines[0]
 
     print('=' * 76)
-    print('NEXORA — bilan de vente par vendeur (POS) : correctif v2 (autodétection)')
+    print('NEXORA — bilan de vente par vendeur (POS) : correctif v3 (autodétection)')
     print('=' * 76)
     print('Dossier(s) analysé(s) : %s' % ', '.join(racines))
 
@@ -981,6 +981,12 @@ def main(argv=None):
         print('-' * 76)
 
     resultats = []
+    deja_en_place = bool(backend) and all((
+        MARQUEUR_BACKEND in lire(backend)[0],
+        'def %s(' % NOM_JSON_ERROR in lire(backend)[0],
+        'def %s(' % NOM_VENTES in lire(backend)[0],
+        'erreur_vendeur = %s(' % NOM_RESOLVE in lire(backend)[0],
+    )) if backend else False
 
     # --- backend
     if not backend:
@@ -1055,11 +1061,23 @@ def main(argv=None):
     print('-' * 76)
     if all(resultats) and resultats:
         print('CORRECTIF EN PLACE.')
+        projet = racine_projet(backend) or racine_projet(pos) or racines[0]
+        print()
+        if deja_en_place and not options.dry_run:
+            print('(relance : le correctif était déjà en place, rien n’a été modifié)')
+            print()
+        print('Projet corrigé : %s' % projet)
         print()
         print('À faire ensuite :')
-        print('  1. Test automatique (dossier de manage.py) :')
+        print('  1. TESTER LE CORRECTIF : double-cliquez sur')
+        print('       TESTER-BILAN-VENDEUR-POS.bat')
+        print('     (fichier autonome : il écrit le test dans le projet puis lance')
+        print('      manage.py test ; résultat attendu : OK, 14 tests)')
+        print('     Équivalent en ligne de commande :')
+        print('       cd /d "%s"' % projet)
         print('       py manage.py test tests.test_bilan_vendeur_pos -v 2')
-        print('  2. Redémarrez Django puis le frontend (cd frontend && npm run dev).')
+        print('  2. Redémarrez le backend, puis le frontend (dossier frontend :')
+        print('       npm run dev ).')
         print('  3. POS : bouton « Mon Bilan Vente PDF » -> le PDF ne contient que les')
         print('     ventes validées du vendeur choisi.')
     else:

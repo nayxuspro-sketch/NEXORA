@@ -18,7 +18,7 @@ if "%PROJET%"=="" if exist "D:\NEXORA\manage.py" set "PROJET=D:\NEXORA"
 if "%PROJET%"=="" for /d %%D in ("%USERPROFILE%\NEXORA*") do if exist "%%D\manage.py" set "PROJET=%%D"
 
 if "%PROJET%"=="" (
-  echo Projet introuvable : aucun manage.py trouve dans C:\NEXORA, D:\NEXORA ou
+  echo Projet introuvable : aucun manage.py dans C:\NEXORA, D:\NEXORA ou
   echo %USERPROFILE%\NEXORA* .
   echo Relancez en precisant le dossier, par exemple :
   echo    TESTER-BILAN-VENDEUR-POS.bat "C:\NEXORA"
@@ -361,12 +361,12 @@ if "%CODE%"=="0" (
 ) else (
   echo  RESULTAT : le test n'a pas abouti - code %CODE%
   echo ----------------------------------------------------------------------------
-  echo  Lisez les lignes juste au-dessus. Les cas les plus frequents :
+  echo  Lisez les lignes juste au-dessus. Cas les plus frequents :
   echo    - ImportError ou ModuleNotFoundError : un module manque dans
   echo      l'environnement Python, lancez pip install -r requirements.txt
   echo    - erreurs de base de donnees : PostgreSQL n'est pas demarre, ou le
   echo      fichier .env ne contient pas les bons acces.
-  echo    - "FAIL" sur un test : envoyez ce texte, il indique exactement ce qui
+  echo    - FAIL sur un test : envoyez ce texte, il indique exactement ce qui
   echo      cloche dans le bilan vendeur.
 )
 echo ============================================================================
