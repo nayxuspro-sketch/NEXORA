@@ -170,7 +170,7 @@
   </a>
 
   <h2>Correctif du bilan vendeur</h2>
-  <p class="sous-titre">Cible le queryset repéré dans apps/reports/views.py : un compte CASHIER ne voit que les ventes dont il est l’auteur. Les rôles de gestion conservent le bilan global.</p>
+  <p class="sous-titre">Ajoute un filtre API seller_id au bilan : la gestion peut sélectionner un vendeur, tandis qu’un compte CASHIER reste limité à ses propres ventes.</p>
   <a class="carte" href="corriger-bilan-vendeur.zip" download>
     <span class="icone">🧾</span>
     <span>

@@ -13,8 +13,8 @@ if (-not (Test-Path -LiteralPath $patchScript)) {
 
 Set-Location -LiteralPath $projectRoot
 Write-Host 'Correction ciblee du bilan vendeur dans apps\reports\views.py.' -ForegroundColor Cyan
-Write-Host 'Le script sauvegarde le fichier, puis limite le role CASHIER a ses ventes.'
-Write-Host 'Aucune migration ni ecriture dans PostgreSQL.'
+Write-Host 'CASHIER : ses propres ventes. Gestion : filtre optionnel seller_id.'
+Write-Host 'Aucune migration ni reattribution de ventes existantes.'
 
 & py $patchScript $projectRoot
 $patchExitCode = $LASTEXITCODE

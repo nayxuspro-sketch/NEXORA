@@ -1,24 +1,25 @@
-CORRECTIF CIBLE — PÉRIMÈTRE DU BILAN VENDEUR
+CORRECTIF CIBLE — FILTRE DU BILAN DE VENTE PAR VENDEUR
 
-Cible identifiée avec le diagnostic fourni : D:\NEXORA\apps\reports\views.py, queryset sales_qs (autour de la ligne 53).
+Cible repérée dans votre diagnostic : D:\NEXORA\apps\reports\views.py, queryset sales_qs autour de la ligne 53. Le queryset actuel filtre entreprise/statut/période, mais pas le vendeur.
 
-EFFET
-- Pour un compte de rôle CASHIER, le queryset du bilan est restreint à Sale.seller == request.user. Un caissier ne récupère donc plus les ventes des autres dans ce bilan.
-- Les rôles de direction/gestion conservent le rapport global de l’entreprise.
-- La règle suit la permission déjà présente dans apps/common/permissions.py, qui réserve les objets seller au CASHIER propriétaire.
+COMPORTEMENT APRÈS CORRECTION
+- Un utilisateur de rôle CASHIER est toujours limité à ses propres ventes, même s’il transmet un autre seller_id.
+- Un utilisateur de gestion peut filtrer le bilan avec le paramètre HTTP seller_id. Exemple d’appel API : ?seller_id=42 (remplacez 42 par l’identifiant réel du vendeur).
+- Sans seller_id, les rôles de gestion conservent le bilan global de l’entreprise.
+- Les sommes et compteurs calculés ensuite à partir de sales_qs suivent ce filtre.
 
 INSTALLATION
 1. Arrêtez Django avec Ctrl+C.
 2. Téléchargez corriger-bilan-vendeur.zip.
-3. Extrayez les quatre fichiers à la racine D:\NEXORA, à côté de manage.py.
+3. Extrayez les fichiers à la racine D:\NEXORA, à côté de manage.py.
 4. Lancez corriger-bilan-vendeur.bat.
 5. Vérifiez que la cible affichée est apps\reports\views.py et tapez OUI.
-6. Le script crée une sauvegarde horodatée de views.py, valide la syntaxe puis lance py manage.py check.
+6. Le script sauvegarde views.py, valide sa syntaxe puis exécute py manage.py check.
 7. Collez ici la sortie complète, notamment PATCH_APPLIQUÉ et le résultat de manage.py check.
 
 SÛRETÉ ET LIMITES
-- Le script refuse d’éditer si le modèle Sale, le rôle CASHIER, la règle de permission ou le queryset attendu ne correspondent pas exactement. En cas de refus, aucun changement n’est écrit.
-- Aucune migration, lecture/écriture de base ou modification de vente existante n’est faite.
-- Le correctif limite la requête repérée dans apps/reports/views.py. L’analyse BI séparée dans apps/reports/bi_analytics.py n’est pas modifiée.
-- Les ventes historiques dont seller pointe déjà vers August NANEMA ne peuvent pas être réattribuées automatiquement : il faut connaître le véritable auteur pour les corriger sans inventer des données.
-- La création de vente existante transmet seller=user. Pour que les ventes futures soient attribuées correctement, chaque vendeur doit créer la vente avec son propre compte. Le correctif du rapport ne peut pas distinguer plusieurs personnes utilisant le même compte.
+- Le script vérifie la présence du modèle Sale.seller, du rôle CASHIER, de la permission obj.seller == user et du queryset exact avant d’éditer. S’il ne reconnaît pas la structure, il s’arrête sans modification.
+- Aucune migration et aucune écriture dans la base ne sont effectuées.
+- Le correctif ajoute le paramètre côté API; il ne crée pas de liste déroulante dans l’interface. Pour un menu vendeur visible, le client web doit envoyer seller_id et afficher les vendeurs autorisés.
+- Les ventes historiques dont seller pointe déjà vers August NANEMA ne sont pas réattribuées automatiquement. Il faut connaître leur auteur réel.
+- Le service de création existant transmet seller=user. Pour attribuer les ventes futures aux bonnes personnes, chaque vendeur doit créer ses ventes avec son compte individuel.

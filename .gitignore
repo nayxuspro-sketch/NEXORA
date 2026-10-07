@@ -4,3 +4,5 @@
 /audit_production_*.txt
 /config/settings.py.pre-nexora-profile-*.bak
 /config/settings.py.nexora-profile-*.tmp
+/apps/reports/views.py.pre-bilan-vendeur-*.bak
+/apps/reports/.nexora-bilan-*.tmp
