@@ -46,17 +46,38 @@ COMMENT FAIRE (2 minutes)
    - « CORRECTIF EN PLACE. » -> passez au point 3 ;
    - « ARRET PARTIEL » -> le fichier DIAGNOSTIC-POS.txt est cree a cote du .bat :
      envoyez-le tel quel, rien n'aura ete casse.
-3. Test automatique :
-     copiez  fichiers\tests\test_bilan_vendeur_pos.py  dans le dossier "tests"
-     du projet corrige, puis, a la racine du projet :
+3. Test automatique : double-clic sur TESTER-BILAN-VENDEUR-POS.bat
+   Il ecrit lui-meme le fichier de test dans <projet>\tests\ (copie de sauvegarde
+   dans %TEMP% s'il existait deja), puis lance :
          py manage.py test tests.test_bilan_vendeur_pos -v 2
-     Resultat attendu : OK (14 tests).
+   Resultat attendu : OK (14 tests). Le test est AUTONOME : il cree ses propres
+   donnees, il ne depend d'aucun autre fichier de test de votre projet.
 4. Redemarrez le backend puis le frontend (dossier frontend : npm run dev).
 
 Equivalents en ligne de commande (si vous avez extrait tout le dossier) :
    py corriger_bilan_vendeur_pos.py --racines "C:\NEXORA"
    py corriger_bilan_vendeur_pos.py --racines "C:\NEXORA" --verifier
    py corriger_bilan_vendeur_pos.py --racines "C:\NEXORA" --dry-run
+
+--------------------------------------------------------------------------------
+RESULTAT DE VOTRE DERNIERE EXECUTION (07/10 15:31)
+--------------------------------------------------------------------------------
+Le correctif est APPLIQUE sur C:\NEXORA :
+  - projet choisi : C:\NEXORA  (score 1390, contre 99 pour le couple melange
+    C: + D: ; indices : node_modules, .next, package.json, manage.py, db.sqlite3)
+  - backend  : 3 helpers _nexora_* inseres avant la vue, puis le bloc de
+    selection stricte insere juste avant la construction du PDF, donc APRES le
+    bloc de l'ancien correctif deja present dans votre fichier : le notre gagne.
+    Ordre final dans votre fichier (d'apres votre diagnostic) :
+        l. 331-362 : ancien correctif (conserve, sans effet sur le resultat)
+        l. 370-376 : _nexora_resolve_seller  <- notre identification stricte
+        l. 401     : _nexora_ventes_du_vendeur <- notre filtre (company+seller
+                     + ventes validees + periode)
+        l. 403     : sales = list(sales_qs...) -> le PDF utilise donc le NOTRE
+  - ecran POS : seller_id dans l'etat, liste deroulante des vendeurs, envoi de
+    seller_id (repli email), lien "Ouvrir dans un onglet" corrige, texte d'aide.
+Aucun fichier n'a ete casse : l'ancien correctif et le nouvel effet par defaut
+de authUser sont conserves, ils ne genent pas.
 
 --------------------------------------------------------------------------------
 CONTENU DU DOSSIER
@@ -67,6 +88,9 @@ CONTENU DU DOSSIER
   fichiers\apps\sales\pdf_seller_report.py    backend corrige (copie manuelle possible)
   fichiers\frontend\src\app\pos\page.tsx      ecran POS corrige (copie manuelle possible)
   fichiers\tests\test_bilan_vendeur_pos.py    test automatique Django
+  TESTER-BILAN-VENDEUR-POS.bat     a lancer APRES le correctif : ecrit le test
+                                   dans le projet et lance manage.py test
+                                   (fichier autonome, rien a copier a la main)
   LISEZMOI-CORRECTIF-POS.txt       ce fichier
   DIAGNOSTIC-POS.txt               cree apres chaque execution (chemins, extraits)
 

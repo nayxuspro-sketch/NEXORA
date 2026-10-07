@@ -29,6 +29,7 @@
   <h2>✅ CORRECTIF POS v3 — bilan de vente par vendeur (le bouton qui ne marchait pas)</h2>
   <p class="sous-titre">Cause trouvée dans le code réel du dépôt : le filtre par vendeur n’était appliqué que si le vendeur était identifié, donc le bilan additionnait les ventes de toute l’entreprise. La v2 <strong>retrouve vos fichiers où qu’ils soient</strong> et écrit un diagnostic si elle hésite.<br />
   <strong>Essayez d’abord le fichier unique <code>CORRIGER-POS-AUTONOME.bat</code></strong> : le programme est inclus dedans, aucun autre fichier n’est nécessaire.<br />
+  <strong>Correctif appliqué sur C:\NEXORA le 07/10 à 15:31</strong> (projet choisi automatiquement, l’ancien correctif présent dans votre fichier a été conservé sans effet sur le résultat : notre bloc est le dernier avant la construction du PDF).<br />
   <strong>Nouveau en v3 :</strong> votre diagnostic a montré deux copies du projet (<code>C:\NEXORA</code> avec la vue PDF vendeur et l’écran POS complet, <code>D:\NEXORA</code> sans le bilan vendeur). La v2 mélangeait les deux ; la v3 <strong>choisit le couple vue + écran du même projet</strong>, écarte les dossiers sans la fonctionnalité, ignore ses propres sauvegardes, et dit ce qu’elle a décidé avant de modifier. Les helpers sont renommés <code>_nexora_*</code> pour ne plus entrer en conflit avec un correctif déjà présent dans votre fichier.</p>
   <a class="carte" href="solution-pos/CORRIGER-POS-AUTONOME.bat" download>
     <span class="icone">🟢</span>
@@ -45,6 +46,14 @@
       <span class="detail">Tout-en-un v3 : les deux lanceurs (.bat autonome + .bat multi-dossiers), script de sélection du bon projet, les 2 fichiers corrigés, 14 tests Django et le LISEZMOI</span>
     </span>
     <span class="taille">68 Ko</span>
+  </a>
+  <a class="carte" href="solution-pos/TESTER-BILAN-VENDEUR-POS.bat" download>
+    <span class="icone">🧪</span>
+    <span>
+      <span class="nom">TESTER-BILAN-VENDEUR-POS.bat — À LANCER APRÈS LE CORRECTIF</span><br />
+      <span class="detail">Fichier unique et autonome : écrit le test dans &lt;projet&gt;\tests\ puis lance manage.py test. Attend l’écriture de « OK (14 tests) » : filtrage par vendeur, ventes annulées/brouillons exclues, vendeur inconnu refusé, caissier limité à son bilan, PDF généré</span>
+    </span>
+    <span class="taille">23 Ko</span>
   </a>
   <a class="carte" href="solution-pos/APPLIQUER-CORRECTIF-POS.bat" download>
     <span class="icone">▶️</span>
