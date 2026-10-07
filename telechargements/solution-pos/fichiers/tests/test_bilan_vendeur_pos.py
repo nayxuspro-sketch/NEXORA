@@ -28,7 +28,15 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User, UserRole
 from apps.sales.models import Sale, SaleItem, SaleStatus
-from apps.sales.pdf_seller_report import resolve_seller, sales_queryset_for_seller
+# Les helpers du correctif sont préfixés (_nexora_*) pour ne pas entrer en
+# collision avec d'autres correctifs ; on accepte aussi les anciens noms.
+try:
+    from apps.sales.pdf_seller_report import (
+        _nexora_resolve_seller as resolve_seller,
+        _nexora_ventes_du_vendeur as sales_queryset_for_seller,
+    )
+except ImportError:
+    from apps.sales.pdf_seller_report import resolve_seller, sales_queryset_for_seller
 from tests.test_nexora_backend import BaseNexoraTestCase
 
 URL_EXPORT = '/api/v1/sales/export-seller-pdf/'

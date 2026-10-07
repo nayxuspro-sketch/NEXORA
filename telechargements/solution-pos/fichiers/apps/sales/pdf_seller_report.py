@@ -19,8 +19,8 @@ from apps.inventory.models import Store
 from apps.common.pdf_header import get_store_logo_flowable, create_header_with_logo
 
 
-def json_error(message, statut=400):
-    """Réponse JSON d'erreur (le renderer de cette vue est binaire, on ne passe pas par Response)."""
+def _nexora_json_error(message, statut=400):
+    """Reponse JSON d'erreur (le renderer de cette vue est binaire : pas de Response DRF)."""
     return HttpResponse(
         json.dumps({'detail': message}, ensure_ascii=False),
         status=statut,
@@ -28,17 +28,17 @@ def json_error(message, statut=400):
     )
 
 
-def resolve_seller(company, seller_param):
-    """Retrouve le vendeur demandé : identifiant (UUID), email, nom complet ou username.
+def _nexora_resolve_seller(company, seller_param):
+    """Retrouve le vendeur demande : identifiant (UUID), email, nom complet ou username.
 
-    Résolution dans l'ordre : identifiant technique, email exact, nom
-    d'utilisateur, nom complet, puis email partiel (refusé s'il est ambigu).
+    Resolution dans l'ordre : identifiant technique, email exact, nom
+    d'utilisateur, nom complet, puis email partiel (refuse s'il est ambigu).
 
     Retourne (vendeur, message d'erreur) :
-      - (vendeur, None)      : vendeur identifié ;
-      - (None, None)         : aucun vendeur demandé (comportement par défaut) ;
-      - (None, 'message')    : vendeur demandé mais introuvable. Le bilan ne doit
-        JAMAIS être produit silencieusement pour un autre vendeur.
+      - (vendeur, None)      : vendeur identifie ;
+      - (None, None)         : aucun vendeur demande (comportement par defaut) ;
+      - (None, 'message')    : vendeur demande mais introuvable. Le bilan ne doit
+        JAMAIS etre produit silencieusement pour un autre vendeur.
     """
     if not seller_param:
         return None, None
@@ -46,8 +46,8 @@ def resolve_seller(company, seller_param):
     parametre = str(seller_param).strip()
     utilisateurs = User.objects.filter(company=company)
 
-    # Le modèle utilisateur du projet peut ne pas avoir de champ « username »
-    # (dans NEXORA, la connexion se fait par email) : on teste sa présence.
+    # Le modele utilisateur du projet peut ne pas avoir de champ « username »
+    # (dans NEXORA, la connexion se fait par email) : on teste sa presence.
     try:
         champs_modele = {champ.name for champ in User._meta.get_fields()}
     except Exception:
@@ -71,20 +71,20 @@ def resolve_seller(company, seller_param):
         vendeur = utilisateurs.filter(username__iexact=parametre).first()
 
     if vendeur is None and ' ' in parametre:
-        # Nom complet « Prénom Nom »
+        # Nom complet « Prenom Nom »
         prenom, nom = parametre.split(None, 1)
         vendeur = utilisateurs.filter(
             first_name__iexact=prenom, last_name__iexact=nom
         ).first()
 
     if vendeur is None:
-        # Compatibilité : recherche partielle sur l'email, refusée si ambiguë,
-        # pour ne jamais produire le bilan d'un vendeur différent de celui visé.
+        # Compatibilite : recherche partielle sur l'email, refusee si ambigue,
+        # pour ne jamais produire le bilan d'un vendeur different de celui vise.
         candidats = list(utilisateurs.filter(email__icontains=parametre)[:2])
         if len(candidats) > 1:
             return None, (
-                "Plusieurs vendeurs correspondent à « %s ». Choisissez le vendeur "
-                "dans la liste pour éviter toute confusion." % parametre
+                "Plusieurs vendeurs correspondent a « %s ». Choisissez le vendeur "
+                "dans la liste pour eviter toute confusion." % parametre
             )
         vendeur = candidats[0] if candidats else None
 
@@ -95,16 +95,16 @@ def resolve_seller(company, seller_param):
         return vendeur, None
 
     return None, (
-        "Aucun vendeur de cette entreprise ne correspond à « %s ». "
+        "Aucun vendeur de cette entreprise ne correspond a « %s ». "
         "Choisissez un compte vendeur valide." % parametre
     )
 
 
-def sales_queryset_for_seller(company, seller_user, start_date, end_date):
-    """Ventes réellement prises en compte dans le bilan d'un vendeur.
+def _nexora_ventes_du_vendeur(company, seller_user, start_date, end_date):
+    """Ventes reellement prises en compte dans le bilan d'un vendeur.
 
-    Strictement limitées à ce vendeur ET aux ventes validées (statut COMPLETED),
-    ce qui exclut les brouillons et les ventes annulées.
+    Strictement limitees a ce vendeur ET aux ventes validees (statut COMPLETED),
+    ce qui exclut les brouillons et les ventes annulees.
     """
     try:
         from apps.sales.models import SaleStatus
@@ -214,9 +214,9 @@ class SellerSalesReportPdfView(APIView):
             or ''
         ).strip()
 
-        seller_user, erreur_vendeur = resolve_seller(company, seller_param)
+        seller_user, erreur_vendeur = _nexora_resolve_seller(company, seller_param)
         if erreur_vendeur:
-            return json_error(erreur_vendeur, 404)
+            return _nexora_json_error(erreur_vendeur, 404)
 
         role_courant = getattr(request.user, 'role', None)
         if role_courant == 'CASHIER' and getattr(request.user, 'is_authenticated', False):
@@ -236,10 +236,10 @@ class SellerSalesReportPdfView(APIView):
                 seller_user = User.objects.filter(company=company).first()
 
         if not seller_user:
-            return json_error("Aucun vendeur n'a pu être déterminé pour ce bilan.", 400)
+            return _nexora_json_error("Aucun vendeur n'a pu être déterminé pour ce bilan.", 400)
 
         # Le bilan est TOUJOURS strictement limité à ce vendeur
-        sales_qs = sales_queryset_for_seller(company, seller_user, start_date, end_date)
+        sales_qs = _nexora_ventes_du_vendeur(company, seller_user, start_date, end_date)
 
         sales = list(sales_qs.prefetch_related('items__product', 'payments').order_by('-created_at'))
 

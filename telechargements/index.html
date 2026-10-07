@@ -26,24 +26,25 @@
   <h1>Téléchargements NEXORA</h1>
   <p class="sous-titre">Scripts et correctifs locaux pour l’application.</p>
 
-  <h2>✅ CORRECTIF POS v2 — bilan de vente par vendeur (le bouton qui ne marchait pas)</h2>
+  <h2>✅ CORRECTIF POS v3 — bilan de vente par vendeur (le bouton qui ne marchait pas)</h2>
   <p class="sous-titre">Cause trouvée dans le code réel du dépôt : le filtre par vendeur n’était appliqué que si le vendeur était identifié, donc le bilan additionnait les ventes de toute l’entreprise. La v2 <strong>retrouve vos fichiers où qu’ils soient</strong> et écrit un diagnostic si elle hésite.<br />
-  <strong>Essayez d’abord le fichier unique <code>CORRIGER-POS-AUTONOME.bat</code></strong> : le programme de correction est inclus dedans, aucun autre fichier n’est nécessaire. (Le message <code>can't open file 'C:\NEXORA\corriger_bilan_vendeur_pos.py'</code> venait du .bat lancé sans le programme à côté : ce fichier règle définitivement ce problème.)</p>
+  <strong>Essayez d’abord le fichier unique <code>CORRIGER-POS-AUTONOME.bat</code></strong> : le programme est inclus dedans, aucun autre fichier n’est nécessaire.<br />
+  <strong>Nouveau en v3 :</strong> votre diagnostic a montré deux copies du projet (<code>C:\NEXORA</code> avec la vue PDF vendeur et l’écran POS complet, <code>D:\NEXORA</code> sans le bilan vendeur). La v2 mélangeait les deux ; la v3 <strong>choisit le couple vue + écran du même projet</strong>, écarte les dossiers sans la fonctionnalité, ignore ses propres sauvegardes, et dit ce qu’elle a décidé avant de modifier. Les helpers sont renommés <code>_nexora_*</code> pour ne plus entrer en conflit avec un correctif déjà présent dans votre fichier.</p>
   <a class="carte" href="solution-pos/CORRIGER-POS-AUTONOME.bat" download>
     <span class="icone">🟢</span>
     <span>
       <span class="nom">CORRIGER-POS-AUTONOME.bat — À LANCER EN PREMIER</span><br />
-      <span class="detail">Fichier unique et autonome : le programme de correction est inclus dedans. Double-clic, il analyse D:\NEXORA, C:\NEXORA et %USERPROFILE%\NEXORA*, sauvegarde avant d’écrire et affiche quoi faire ensuite</span>
+      <span class="detail">Fichier unique et autonome : le programme de correction est inclus dedans. Double-clic, il choisit le bon projet, le corrige, sauvegarde avant d’écrire et affiche quoi faire ensuite</span>
     </span>
-    <span class="taille">59 Ko</span>
+    <span class="taille">72 Ko</span>
   </a>
   <a class="carte" href="correctif-bilan-vendeur-pos.zip" download>
     <span class="icone">📦</span>
     <span>
       <span class="nom">correctif-bilan-vendeur-pos.zip</span><br />
-      <span class="detail">Tout-en-un v2 : les deux lanceurs (.bat autonome + .bat multi-dossiers), script autodétecteur avec sauvegarde, les 2 fichiers corrigés, 14 tests Django et le LISEZMOI</span>
+      <span class="detail">Tout-en-un v3 : les deux lanceurs (.bat autonome + .bat multi-dossiers), script de sélection du bon projet, les 2 fichiers corrigés, 14 tests Django et le LISEZMOI</span>
     </span>
-    <span class="taille">62 Ko</span>
+    <span class="taille">68 Ko</span>
   </a>
   <a class="carte" href="solution-pos/APPLIQUER-CORRECTIF-POS.bat" download>
     <span class="icone">▶️</span>

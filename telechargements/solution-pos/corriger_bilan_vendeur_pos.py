@@ -54,10 +54,19 @@ DOSSIERS_IGNORES = {
     '.turbo', '.idea', '.vscode', 'staticfiles', 'media',
 }
 
+# Préfixes de dossiers à ne jamais analyser : ce sont nos propres sauvegardes ou
+# des copies du paquet de correctif, pas le code de l'application.
+PREFIXES_IGNORES = ('sauvegardes-bilan-pos', 'correctif-bilan', 'nexora-correction')
+
 SHA_BACKEND_ORIGINE = '7fb10a4f340a6c069e16f67265e30da99173647ce635be49ef25a1f23ca762eb'
 SHA_POS_ORIGINE = '0467033fd972a8cde0cf35fd115b1d1b6c7e151caee659cf6f9dde632a3996d4'
 
-MARQUEUR_BACKEND = 'def resolve_seller(company, seller_param):'
+# Noms volontairement préfixés : ils ne peuvent pas entrer en collision avec une
+# correction déjà présente dans votre fichier (écrite par une autre session).
+NOM_JSON_ERROR = '_nexora_json_error'
+NOM_RESOLVE = '_nexora_resolve_seller'
+NOM_VENTES = '_nexora_ventes_du_vendeur'
+MARQUEUR_BACKEND = 'def %s(company, seller_param):' % NOM_RESOLVE
 MARQUEUR_POS = 'pos-vendeurs-bilan'
 
 
@@ -97,7 +106,9 @@ def extraire(texte, motif, maximum=40):
 
 def parcourir(racine):
     for dossier, sous_dossiers, fichiers in os.walk(racine):
-        sous_dossiers[:] = [d for d in sous_dossiers if d not in DOSSIERS_IGNORES]
+        sous_dossiers[:] = [d for d in sous_dossiers
+                            if d not in DOSSIERS_IGNORES
+                            and not d.lower().startswith(PREFIXES_IGNORES)]
         yield dossier, fichiers
 
 
@@ -151,6 +162,114 @@ def chercher_par_contenu(racine, motifs, extension='.py', maximum=6, limite_octe
     return trouves
 
 
+def racine_projet(chemin, limite=8):
+    """Dossier du projet qui contient ce fichier : le premier parent avec manage.py."""
+    dossier = os.path.dirname(os.path.abspath(chemin))
+    for _ in range(limite):
+        if os.path.isfile(os.path.join(dossier, 'manage.py')):
+            return dossier
+        parent = os.path.dirname(dossier)
+        if parent == dossier:
+            break
+        dossier = parent
+    return None
+
+
+def contient(chemin, motifs):
+    try:
+        with open(chemin, 'r', encoding='utf-8', errors='ignore') as fichier:
+            contenu = fichier.read()
+    except OSError:
+        return {}
+    return {motif: (motif in contenu) for motif in motifs}
+
+
+def indices_de_vie(racine):
+    """Éléments qui montrent que ce dossier est celui qui est réellement utilisé."""
+    if not racine:
+        return [],
+    indices = []
+    for relatif in ('frontend/node_modules', 'frontend/.next', 'frontend/package.json',
+                    'manage.py', 'db.sqlite3'):
+        if os.path.exists(os.path.join(racine, *relatif.split('/'))):
+            indices.append(relatif)
+    return indices
+
+
+def choisir_paire(candidats_backend, candidats_pos):
+    """Choisit le couple (backend, écran POS) du MÊME projet.
+
+    Priorités : mêmes racines de projet ; le backend contient la vue
+    SellerSalesReportPdfView ; l'écran POS contient le bilan vendeur
+    (export-seller-pdf) ; chemins conformes à l'arborescence du dépôt ;
+    projet « vivant » (node_modules, manage.py...).
+    """
+    meilleure = None
+    details = []
+
+    for backend in candidats_backend or [None]:
+        for pos in candidats_pos or [None]:
+            if backend is None and pos is None:
+                continue
+
+            points = 0
+            raisons = []
+
+            racine_backend = racine_projet(backend) if backend else None
+            racine_pos = racine_projet(pos) if pos else None
+
+            if backend and pos and racine_backend and racine_backend == racine_pos:
+                points += 1000
+                raisons.append('même dossier de projet')
+            elif backend and pos and racine_backend and racine_pos:
+                points -= 200
+                raisons.append('deux dossiers de projet DIFFÉRENTS')
+
+            if backend:
+                marques = contient(backend, ['SellerSalesReportPdfView', 'sales_qs'])
+                if marques.get('SellerSalesReportPdfView'):
+                    points += 300
+                    raisons.append('backend : vue du bilan vendeur présente')
+                else:
+                    points -= 300
+                    raisons.append('backend : vue du bilan vendeur ABSENTE')
+                if re.search(r'apps[/\\]sales[/\\]pdf_seller_report\.py$', backend, re.I):
+                    points += 100
+                    raisons.append('chemin conforme (apps/sales/pdf_seller_report.py)')
+                if racine_backend:
+                    points += 50
+
+            if pos:
+                marques = contient(pos, ['export-seller-pdf', 'sellerPdfPeriod'])
+                if marques.get('export-seller-pdf'):
+                    points += 300
+                    raisons.append('écran POS : bouton/bilan vendeur présent')
+                else:
+                    points -= 300
+                    raisons.append('écran POS : bilan vendeur ABSENT de ce fichier')
+                if re.search(r'app[/\\]pos[/\\]page\.tsx$', pos, re.I):
+                    points += 100
+                    raisons.append('chemin conforme (app/pos/page.tsx)')
+                if racine_pos:
+                    points += 50
+                if racine_pos and racine_pos == racine_backend:
+                    for indice in indices_de_vie(racine_pos):
+                        points += 10
+                        raisons.append('indice de projet actif : %s' % indice)
+                if pos and 'Downloads' in pos:
+                    points -= 100
+                    raisons.append('fichier situé dans Téléchargements')
+
+            points -= (len(backend or '') + len(pos or '')) // 50
+            details.append((points, backend, pos, raisons))
+            if meilleure is None or points > meilleure[0]:
+                meilleure = (points, backend, pos, raisons)
+
+    if meilleure is None:
+        return None, None, [], sorted(details, key=lambda d: -d[0])
+    return meilleure[1], meilleure[2], meilleure[3], sorted(details, key=lambda d: -d[0])
+
+
 def choisir_backend(candidats):
     if not candidats:
         return None
@@ -187,26 +306,28 @@ def choisir_pos(candidats):
 
 # -------------------------------------------------------------------- backend
 
-HELPERS_BACKEND = '''def json_error(message, statut=400):
-    """Réponse JSON d'erreur (le renderer de cette vue est binaire, on ne passe pas par Response)."""
+HELPER_JSON_ERROR = '''def {nom_json}(message, statut=400):
+    """Reponse JSON d'erreur (le renderer de cette vue est binaire : pas de Response DRF)."""
     return HttpResponse(
-        json.dumps({'detail': message}, ensure_ascii=False),
+        json.dumps({{'detail': message}}, ensure_ascii=False),
         status=statut,
         content_type='application/json; charset=utf-8',
     )
 
 
-def resolve_seller(company, seller_param):
-    """Retrouve le vendeur demandé : identifiant (UUID), email, nom complet ou username.
+'''
 
-    Résolution dans l'ordre : identifiant technique, email exact, nom
-    d'utilisateur, nom complet, puis email partiel (refusé s'il est ambigu).
+HELPER_RESOLVE = '''def {nom_resolve}(company, seller_param):
+    """Retrouve le vendeur demande : identifiant (UUID), email, nom complet ou username.
+
+    Resolution dans l'ordre : identifiant technique, email exact, nom
+    d'utilisateur, nom complet, puis email partiel (refuse s'il est ambigu).
 
     Retourne (vendeur, message d'erreur) :
-      - (vendeur, None)      : vendeur identifié ;
-      - (None, None)         : aucun vendeur demandé (comportement par défaut) ;
-      - (None, 'message')    : vendeur demandé mais introuvable. Le bilan ne doit
-        JAMAIS être produit silencieusement pour un autre vendeur.
+      - (vendeur, None)      : vendeur identifie ;
+      - (None, None)         : aucun vendeur demande (comportement par defaut) ;
+      - (None, 'message')    : vendeur demande mais introuvable. Le bilan ne doit
+        JAMAIS etre produit silencieusement pour un autre vendeur.
     """
     if not seller_param:
         return None, None
@@ -214,12 +335,12 @@ def resolve_seller(company, seller_param):
     parametre = str(seller_param).strip()
     utilisateurs = User.objects.filter(company=company)
 
-    # Le modèle utilisateur du projet peut ne pas avoir de champ « username »
-    # (dans NEXORA, la connexion se fait par email) : on teste sa présence.
+    # Le modele utilisateur du projet peut ne pas avoir de champ « username »
+    # (dans NEXORA, la connexion se fait par email) : on teste sa presence.
     try:
-        champs_modele = {champ.name for champ in User._meta.get_fields()}
+        champs_modele = {{champ.name for champ in User._meta.get_fields()}}
     except Exception:
-        champs_modele = {'email', 'first_name', 'last_name', 'username'}
+        champs_modele = {{'email', 'first_name', 'last_name', 'username'}}
     a_un_username = 'username' in champs_modele
 
     identifiant = None
@@ -239,20 +360,20 @@ def resolve_seller(company, seller_param):
         vendeur = utilisateurs.filter(username__iexact=parametre).first()
 
     if vendeur is None and ' ' in parametre:
-        # Nom complet « Prénom Nom »
+        # Nom complet « Prenom Nom »
         prenom, nom = parametre.split(None, 1)
         vendeur = utilisateurs.filter(
             first_name__iexact=prenom, last_name__iexact=nom
         ).first()
 
     if vendeur is None:
-        # Compatibilité : recherche partielle sur l'email, refusée si ambiguë,
-        # pour ne jamais produire le bilan d'un vendeur différent de celui visé.
+        # Compatibilite : recherche partielle sur l'email, refusee si ambigue,
+        # pour ne jamais produire le bilan d'un vendeur different de celui vise.
         candidats = list(utilisateurs.filter(email__icontains=parametre)[:2])
         if len(candidats) > 1:
             return None, (
-                "Plusieurs vendeurs correspondent à « %s ». Choisissez le vendeur "
-                "dans la liste pour éviter toute confusion." % parametre
+                "Plusieurs vendeurs correspondent a « %s ». Choisissez le vendeur "
+                "dans la liste pour eviter toute confusion." % parametre
             )
         vendeur = candidats[0] if candidats else None
 
@@ -263,16 +384,18 @@ def resolve_seller(company, seller_param):
         return vendeur, None
 
     return None, (
-        "Aucun vendeur de cette entreprise ne correspond à « %s ». "
+        "Aucun vendeur de cette entreprise ne correspond a « %s ». "
         "Choisissez un compte vendeur valide." % parametre
     )
 
 
-def sales_queryset_for_seller(company, seller_user, start_date, end_date):
-    """Ventes réellement prises en compte dans le bilan d'un vendeur.
+'''
 
-    Strictement limitées à ce vendeur ET aux ventes validées (statut COMPLETED),
-    ce qui exclut les brouillons et les ventes annulées.
+HELPER_VENTES = '''def {nom_ventes}(company, seller_user, start_date, end_date):
+    """Ventes reellement prises en compte dans le bilan d'un vendeur.
+
+    Strictement limitees a ce vendeur ET aux ventes validees (statut COMPLETED),
+    ce qui exclut les brouillons et les ventes annulees.
     """
     try:
         from apps.sales.models import SaleStatus
@@ -290,6 +413,12 @@ def sales_queryset_for_seller(company, seller_user, start_date, end_date):
 
 '''
 
+HELPERS_BACKEND = (
+    HELPER_JSON_ERROR.format(nom_json=NOM_JSON_ERROR)
+    + HELPER_RESOLVE.format(nom_resolve=NOM_RESOLVE)
+    + HELPER_VENTES.format(nom_ventes=NOM_VENTES)
+)
+
 BLOC_BACKEND = '''{ind}# ------------------------------------------------------------------
 {ind}# CORRECTIF « bilan de vente par vendeur » (insertion automatique v2)
 {ind}# Le vendeur est identifié STRICTEMENT ; s'il est introuvable le bilan n'est
@@ -302,9 +431,9 @@ BLOC_BACKEND = '''{ind}# -------------------------------------------------------
 {ind}    or ''
 {ind}).strip()
 
-{ind}seller_user, erreur_vendeur = resolve_seller(company, seller_param)
+{ind}seller_user, erreur_vendeur = {nom_resolve}(company, seller_param)
 {ind}if erreur_vendeur:
-{ind}    return json_error(erreur_vendeur, 404)
+{ind}    return {nom_json}(erreur_vendeur, 404)
 
 {ind}role_courant = getattr(request.user, 'role', None)
 {ind}if role_courant == 'CASHIER' and getattr(request.user, 'is_authenticated', False):
@@ -324,10 +453,10 @@ BLOC_BACKEND = '''{ind}# -------------------------------------------------------
 {ind}        seller_user = User.objects.filter(company=company).first()
 
 {ind}if not seller_user:
-{ind}    return json_error("Aucun vendeur n'a pu être déterminé pour ce bilan.", 400)
+{ind}    return {nom_json}("Aucun vendeur n'a pu être déterminé pour ce bilan.", 400)
 
 {ind}# Le bilan est TOUJOURS strictement limité à ce vendeur
-{ind}sales_qs = sales_queryset_for_seller(company, seller_user, start_date, end_date)
+{ind}sales_qs = {nom_ventes}(company, seller_user, start_date, end_date)
 
 '''
 
@@ -387,25 +516,52 @@ def patch_backend(texte, nom, journal, dry_run):
     elif import_sales is not None:
         journal.append('import SaleStatus déjà présent')
 
-    # 3) helpers resolve_seller / sales_queryset_for_seller / json_error
-    if 'def resolve_seller(company, seller_param):' in texte:
-        journal.append('helpers déjà présents')
-    else:
+    # 3) helpers : insertion INDIVIDUELLE de ceux qui manquent. Les noms sont
+    #    préfixés (_nexora_...) : une correction déjà présente dans le fichier ne
+    #    peut donc pas empêcher l'insertion, ni provoquer de collision de nom.
+    manquants = []
+    if 'def %s(' % NOM_JSON_ERROR not in texte:
+        manquants.append(HELPER_JSON_ERROR.format(nom_json=NOM_JSON_ERROR))
+    if 'def %s(' % NOM_RESOLVE not in texte:
+        manquants.append(HELPER_RESOLVE.format(nom_resolve=NOM_RESOLVE))
+    if 'def %s(' % NOM_VENTES not in texte:
+        manquants.append(HELPER_VENTES.format(nom_ventes=NOM_VENTES))
+
+    if manquants:
         ancre_classe = re.search(r'^class\s+SellerSalesReportPdfView\b', texte, re.M)
         if ancre_classe is None:
             ancre_classe = re.search(r'^class\s+\w*(?:Seller|Sales)\w*(?:Report|Pdf|PDF)\w*\s*\(', texte, re.M)
         if ancre_classe is None:
-            problemes.append("classe de la vue introuvable (SellerSalesReportPdfView)")
+            # À défaut de classe identifiable, on place les helpers après le dernier import
+            dernier_import = None
+            for correspondance in re.finditer(r'^(?:import\s|from\s)[^\n]*$', texte, re.M):
+                dernier_import = correspondance
+            if dernier_import is None:
+                problemes.append('ni classe de vue ni import : fichier inattendu')
+            else:
+                texte = texte[:dernier_import.end() + 1] + '\n\n' + ''.join(manquants) + texte[dernier_import.end() + 1:]
+                modifie = True
+                journal.append('%d helper(s) inséré(s) après les imports' % len(manquants))
         else:
-            texte = texte[:ancre_classe.start()] + HELPERS_BACKEND + texte[ancre_classe.start():]
+            texte = texte[:ancre_classe.start()] + ''.join(manquants) + texte[ancre_classe.start():]
             modifie = True
-            journal.append('helpers resolve_seller / sales_queryset_for_seller insérés')
+            journal.append('%d helper(s) inséré(s) avant la vue' % len(manquants))
+    else:
+        journal.append('helpers déjà présents')
 
     if problemes:
         return texte, modifie, problemes
 
+    # 3bis) information : un correctif différent est peut-être déjà dans le fichier
+    autres_correctifs = [nom for nom in ('resolve_seller', 'json_error', 'sales_queryset_for_seller',
+                                        'seller_str', 'seller_filtered_qs')
+                         if re.search(r'^[ \t]*(?:def\s+%s\b|%s\s*=)' % (re.escape(nom), re.escape(nom)), texte, re.M)]
+    if autres_correctifs:
+        journal.append('correctif déjà présent dans ce fichier (%s) : conservé, notre version prend le dessus'
+                       % ', '.join(autres_correctifs))
+
     # 4) bloc de sélection stricte du vendeur, posé juste avant le rapport
-    if 'erreur_vendeur = resolve_seller(' in texte:
+    if 'erreur_vendeur = %s(' % NOM_RESOLVE in texte:
         journal.append('sélection stricte du vendeur déjà en place')
         return texte, modifie, problemes
 
@@ -415,7 +571,8 @@ def patch_backend(texte, nom, journal, dry_run):
             continue
         ligne = correspondance.group(0)
         indentation = re.match(r'[ \t]*', ligne).group(0)
-        bloc = BLOC_BACKEND.format(ind=indentation)
+        bloc = BLOC_BACKEND.format(ind=indentation, nom_json=NOM_JSON_ERROR,
+                                   nom_resolve=NOM_RESOLVE, nom_ventes=NOM_VENTES)
         texte = texte[:correspondance.start()] + bloc + texte[correspondance.start():]
         modifie = True
         journal.append('sélection stricte du vendeur insérée avant « %s »' % ligne.strip()[:60])
@@ -756,7 +913,6 @@ def main(argv=None):
                 break
     for chemin in candidats_backend:
         journal_cherche.append('  %s' % chemin)
-    backend = choisir_backend(candidats_backend)
 
     candidats_pos = []
     for racine_courante in racines:
@@ -765,10 +921,24 @@ def main(argv=None):
         candidats_pos.extend(trouves)
     for chemin in candidats_pos:
         journal_cherche.append('  %s' % chemin)
-    pos = choisir_pos(candidats_pos)
+
+    backend, pos, raisons, classement = choisir_paire(candidats_backend, candidats_pos)
+    journal_cherche.append('')
+    journal_cherche.append('Choix retenu : backend=%s | ecran POS=%s' % (backend, pos))
+    for ligne in raisons:
+        journal_cherche.append('  - %s' % ligne)
+    journal_cherche.append('Autres couples examines :')
+    for points, b, p, r in classement[1:6]:
+        journal_cherche.append('  %5d | %s | %s' % (points, b, p))
 
     print('  backend  : %s' % (backend or 'INTROUVABLE'))
     print('  écran POS : %s' % (pos or 'INTROUVABLE'))
+    if backend:
+        r = racine_projet(backend) or '(dossier du projet non identifié)'
+        print('  dossier du projet : %s' % r)
+        print('  indices            : %s' % (', '.join(indices_de_vie(r)) or 'aucun'))
+    for ligne in raisons[:6]:
+        print('    - %s' % ligne)
     print('-' * 76)
 
     etats = []
@@ -795,13 +965,19 @@ def main(argv=None):
     a_modifier = [c for c in (backend, pos) if c]
     if a_modifier and not options.dry_run:
         horodatage = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
-        dossier = os.path.join(racines[0], 'sauvegardes-bilan-pos-%s' % horodatage)
+        dossiers_sauvegarde = []
         for chemin in a_modifier:
-            relatif = os.path.relpath(chemin, racines[0]) if chemin.startswith(racines[0]) else os.path.basename(chemin)
+            # la sauvegarde va dans le dossier du PROJET auquel appartient le fichier
+            projet = racine_projet(chemin) or racines[0]
+            dossier = os.path.join(projet, 'sauvegardes-bilan-pos-%s' % horodatage)
+            relatif = os.path.relpath(chemin, projet)
             cible = os.path.join(dossier, relatif)
             os.makedirs(os.path.dirname(cible), exist_ok=True)
             shutil.copy2(chemin, cible)
-        print('Sauvegarde : %s (%d fichier(s))' % (dossier, len(a_modifier)))
+            if dossier not in dossiers_sauvegarde:
+                dossiers_sauvegarde.append(dossier)
+        for dossier in dossiers_sauvegarde:
+            print('Sauvegarde : %s' % dossier)
         print('-' * 76)
 
     resultats = []
@@ -812,12 +988,18 @@ def main(argv=None):
         resultats.append(False)
     else:
         texte, crlf = lire(backend)
-        if MARQUEUR_BACKEND in texte and 'erreur_vendeur = resolve_seller(' in texte:
+        complet = (MARQUEUR_BACKEND in texte
+                   and 'def %s(' % NOM_JSON_ERROR in texte
+                   and 'def %s(' % NOM_VENTES in texte
+                   and 'erreur_vendeur = %s(' % NOM_RESOLVE in texte)
+        if complet:
             print('  backend  : déjà corrigé')
             resultats.append(True)
         else:
-            avant = texte
-            texte, modifie, problemes = patch_backend(texte, backend, [], options.dry_run)
+            journal_backend = []
+            texte, modifie, problemes = patch_backend(texte, backend, journal_backend, options.dry_run)
+            for ligne in journal_backend:
+                print('    - %s' % ligne)
             if problemes:
                 print('  backend  : NON CORRIGÉ — %s' % ' ; '.join(problemes))
                 resultats.append(False)
@@ -839,6 +1021,13 @@ def main(argv=None):
     if not pos:
         print('  frontend : FICHIER INTROUVABLE')
         resultats.append(False)
+    elif 'export-seller-pdf' not in lire(pos)[0] and 'sellerPdfPeriod' not in lire(pos)[0]:
+        print('  frontend : CE FICHIER NE CONTIENT PAS LE BILAN VENDEUR — non modifié')
+        print('             (%s)' % pos)
+        print('             Le bouton « Mon Bilan Vente PDF » n’existe pas dans cet écran :')
+        print('             c’est une version plus ancienne du POS. Indiquez le bon dossier,')
+        print('             par exemple :  --racines "C:\\NEXORA"')
+        resultats.append(None)
     else:
         texte, crlf = lire(pos)
         if MARQUEUR_POS in texte and 'seller_id' in texte:
@@ -864,7 +1053,7 @@ def main(argv=None):
     chemin_diagnostic = diagnostiquer(dossier_script, backend, pos, journal_cherche, racine)
 
     print('-' * 76)
-    if all(resultats):
+    if all(resultats) and resultats:
         print('CORRECTIF EN PLACE.')
         print()
         print('À faire ensuite :')
@@ -876,11 +1065,16 @@ def main(argv=None):
     else:
         print('ARRÊT PARTIEL : certains éléments n’ont pas pu être corrigés automatiquement.')
         print('Aucun fichier pour lequel un repère manquait n’a été écrit.')
+        if any(r is None for r in resultats):
+            print()
+            print('Un écran POS trouvé ne correspond pas à la version avec le bilan vendeur.')
+            print('Si votre application est ailleurs, relancez avec le bon dossier, par exemple :')
+            print('    --racines "C:\\NEXORA"   (ou D:\\NEXORA)')
     print()
     print('Diagnostic écrit : %s' % chemin_diagnostic)
     print('En cas d’échec, envoyez ce fichier DIAGNOSTIC-POS.txt : la correction sera')
     print('adaptée à vos lignes exactes.')
-    return 0 if all(resultats) else 1
+    return 0 if all(r in (True, None) for r in resultats) else 1
 
 
 if __name__ == '__main__':

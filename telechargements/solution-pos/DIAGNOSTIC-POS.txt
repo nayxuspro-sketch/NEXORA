@@ -1,0 +1,87 @@
+NEXORA — DIAGNOSTIC du bilan par vendeur au POS
+Généré le 07/10/2026 à 15:25:35
+Racine analysée : /tmp/p4
+
+--- Recherche des fichiers ---
+/tmp/p4 : pdf_seller_report.py -> 1 trouvé(s)
+  /tmp/p4/apps/sales/pdf_seller_report.py
+/tmp/p4 : pos/page.tsx -> 1 trouvé(s)
+  /tmp/p4/frontend/src/app/pos/page.tsx
+
+Choix retenu : backend=/tmp/p4/apps/sales/pdf_seller_report.py | ecran POS=/tmp/p4/frontend/src/app/pos/page.tsx
+  - même dossier de projet
+  - backend : vue du bilan vendeur présente
+  - chemin conforme (apps/sales/pdf_seller_report.py)
+  - écran POS : bouton/bilan vendeur présent
+  - chemin conforme (app/pos/page.tsx)
+  - indice de projet actif : manage.py
+Autres couples examines :
+
+--- BACKEND (vue PDF vendeur) ---
+  chemin : /tmp/p4/apps/sales/pdf_seller_report.py
+  taille : 30540 octets
+  sha256 : 4755a7091b4faa033644e859e96c1e3958a74784f7d64e59428073ac02967524
+  extraits :
+        22 | def resolve_seller(company, seller_param):
+        36 | def _nexora_resolve_seller(company, seller_param):
+        48 |     if not seller_param:
+        51 |     parametre = str(seller_param).strip()
+       128 | class SellerSalesReportPdfView(APIView):
+       149 |         seller_param = request.query_params.get('seller_id') or request.query_params.get('seller')
+       150 |         seller_str = str(seller_param or "").strip()
+       185 |         if seller_param:
+       187 |                 id=seller_param if len(seller_param) == 36 else None
+       188 |             ).first() or User.objects.filter(company=company, email__icontains=seller_param).first()
+       202 |         sales_qs = Sale.objects.filter(
+       208 |         if seller_param and seller_user:
+       209 |             sales_qs = sales_qs.filter(seller=seller_user)
+       217 |         seller_param = (
+       223 |         seller_user, erreur_vendeur = _nexora_resolve_seller(company, seller_param)
+       248 |         sales_qs = _nexora_ventes_du_vendeur(company, seller_user, start_date, end_date)
+       250 |         sales = list(sales_qs.prefetch_related('items__product', 'payments').order_by('-created_at'))
+
+--- FRONTEND (écran POS) ---
+  chemin : /tmp/p4/frontend/src/app/pos/page.tsx
+  taille : 57984 octets
+  sha256 : e739ba6aec6995cccbe185c3aa1059bbce0c8f66b1e9a25459bc20f0c8352d57
+  extraits :
+        94 |   // --- CORRECTIF v2 : liste des vendeurs du bilan (insertion automatique) ---
+        96 |     queryKey: ['pos-vendeurs-bilan'],
+       101 |   const vendeurs = React.useMemo(() => {
+       118 |   // Par défaut : le vendeur connecté (identifiant technique = filtre fiable)
+       123 |         seller_id: prev.seller_id || (authUser as any).id || '',
+       124 |         seller_email: prev.seller_email || (authUser as any).email || '',
+       183 |   const [sellerPdfPeriod, setSellerPdfPeriod] = React.useState({
+       184 |     seller_id: '',
+       188 |     seller_email: '',
+       192 |   // Set default seller email from current user
+       195 |       setSellerPdfPeriod((prev) => ({ ...prev, seller_email: authUser.email }));
+       203 |         start_date: sellerPdfPeriod.start_date,
+       204 |         end_date: sellerPdfPeriod.end_date,
+       205 |         ...(sellerPdfPeriod.seller_id
+       206 |           ? { seller_id: sellerPdfPeriod.seller_id }
+       207 |           : sellerPdfPeriod.seller_email
+       208 |             ? { seller: sellerPdfPeriod.seller_email }
+       212 |         `/api/v1/sales/export-seller-pdf/?${queryParams.toString()}`,
+       213 |         `Vente_Vendeur_${sellerPdfPeriod.start_date}_${sellerPdfPeriod.end_date}.pdf`
+       218 |         title: 'Bilan Vendeur Téléchargé',
+       978 |               <Sparkles className="h-4 w-4" /> Rapport Individuel Vendeur sur 2 Pages :
+       994 |                 value={sellerPdfPeriod.start_date}
+       995 |                 onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, start_date: e.target.value })}
+      1005 |                 value={sellerPdfPeriod.end_date}
+      1006 |                 onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, end_date: e.target.value })}
+      1013 |               Compte Vendeur / Caissier
+      1015 |             {vendeurs.length > 0 ? (
+      1017 |                 aria-label="Choisir le vendeur du bilan"
+      1018 |                 value={sellerPdfPeriod.seller_id}
+      1020 |                   const choisi = vendeurs.find((v) => v.id === e.target.value);
+      1022 |                     ...sellerPdfPeriod,
+      1023 |                     seller_id: e.target.value,
+      1024 |                     seller_email: choisi?.email || '',
+      1029 |                 <option value="">— Choisir un vendeur —</option>
+      1030 |                 {vendeurs.map((v) => (
+      1039 |                 value={sellerPdfPeriod.seller_email}
+      1040 |                 onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, seller_email: e.target.value })}
+      1045 |               Le bilan est strictement limité aux ventes validées encaissées par ce vendeur sur la période choisie.
+      1059 |               href={`/api/v1/sales/export-seller-pdf/?start_date=${sellerPdfPeriod.start_date}&end_date=${sellerPdfPeriod.end_date}${sellerPdfPeriod.seller_id ? `&seller_id=${encod
+
