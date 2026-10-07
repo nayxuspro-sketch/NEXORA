@@ -1,0 +1,103 @@
+CORRECTIF — FILTRE « BILAN DE VENTE PAR VENDEUR » DE L’ÉCRAN BI
+================================================================
+
+CE QUI ÉTAIT FAUX
+-----------------
+L’écran réel « Business Intelligence & Décision » (frontend/src/app/reports/page.tsx)
+appelle l’API suivante, sans jamais transmettre de vendeur :
+
+    /reports/bi-analytics/?view=${selectedView}&days=${days}
+
+Le calcul côté Django (apps/reports/bi_analytics.py) agrège donc toujours TOUTES
+les ventes de l’entreprise : le tableau « Performance des Vendeurs / Caissiers »
+affichait bien une répartition, mais aucune liste déroulante ne permettait de
+filtrer le bilan sur un vendeur précis.
+
+Le correctif précédent (corriger_bilan_vendeur.py) visait un autre endpoint
+(apps/reports/views.py, DashboardReportView). Il ne concerne PAS cet écran BI.
+
+CE QUE FAIT CE CORRECTIF
+------------------------
+1. apps/reports/bi_analytics.py
+   - lit le paramètre HTTP seller_id (facultatif) ;
+   - refuse proprement un seller_id non numérique (réponse 400, pas d’erreur 500) ;
+   - restreint les ventes de la période courante ET de la période précédente au
+     vendeur choisi. Comme les produits, familles, vendeurs, magasins, marges,
+     stock mouvementé et clients actifs sont calculés à partir de ces deux
+     requêtes, tous les KPI du bilan suivent le filtre ;
+   - ajoute deux champs à la réponse JSON :
+       * available_sellers : liste des vendeurs de l’entreprise (id + email) ;
+       * selected_seller  : identifiant du vendeur appliqué ('' si aucun).
+   - sans seller_id, le comportement est strictement identique à avant.
+
+2. frontend/src/app/reports/page.tsx
+   - ajoute la liste déroulante « Tous les vendeurs / <vendeur> » à côté des
+     boutons 7 jours / 30 jours / Trimestre, avec un bouton ✕ pour réinitialiser ;
+   - transmet seller_id à l’API et rafraîchit le bilan au changement de vendeur ;
+   - affiche le périmètre analysé dans l’encart « Analyse Explicative » ;
+   - conserve le filtre lors de l’export PDF.
+
+PÉRIMÈTRE ET NUANCES
+--------------------
+- « Stock & Valorisation » et « Comptes clients enregistrés » restent des
+  indicateurs d’entreprise : le stock et les fiches clients n’appartiennent pas
+  à un vendeur.
+- « Clients actifs » (acheteurs de la période) devient, lui, propre au vendeur
+  sélectionné ; le taux de fidélisation compare donc les acheteurs du vendeur au
+  total des comptes de l’entreprise. C’est volontaire mais à connaître.
+- Le PDF « Exporter Rapport BI » reçoit maintenant seller_id. Si la vue
+  d’export (export-bi-pdf) n’exploite pas encore ce paramètre, le PDF restera
+  global : dites-le moi et je corrige aussi cette vue (il me faut son fichier).
+
+SÉCURITÉ
+--------
+- Aucun filtre de rôle n’est ajouté : un utilisateur qui voyait déjà la
+  répartition par vendeur peut désormais la filtrer. Si vous souhaitez qu’un
+  rôle CASHIER soit limité à ses propres ventes (comme sur le tableau de bord),
+  dites-le : c’est un ajout de quelques lignes.
+- Aucune migration, aucune écriture en base de données.
+
+INSTALLATION
+------------
+1. Arrêtez Django (Ctrl+C).
+2. Téléchargez corriger-filtre-vendeur-bi.zip et extrayez-le dans un dossier,
+   par exemple D:\NEXORA\correctif-filtre-vendeur-bi.
+3. Double-cliquez sur corriger-filtre-vendeur-bi.bat.
+   (ou en PowerShell : py corriger_filtre_vendeur_bi.py --racine D:\NEXORA)
+4. Le script sauvegarde les deux fichiers dans
+   D:\NEXORA\sauvegardes-filtre-vendeur-<date-heure>\ avant de les modifier,
+   puis lance « manage.py check ». Il propose ensuite de lancer les tests.
+5. Collez ici la sortie complète de la fenêtre.
+6. Relancez Django, puis le frontend (npm run dev) : la liste déroulante des
+   vendeurs apparaît en haut de l’écran /reports.
+
+OPTIONS UTILES
+--------------
+    py corriger_filtre_vendeur_bi.py --racine D:\NEXORA --verifier
+        Indique seulement si les deux fichiers sont déjà corrigés.
+    py corriger_filtre_vendeur_bi.py --racine D:\NEXORA --dry-run
+        Simule sans rien écrire.
+    py corriger_filtre_vendeur_bi.py --racine D:\NEXORA --sans-frontend
+        Ne corrige que le backend Django.
+
+CONTRÔLE MANUEL
+---------------
+Dans le navigateur (connecté) :
+
+    /api/v1/reports/bi-analytics/?view=executive&days=30
+    /api/v1/reports/bi-analytics/?view=executive&days=30&seller_id=2
+
+Le deuxième appel doit contenir "selected_seller": "2" et des totaux inférieurs
+ou égaux au premier.
+
+RETOUR ARRIÈRE
+--------------
+Copiez les deux fichiers de la sauvegarde horodatée à leur emplacement d’origine
+(apps\reports\bi_analytics.py et frontend\src\app\reports\page.tsx), redémarrez
+Django et le frontend.
+
+BESOIN POUR ALLER PLUS LOIN
+---------------------------
+Si le script s’arrête en annonçant qu’un point d’insertion est introuvable,
+envoyez-moi le contenu de apps\reports\bi_analytics.py : le correctif sera
+réécrit au caractère près sur VOTRE fichier, sans modification à l’aveugle.

@@ -188,6 +188,33 @@
     <span class="taille">TXT</span>
   </a>
 
+  <h2>Filtre vendeur de l’écran BI (corrige le vrai écran)</h2>
+  <p class="sous-titre">Ajoute la liste déroulante « Tous les vendeurs / &lt;vendeur&gt; » sur l’écran Business Intelligence &amp; Décision et transmet <code>seller_id</code> à <code>/reports/bi-analytics/</code> : tous les KPI du bilan suivent alors le vendeur choisi.</p>
+  <a class="carte" href="corriger-filtre-vendeur-bi.zip" download>
+    <span class="icone">📊</span>
+    <span>
+      <span class="nom">corriger-filtre-vendeur-bi.zip</span><br />
+      <span class="detail">Patch AST de apps/reports/bi_analytics.py + page.tsx avec sélecteur vendeur ; sauvegarde horodatée et manage.py check</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="LISEZMOI-corriger-filtre-vendeur-bi.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-corriger-filtre-vendeur-bi.txt</span><br />
+      <span class="detail">Ce qui était faux, périmètre des KPI, nuances et retour arrière</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+  <a class="carte" href="page-bi-filtre-vendeur.tsx" download>
+    <span class="icone">⚛️</span>
+    <span>
+      <span class="nom">page-bi-filtre-vendeur.tsx</span><br />
+      <span class="detail">Version corrigée de frontend/src/app/reports/page.tsx (à copier manuellement si besoin)</span>
+    </span>
+    <span class="taille">TSX</span>
+  </a>
+
   <h2>Profil de production conditionnel</h2>
   <p class="sous-titre">Ajout ciblé à config/settings.py, avec sauvegarde préalable et validation des préconditions. Le profil reste inactif en local et refuse de démarrer sans hôtes exacts et reverse proxy HTTPS.</p>
   <a class="carte" href="appliquer-profil-production.zip" download>
