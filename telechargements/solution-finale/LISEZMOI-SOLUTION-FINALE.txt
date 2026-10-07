@@ -3,56 +3,100 @@ SOLUTION FINALE — FILTRE DE VENTE PAR VENDEUR (écran Business Intelligence)
 
 UN SEUL GESTE
 -------------
-1. Décompressez ce dossier dans D:\NEXORA\correctif-filtre-vendeur-bi
-   (ou n'importe où : le script travaille sur D:\NEXORA).
+1. Décompressez ce dossier où vous voulez.
 2. Double-cliquez sur  INSTALLER-SOLUTION-FINALE.bat
-3. Redémarrez Django (Ctrl+C puis « py manage.py runserver ») et le
-   frontend (Ctrl+C puis « npm run dev »).
+   (ou : clic droit sur INSTALLER-SOLUTION-FINALE.ps1 > Exécuter avec PowerShell)
+3. Redémarrez Django et le frontend (voir « REDÉMARRAGE » plus bas).
 
-C'est tout. Rechargez l'écran /reports : la liste déroulante des vendeurs
-est installée.
+L'installateur détecte TOUT SEUL le ou les dossiers du projet :
+  D:\NEXORA, C:\NEXORA, %USERPROFILE%\NEXORA (et l'argument éventuel).
+Il corrige tous ceux qu'il trouve, avec une sauvegarde horodatée dans chacun.
+Ainsi, que votre application tourne depuis C: ou depuis D:, le filtre est
+installé là où vous démarrez le serveur.
+
+Pour forcer un dossier précis :
+  powershell -ExecutionPolicy Bypass -File INSTALLER-SOLUTION-FINALE.ps1 -Racine D:\NEXORA
 
 CE QUE L'INSTALLEUR FAIT, DANS CET ORDRE
 ----------------------------------------
 1. Sauvegarde vos versions actuelles dans
-   D:\NEXORA\sauvegardes-solution-finale-<date-heure>\
+   <dossier>\sauvegardes-solution-finale-<date-heure>\
    (page.tsx et bi_analytics.py : retour arrière immédiat possible).
 2. REMPLACE l'écran frontend\src\app\reports\page.tsx par le fichier final
    complet « page.tsx » fourni ici — ce n'est plus un patch ligne à ligne,
    mais le fichier entier, déjà terminé et vérifié.
 3. Vérifie le backend apps\reports\bi_analytics.py :
    - déjà corrigé sur votre machine (manage.py check est passé) : rien à faire ;
-   - sinon, applique automatiquement corriger_filtre_vendeur_bi.py.
-4. Lance « py manage.py check » et n'affiche aucune erreur si tout est bon.
+   - sinon, applique automatiquement le correctif.
+4. Lance « py manage.py check » pour chaque dossier traité.
 
-CE QUI EST INSTALLÉ (fichier final, plus de patchs successifs)
--------------------------------------------------------------
+CE QUI EST INSTALLÉ
+------------------
 Écran /reports :
   - liste déroulante « Tous les vendeurs / <vendeur> » à côté des boutons
     7 jours / 30 jours / Trimestre, avec bouton ✕ de réinitialisation ;
-  - le vendeur choisi est envoyé à l'API (/reports/bi-analytics/?...&seller_id=)
-    et le bilan se recalcule : CA, croissance, panier moyen, marge, coût des
-    marchandises, top produits, familles, performance par vendeur et par
-    magasin, clients actifs ;
-  - le périmètre analysé est rappelé dans l'encart « Analyse Explicative » ;
-  - l'export PDF conserve le vendeur sélectionné.
+  - le vendeur choisi est envoyé à l'API (…&seller_id=) et le bilan se
+    recalcule : CA, croissance, panier moyen, marge, coût des marchandises,
+    top produits, familles, performance par vendeur et par magasin, clients
+    actifs ; la période de comparaison suit le même filtre ;
+  - périmètre rappelé dans l'encart « Analyse Explicative » ;
+  - export PDF : le vendeur sélectionné est transmis.
 
 Backend /reports/bi-analytics/ :
-  - paramètre seller_id (facultatif) : filtre les ventes de la période courante
-    ET de la période de comparaison ; sans seller_id, comportement inchangé ;
-  - champ available_sellers dans la réponse (id + email) : alimente la liste
-    déroulante ;
+  - paramètre seller_id (facultatif) ; sans lui, comportement inchangé ;
+  - champ available_sellers (id + email) qui alimente la liste déroulante ;
   - seller_id non numérique refusé proprement (400, jamais 500).
+
+REDÉMARRAGE (l'ordre compte)
+----------------------------
+1. Backend, DEPUIS LE DOSSIER DU PROJET (celui traité par l'installateur) :
+       cd D:\NEXORA            (ou C:\NEXORA selon votre cas)
+       py manage.py runserver
+2. Frontend, DANS LE SOUS-DOSSIER frontend (c'est là qu'est package.json) :
+       cd D:\NEXORA\frontend   (ou C:\NEXORA\frontend)
+       npm run dev
+3. Ouvrez l'écran Business Intelligence (/reports) : la liste déroulante
+   « Tous les vendeurs » est à côté des boutons 7 jours / 30 jours / Trimestre.
+
+ERREURS WINDOWS COURANTES
+-------------------------
+A. « Error: You don't have permission to access that port. »
+   Ce message vient de Windows, pas de NEXORA : le port 8000 est réservé ou
+   filtré (plage réservée par Hyper-V/WSL, pare-feu ou antivirus).
+   Dans l'ordre :
+     1. Vérifier que le port est bien dans une plage réservée :
+          netsh interface ipv4 show excludedportrange protocol=tcp
+     2. Libérer la réservation (PowerShell EN ADMINISTRATEUR) :
+          net stop winnat
+          net start winnat
+        puis relancer : py manage.py runserver
+     3. Si cela persiste : redémarrer Windows (les plages réservées changent
+        à chaque démarrage).
+     4. En dernier recours, changer de port :
+          py manage.py runserver 127.0.0.1:8080
+        puis vérifier que le frontend pointe vers ce même port : regardez
+        frontend\src\lib\api.ts, frontend\.env.local et frontend\next.config.js.
+        Si vous me dites le port utilisé, je vous donne les deux lignes à modifier.
+
+B. npm error ENOENT « Could not read package.json »
+   Vous n'êtes pas dans le dossier du frontend. La commande se lance depuis le
+   sous-dossier frontend, pas depuis la racine du projet :
+       cd D:\NEXORA\frontend
+       npm run dev
+
+C. Le script indique qu'un dossier ne contient pas le projet
+   C'est normal s'il s'agit d'une copie ancienne. L'installateur corrige
+   toutes les copies qu'il trouve ; seul compte le dossier depuis lequel vous
+   lancez « py manage.py runserver ».
 
 POINTS À CONNAÎTRE
 ------------------
 - « Stock & Valorisation » et « Comptes clients enregistrés » restent des
-  indicateurs d'entreprise : le stock et les fiches clients n'appartiennent pas
-  à un vendeur. « Clients actifs » suit en revanche le vendeur sélectionné.
-- L'export PDF reçoit désormais seller_id. Si le PDF reste global, c'est que
-  la vue d'export (export-bi-pdf) ignore ce paramètre : envoyez-moi son fichier
-  et je la raccorde en une passe.
-- Aucune migration, aucune écriture en base.
+  indicateurs d'entreprise (le stock et les fiches clients n'appartiennent pas
+  à un vendeur). « Clients actifs » suit en revanche le vendeur sélectionné.
+- Si l'export PDF reste global, c'est que la vue d'export (export-bi-pdf)
+  ignore seller_id : envoyez-moi ce fichier et je le raccorde.
+- Aucune migration, aucune écriture en base de données.
 
 VÉRIFIER SOI-MÊME EN 20 SECONDES
 --------------------------------
@@ -64,12 +108,12 @@ Dans le navigateur, connecté à votre application :
   http://127.0.0.1:8000/api/v1/reports/bi-analytics/?view=executive&days=30&seller_id=2
       -> "selected_seller": "2" et des montants inférieurs ou égaux au global
 
-Le second appel doit contenir "available_sellers" avec la liste des vendeurs.
+(remplacez 8000 par votre port si vous en avez changé)
 
 EN CAS DE PROBLÈME
 ------------------
 - Le script affiche [ERREUR] et s'arrête sans rien casser : vos fichiers
   d'origine sont dans le dossier de sauvegarde indiqué.
-- Après avoir remplacé page.tsx, si le frontend affiche une erreur, c'est que
-  votre projet local a été personnalisé depuis l'extraction : recopiez
-  page.tsx depuis la sauvegarde et envoyez-moi la sortie de « npm run dev ».
+- Si le frontend affiche une erreur après remplacement, c'est que votre
+  projet local a été personnalisé depuis l'extraction : recopiez page.tsx
+  depuis la sauvegarde et envoyez-moi la sortie de « npm run dev ».

@@ -1,105 +1,162 @@
-$ErrorActionPreference = 'Stop'
+param(
+    [string]$Racine = ''
+)
 
-$projectRoot  = 'D:\NEXORA'
-$pageCible    = Join-Path $projectRoot 'frontend\src\app\reports\page.tsx'
-$pageSource   = Join-Path $PSScriptRoot 'page.tsx'
-$biCible      = Join-Path $projectRoot 'apps\reports\bi_analytics.py'
-$horodatage   = Get-Date -Format 'yyyyMMdd-HHmmss'
-$dossierSauve = Join-Path $projectRoot ("sauvegardes-solution-finale-" + $horodatage)
+$ErrorActionPreference = 'Stop'
+$origine     = (Get-Location).Path
+$pageSource  = Join-Path $PSScriptRoot 'page.tsx'
+$horodatage  = Get-Date -Format 'yyyyMMdd-HHmmss'
 
 Write-Host '============================================================' -ForegroundColor Cyan
 Write-Host ' NEXORA - SOLUTION FINALE : filtre de vente par vendeur' -ForegroundColor Cyan
-Write-Host ' (ecran Business Intelligence & Decision)' -ForegroundColor Cyan
 Write-Host '============================================================' -ForegroundColor Cyan
 Write-Host ''
 
-# --- 1) Verifications prealables ------------------------------------------
-if (-not (Test-Path -LiteralPath (Join-Path $projectRoot 'manage.py'))) {
-    Write-Host '[ERREUR] manage.py est introuvable dans D:\NEXORA.' -ForegroundColor Red
-    Write-Host 'Modifiez $projectRoot en tete de ce script si votre projet est ailleurs.'
-    Read-Host 'Appuyez sur Entree pour fermer'
-    exit 1
-}
 if (-not (Test-Path -LiteralPath $pageSource)) {
     Write-Host '[ERREUR] page.tsx est introuvable a cote de ce script.' -ForegroundColor Red
-    Read-Host 'Appuyez sur Entree pour fermer'
-    exit 1
-}
-if (-not (Test-Path -LiteralPath (Split-Path $pageCible))) {
-    Write-Host ('[ERREUR] Dossier introuvable : ' + (Split-Path $pageCible)) -ForegroundColor Red
-    Read-Host 'Appuyez sur Entree pour fermer'
-    exit 1
+    Read-Host 'Appuyez sur Entree pour fermer'; exit 1
 }
 
-# --- 2) Sauvegarde de la version actuelle --------------------------------
-New-Item -ItemType Directory -Force -Path (Split-Path (Join-Path $dossierSauve 'frontend\src\app\reports\page.tsx')) | Out-Null
-Copy-Item -LiteralPath $pageCible -Destination (Join-Path $dossierSauve 'frontend\src\app\reports\page.tsx') -Force
-if (Test-Path -LiteralPath $biCible) {
-    New-Item -ItemType Directory -Force -Path (Join-Path $dossierSauve 'apps\reports') | Out-Null
-    Copy-Item -LiteralPath $biCible -Destination (Join-Path $dossierSauve 'apps\reports\bi_analytics.py') -Force
+# ------------------------------------------------------------------ outils --
+function Resoudre-Python {
+    foreach ($candidat in @('py', 'python')) {
+        $commande = Get-Command $candidat -ErrorAction SilentlyContinue
+        if ($commande) { return $candidat }
+    }
+    return ''
 }
-Write-Host ('[1/4] Sauvegarde complete : ' + $dossierSauve) -ForegroundColor Green
-Write-Host '      (vos anciennes versions y sont conservees telles quelles)'
 
-# --- 3) Remplacement de l ecran par la version finale --------------------
-Copy-Item -LiteralPath $pageSource -Destination $pageCible -Force
-$page = Get-Content -LiteralPath $pageCible -Raw
-$manquants = @()
-if ($page -notmatch 'selectedSeller')      { $manquants += 'etat React' }
-if ($page -notmatch 'seller_id=')          { $manquants += 'envoi de seller_id' }
-if ($page -notmatch 'Tous les vendeurs')   { $manquants += 'liste deroulante' }
-if ($manquants.Count -gt 0) {
-    Write-Host ('[ERREUR] Copie incomplete : ' + ($manquants -join ', ')) -ForegroundColor Red
-    Read-Host 'Appuyez sur Entree pour fermer'
-    exit 1
+function Tester-Projet([string]$dossier) {
+    if (-not (Test-Path -LiteralPath (Join-Path $dossier 'manage.py'))) { return $false }
+    if (-not (Test-Path -LiteralPath (Join-Path $dossier 'frontend\src\app\reports\page.tsx'))) { return $false }
+    return $true
 }
-Write-Host '[2/4] Ecran /reports mis a jour : liste deroulante des vendeurs installee.' -ForegroundColor Green
 
-# --- 4) Verification du backend (aucune modification) --------------------
-$bi = Get-Content -LiteralPath $biCible -Raw
-if (($bi -match 'seller_id') -and ($bi -match 'available_sellers')) {
-    Write-Host '[3/4] Backend deja correct : filtre seller_id et liste des vendeurs presents.' -ForegroundColor Green
-} else {
-    Write-Host '[3/4] Le backend ne contient pas encore le filtre : application du correctif...' -ForegroundColor Yellow
-    $scriptBi = Join-Path $PSScriptRoot 'corriger_filtre_vendeur_bi.py'
-    if (Test-Path -LiteralPath $scriptBi) {
-        & py $scriptBi --racine $projectRoot
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host '[ATTENTION] Le backend doit etre corrige manuellement : collez la sortie ci-dessus.' -ForegroundColor Yellow
+# ------------------------------------------- recherche des copies du projet --
+$candidats = @()
+if ($Racine -ne '') { $candidats += $Racine }
+$candidats += 'D:\NEXORA', 'C:\NEXORA', (Join-Path $env:USERPROFILE 'NEXORA')
+
+$projets = @()
+foreach ($candidat in $candidats) {
+    if ([string]::IsNullOrWhiteSpace($candidat)) { continue }
+    if (-not (Test-Path -LiteralPath $candidat)) { continue }
+    if (-not (Tester-Projet $candidat)) { continue }
+    $complet = (Get-Item -LiteralPath $candidat).FullName
+    $existe = $false
+    foreach ($p in $projets) { if ($p -eq $complet) { $existe = $true } }
+    if (-not $existe) { $projets += $complet }
+}
+
+if ($projets.Count -eq 0) {
+    Write-Host '[ERREUR] Aucun projet NEXORA complet trouve.' -ForegroundColor Red
+    Write-Host 'Cherche un dossier contenant manage.py ET frontend\src\app\reports\page.tsx.'
+    Write-Host 'Relancez en indiquant le bon dossier, par exemple :'
+    Write-Host '  powershell -ExecutionPolicy Bypass -File INSTALLER-SOLUTION-FINALE.ps1 -Racine D:\NEXORA'
+    Write-Host ''
+    Read-Host 'Appuyez sur Entree pour fermer'; exit 1
+}
+
+Write-Host ('Projet(s) detecte(s) : ' + ($projets -join '  |  ')) -ForegroundColor Green
+Write-Host ''
+
+$python = Resoudre-Python
+$echecs = @()
+
+foreach ($projet in $projets) {
+    Write-Host ('------------------------------------------------------------') -ForegroundColor DarkGray
+    Write-Host ('Dossier traite : ' + $projet) -ForegroundColor White
+    $pageCible = Join-Path $projet 'frontend\src\app\reports\page.tsx'
+    $biCible   = Join-Path $projet 'apps\reports\bi_analytics.py'
+    $dossierSauve = Join-Path $projet ("sauvegardes-solution-finale-" + $horodatage)
+
+    # 1) sauvegarde
+    New-Item -ItemType Directory -Force -Path (Join-Path $dossierSauve 'frontend\src\app\reports') | Out-Null
+    Copy-Item -LiteralPath $pageCible -Destination (Join-Path $dossierSauve 'frontend\src\app\reports\page.tsx') -Force
+    if (Test-Path -LiteralPath $biCible) {
+        New-Item -ItemType Directory -Force -Path (Join-Path $dossierSauve 'apps\reports') | Out-Null
+        Copy-Item -LiteralPath $biCible -Destination (Join-Path $dossierSauve 'apps\reports\bi_analytics.py') -Force
+    }
+    Write-Host ('  Sauvegarde : ' + $dossierSauve) -ForegroundColor Green
+
+    # 2) installation de l ecran final complet
+    Copy-Item -LiteralPath $pageSource -Destination $pageCible -Force
+    $page = Get-Content -LiteralPath $pageCible -Raw
+    $manquants = @()
+    if ($page -notmatch 'selectedSeller')    { $manquants += 'etat React' }
+    if ($page -notmatch 'seller_id=')        { $manquants += 'envoi de seller_id' }
+    if ($page -notmatch 'Tous les vendeurs') { $manquants += 'liste deroulante' }
+    if ($manquants.Count -gt 0) {
+        Write-Host ('  [ERREUR] copie incomplete : ' + ($manquants -join ', ')) -ForegroundColor Red
+        $echecs += $projet
+        continue
+    }
+    Write-Host '  Ecran /reports : liste deroulante des vendeurs installee.' -ForegroundColor Green
+
+    # 3) backend : corrige uniquement s il manque le filtre
+    if (Test-Path -LiteralPath $biCible) {
+        $bi = Get-Content -LiteralPath $biCible -Raw
+        if (($bi -match 'seller_id') -and ($bi -match 'available_sellers')) {
+            Write-Host '  Backend : filtre seller_id deja present.' -ForegroundColor Green
         } else {
-            Write-Host '      Backend corrige.' -ForegroundColor Green
+            Write-Host '  Backend : filtre absent, application du correctif...' -ForegroundColor Yellow
+            $scriptBi = Join-Path $PSScriptRoot 'corriger_filtre_vendeur_bi.py'
+            if (($python -ne '') -and (Test-Path -LiteralPath $scriptBi)) {
+                Set-Location -LiteralPath $projet
+                & $python $scriptBi --racine $projet
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Host '  [ATTENTION] correctif backend incomplet : collez la sortie ci-dessus.' -ForegroundColor Yellow
+                    $echecs += $projet
+                } else {
+                    Write-Host '  Backend : corrige.' -ForegroundColor Green
+                }
+            } else {
+                Write-Host '  [ATTENTION] Python ou corriger_filtre_vendeur_bi.py indisponible : backend non corrige.' -ForegroundColor Yellow
+                $echecs += $projet
+            }
         }
     } else {
-        Write-Host '[ATTENTION] corriger_filtre_vendeur_bi.py absent : backend non corrige.' -ForegroundColor Yellow
+        Write-Host '  [ATTENTION] apps\reports\bi_analytics.py introuvable : backend non verifie.' -ForegroundColor Yellow
+        $echecs += $projet
     }
+
+    # 4) verification Django
+    if ($python -ne '') {
+        Set-Location -LiteralPath $projet
+        & $python manage.py check
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host '  [ATTENTION] manage.py check a signale une erreur.' -ForegroundColor Yellow
+            $echecs += $projet
+        } else {
+            Write-Host '  manage.py check : aucune erreur.' -ForegroundColor Green
+        }
+    } else {
+        Write-Host '  [ATTENTION] Python introuvable : manage.py check non lance.' -ForegroundColor Yellow
+    }
+    Write-Host ''
 }
 
-# --- 5) Verification globale Django --------------------------------------
-Set-Location -LiteralPath $projectRoot
-Write-Host '[4/4] Verification Django (manage.py check)...'
-& py manage.py check
-if ($LASTEXITCODE -ne 0) {
-    Write-Host '[ATTENTION] manage.py check a signale une erreur : collez la sortie ci-dessus.' -ForegroundColor Yellow
+Set-Location -LiteralPath $origine
+
+Write-Host '============================================================' -ForegroundColor Cyan
+if ($echecs.Count -eq 0) {
+    Write-Host ' TERMINE SUR TOUS LES DOSSIERS DETECTES' -ForegroundColor Cyan
 } else {
-    Write-Host '      manage.py check : aucune erreur.' -ForegroundColor Green
+    Write-Host (' TERMINE AVEC AVERTISSEMENTS : ' + ($echecs -join ', ')) -ForegroundColor Yellow
 }
-
-Write-Host ''
-Write-Host '============================================================' -ForegroundColor Cyan
-Write-Host ' TERMINE - il ne reste qu a redemarrer pour voir le filtre' -ForegroundColor Cyan
 Write-Host '============================================================' -ForegroundColor Cyan
 Write-Host ''
-Write-Host '1. Backend Django : Ctrl+C dans sa fenetre, puis :' -ForegroundColor White
-Write-Host '     py manage.py runserver'
-Write-Host '2. Frontend : Ctrl+C dans sa fenetre, puis :' -ForegroundColor White
-Write-Host '     npm run dev'
-Write-Host '3. Ouvrez l ecran Business Intelligence (/reports) :' -ForegroundColor White
-Write-Host '     la liste deroulante "Tous les vendeurs" est a cote des'
-Write-Host '     boutons 7 jours / 30 jours / Trimestre.'
-Write-Host '     Choisissez un vendeur : CA, marge, panier moyen, produits,'
-Write-Host '     familles, magasins et ventes se recalculent sur ce vendeur.'
-Write-Host ''
-Write-Host 'Retour arriere eventuel : recopiez page.tsx depuis' -ForegroundColor DarkGray
-Write-Host ('  ' + $dossierSauve) -ForegroundColor DarkGray
+Write-Host 'REDEMARRAGE (a faire dans l ordre) :' -ForegroundColor White
+Write-Host '  1. Backend, depuis le dossier DU PROJET :'
+Write-Host '       cd <dossier indique ci-dessus>'
+Write-Host '       py manage.py runserver'
+Write-Host '     Si Windows refuse le port 8000, Windows affiche :'
+Write-Host '       "You don''t have permission to access that port"'
+Write-Host '     Voir la section dediee du LISEZMOI.'
+Write-Host '  2. Frontend, dans le sous-dossier frontend (c est la qu est package.json) :'
+Write-Host '       cd <dossier>\frontend'
+Write-Host '       npm run dev'
+Write-Host '  3. Ouvrez /reports : la liste deroulante "Tous les vendeurs" est a cote'
+Write-Host '     des boutons 7 jours / 30 jours / Trimestre.'
 Write-Host ''
 Read-Host 'Appuyez sur Entree pour fermer'

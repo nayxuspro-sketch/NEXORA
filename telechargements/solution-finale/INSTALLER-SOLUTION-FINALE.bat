@@ -1,5 +1,5 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0INSTALLER-SOLUTION-FINALE.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0INSTALLER-SOLUTION-FINALE.ps1" %*
 exit /b %ERRORLEVEL%
