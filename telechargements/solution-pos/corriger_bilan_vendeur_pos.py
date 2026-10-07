@@ -684,10 +684,16 @@ def diagnostiquer(dossier_script, backend, pos, journal_cherche, racine):
         extraits = extraire(texte, motif, maximum=60)
         lignes.extend(('    ' + ligne) if ligne else ligne for ligne in (extraits or ['    (aucun)']))
         lignes.append('')
-    chemin = os.path.join(dossier_script, 'DIAGNOSTIC-POS.txt')
-    with open(chemin, 'w', encoding='utf-8') as fichier:
-        fichier.write('\n'.join(lignes) + '\n')
-    return chemin
+    # Le diagnostic est ecrit a cote du .bat (dossier courant) ; a defaut, a cote du script
+    for dossier in (os.getcwd(), dossier_script):
+        chemin = os.path.join(dossier, 'DIAGNOSTIC-POS.txt')
+        try:
+            with open(chemin, 'w', encoding='utf-8') as fichier:
+                fichier.write('\n'.join(lignes) + '\n')
+            return chemin
+        except OSError:
+            continue
+    return '(diagnostic non ecrit : dossier non accessible en ecriture)'
 
 
 def main(argv=None):

@@ -27,14 +27,23 @@
   <p class="sous-titre">Scripts et correctifs locaux pour l’application.</p>
 
   <h2>✅ CORRECTIF POS v2 — bilan de vente par vendeur (le bouton qui ne marchait pas)</h2>
-  <p class="sous-titre">Cause trouvée dans le code réel du dépôt : le filtre par vendeur n’était appliqué que si le vendeur était identifié, donc le bilan additionnait les ventes de toute l’entreprise. La v2 <strong>retrouve vos fichiers où qu’ils soient</strong> (même si <code>apps\sales\pdf_seller_report.py</code> n’est pas à l’emplacement du dépôt) et écrit un diagnostic si elle hésite.</p>
+  <p class="sous-titre">Cause trouvée dans le code réel du dépôt : le filtre par vendeur n’était appliqué que si le vendeur était identifié, donc le bilan additionnait les ventes de toute l’entreprise. La v2 <strong>retrouve vos fichiers où qu’ils soient</strong> et écrit un diagnostic si elle hésite.<br />
+  <strong>Essayez d’abord le fichier unique <code>CORRIGER-POS-AUTONOME.bat</code></strong> : le programme de correction est inclus dedans, aucun autre fichier n’est nécessaire. (Le message <code>can't open file 'C:\NEXORA\corriger_bilan_vendeur_pos.py'</code> venait du .bat lancé sans le programme à côté : ce fichier règle définitivement ce problème.)</p>
+  <a class="carte" href="solution-pos/CORRIGER-POS-AUTONOME.bat" download>
+    <span class="icone">🟢</span>
+    <span>
+      <span class="nom">CORRIGER-POS-AUTONOME.bat — À LANCER EN PREMIER</span><br />
+      <span class="detail">Fichier unique et autonome : le programme de correction est inclus dedans. Double-clic, il analyse D:\NEXORA, C:\NEXORA et %USERPROFILE%\NEXORA*, sauvegarde avant d’écrire et affiche quoi faire ensuite</span>
+    </span>
+    <span class="taille">59 Ko</span>
+  </a>
   <a class="carte" href="correctif-bilan-vendeur-pos.zip" download>
     <span class="icone">📦</span>
     <span>
       <span class="nom">correctif-bilan-vendeur-pos.zip</span><br />
-      <span class="detail">Tout-en-un v2 : lanceur APPLIQUER-CORRECTIF-POS.bat (analyse D:\NEXORA, C:\NEXORA, %USERPROFILE%), script autodétecteur avec sauvegarde, les 2 fichiers corrigés, 14 tests Django, LISEZMOI et diagnostic DIAGNOSTIC-POS.txt</span>
+      <span class="detail">Tout-en-un v2 : les deux lanceurs (.bat autonome + .bat multi-dossiers), script autodétecteur avec sauvegarde, les 2 fichiers corrigés, 14 tests Django et le LISEZMOI</span>
     </span>
-    <span class="taille">40 Ko</span>
+    <span class="taille">62 Ko</span>
   </a>
   <a class="carte" href="solution-pos/APPLIQUER-CORRECTIF-POS.bat" download>
     <span class="icone">▶️</span>
