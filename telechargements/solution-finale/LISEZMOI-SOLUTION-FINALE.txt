@@ -1,0 +1,75 @@
+SOLUTION FINALE — FILTRE DE VENTE PAR VENDEUR (écran Business Intelligence)
+============================================================================
+
+UN SEUL GESTE
+-------------
+1. Décompressez ce dossier dans D:\NEXORA\correctif-filtre-vendeur-bi
+   (ou n'importe où : le script travaille sur D:\NEXORA).
+2. Double-cliquez sur  INSTALLER-SOLUTION-FINALE.bat
+3. Redémarrez Django (Ctrl+C puis « py manage.py runserver ») et le
+   frontend (Ctrl+C puis « npm run dev »).
+
+C'est tout. Rechargez l'écran /reports : la liste déroulante des vendeurs
+est installée.
+
+CE QUE L'INSTALLEUR FAIT, DANS CET ORDRE
+----------------------------------------
+1. Sauvegarde vos versions actuelles dans
+   D:\NEXORA\sauvegardes-solution-finale-<date-heure>\
+   (page.tsx et bi_analytics.py : retour arrière immédiat possible).
+2. REMPLACE l'écran frontend\src\app\reports\page.tsx par le fichier final
+   complet « page.tsx » fourni ici — ce n'est plus un patch ligne à ligne,
+   mais le fichier entier, déjà terminé et vérifié.
+3. Vérifie le backend apps\reports\bi_analytics.py :
+   - déjà corrigé sur votre machine (manage.py check est passé) : rien à faire ;
+   - sinon, applique automatiquement corriger_filtre_vendeur_bi.py.
+4. Lance « py manage.py check » et n'affiche aucune erreur si tout est bon.
+
+CE QUI EST INSTALLÉ (fichier final, plus de patchs successifs)
+-------------------------------------------------------------
+Écran /reports :
+  - liste déroulante « Tous les vendeurs / <vendeur> » à côté des boutons
+    7 jours / 30 jours / Trimestre, avec bouton ✕ de réinitialisation ;
+  - le vendeur choisi est envoyé à l'API (/reports/bi-analytics/?...&seller_id=)
+    et le bilan se recalcule : CA, croissance, panier moyen, marge, coût des
+    marchandises, top produits, familles, performance par vendeur et par
+    magasin, clients actifs ;
+  - le périmètre analysé est rappelé dans l'encart « Analyse Explicative » ;
+  - l'export PDF conserve le vendeur sélectionné.
+
+Backend /reports/bi-analytics/ :
+  - paramètre seller_id (facultatif) : filtre les ventes de la période courante
+    ET de la période de comparaison ; sans seller_id, comportement inchangé ;
+  - champ available_sellers dans la réponse (id + email) : alimente la liste
+    déroulante ;
+  - seller_id non numérique refusé proprement (400, jamais 500).
+
+POINTS À CONNAÎTRE
+------------------
+- « Stock & Valorisation » et « Comptes clients enregistrés » restent des
+  indicateurs d'entreprise : le stock et les fiches clients n'appartiennent pas
+  à un vendeur. « Clients actifs » suit en revanche le vendeur sélectionné.
+- L'export PDF reçoit désormais seller_id. Si le PDF reste global, c'est que
+  la vue d'export (export-bi-pdf) ignore ce paramètre : envoyez-moi son fichier
+  et je la raccorde en une passe.
+- Aucune migration, aucune écriture en base.
+
+VÉRIFIER SOI-MÊME EN 20 SECONDES
+--------------------------------
+Dans le navigateur, connecté à votre application :
+
+  http://127.0.0.1:8000/api/v1/reports/bi-analytics/?view=executive&days=30
+      -> bilan global
+
+  http://127.0.0.1:8000/api/v1/reports/bi-analytics/?view=executive&days=30&seller_id=2
+      -> "selected_seller": "2" et des montants inférieurs ou égaux au global
+
+Le second appel doit contenir "available_sellers" avec la liste des vendeurs.
+
+EN CAS DE PROBLÈME
+------------------
+- Le script affiche [ERREUR] et s'arrête sans rien casser : vos fichiers
+  d'origine sont dans le dossier de sauvegarde indiqué.
+- Après avoir remplacé page.tsx, si le frontend affiche une erreur, c'est que
+  votre projet local a été personnalisé depuis l'extraction : recopiez
+  page.tsx depuis la sauvegarde et envoyez-moi la sortie de « npm run dev ».

@@ -76,6 +76,18 @@ TOUS LES CONTRÔLES SONT PASSÉS
    état seulement partiel est désormais signalé « correction PARTIELLE » au
    lieu d'être annoncé comme terminé.
 
+5. Solution finale (remplacement de fichier, plus de patch)
+   L'écran /reports est désormais livré sous forme de FICHIER COMPLET
+   (page.tsx) et non plus de patch en plusieurs passes :
+   - le fichier final a été compilé par TypeScript sans erreur de syntaxe ;
+   - il contient les 4 marqueurs contrôlés par l'installateur
+     (selectedSeller, seller_id=, liste « Tous les vendeurs », available_sellers) ;
+   - il dérive au caractère près de VOTRE page.tsx d'origine (SHA-256 vérifié) :
+     aucune ligne non liée au filtre n'a été modifiée ;
+   - l'installateur sauvegarde page.tsx ET bi_analytics.py avant toute écriture,
+     remplace l'écran, vérifie le backend (et le corrige seulement s'il manque),
+     puis lance manage.py check.
+
 Ce qui reste à vérifier SUR VOTRE MACHINE :
    - python manage.py check (lancé par le script) ;
    - python manage.py test tests.test_bi_vendeur_filtre -v 2 (proposé par le script) ;

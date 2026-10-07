@@ -188,7 +188,34 @@
     <span class="taille">TXT</span>
   </a>
 
-  <h2>Filtre vendeur de l’écran BI (corrige le vrai écran)</h2>
+  <h2>⭐ Solution finale — filtre de vente par vendeur</h2>
+  <p class="sous-titre"><strong>À faire en premier.</strong> Contient l’écran <code>/reports</code> <em>fini</em> (fichier complet, plus de patch ligne à ligne) + un installateur qui sauvegarde, remplace, vérifie le backend et lance <code>manage.py check</code>. Un seul double-clic.</p>
+  <a class="carte" href="SOLUTION-FINALE-filtre-vendeur.zip" download style="border-color:#2563eb">
+    <span class="icone">⭐</span>
+    <span>
+      <span class="nom">SOLUTION-FINALE-filtre-vendeur.zip</span><br />
+      <span class="detail">Décompressez, double-cliquez sur INSTALLER-SOLUTION-FINALE.bat, redémarrez Django et npm run dev. C’est terminé.</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="solution-finale/LISEZMOI-SOLUTION-FINALE.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-SOLUTION-FINALE.txt</span><br />
+      <span class="detail">Le geste unique, ce que l’installateur fait, vérifications et retour arrière</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+  <a class="carte" href="solution-finale/page.tsx" download>
+    <span class="icone">⚛️</span>
+    <span>
+      <span class="nom">page.tsx (fichier final complet)</span><br />
+      <span class="detail">Si vous préférez copier à la main vers frontend\src\app\reports\page.tsx (écrasez l’ancien après sauvegarde)</span>
+    </span>
+    <span class="taille">TSX</span>
+  </a>
+
+  <h2>Filtre vendeur de l’écran BI (variante scriptée)</h2>
   <p class="sous-titre">Ajoute la liste déroulante « Tous les vendeurs / &lt;vendeur&gt; » sur l’écran Business Intelligence &amp; Décision et transmet <code>seller_id</code> à <code>/reports/bi-analytics/</code> : tous les KPI du bilan suivent alors le vendeur choisi.</p>
   <a class="carte" href="corriger-filtre-vendeur-bi.zip" download>
     <span class="icone">📊</span>
