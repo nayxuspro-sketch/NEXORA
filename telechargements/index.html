@@ -26,7 +26,8 @@
   <h1>Téléchargements NEXORA</h1>
   <p class="sous-titre">Scripts et correctifs locaux pour l’application.</p>
 
-  <h2>✅ CORRECTIF POS v3 — bilan de vente par vendeur (le bouton qui ne marchait pas)</h2>
+  <h2>✅ CORRECTIF POS v3 — VALIDÉ : 14 tests sur 14 OK sur votre projet C:\NEXORA</h2>
+  <p class="sous-titre"><strong style="color:#7ee787">VALIDÉ le 07/10/2026 : 14 tests sur 14 passent sur C:\NEXORA</strong> (migrations réelles, vrai endpoint /api/v1/sales/export-seller-pdf/). Le bilan par vendeur fonctionne — filtrage strict par vendeur, ventes annulées/brouillons exclues, vendeur inconnu refusé (404), caissier limité à son propre bilan, PDF généré. Il ne reste qu’à redémarrer le backend et <code>npm run dev</code>, puis Ctrl+F5 dans le POS.</p>
   <p class="sous-titre">Cause trouvée dans le code réel du dépôt : le filtre par vendeur n’était appliqué que si le vendeur était identifié, donc le bilan additionnait les ventes de toute l’entreprise. La v2 <strong>retrouve vos fichiers où qu’ils soient</strong> et écrit un diagnostic si elle hésite.<br />
   <strong>Essayez d’abord le fichier unique <code>CORRIGER-POS-AUTONOME.bat</code></strong> : le programme est inclus dedans, aucun autre fichier n’est nécessaire.<br />
   <strong>Correctif appliqué sur C:\NEXORA le 07/10 à 15:31</strong> (projet choisi automatiquement, l’ancien correctif présent dans votre fichier a été conservé sans effet sur le résultat : notre bloc est le dernier avant la construction du PDF).<br />

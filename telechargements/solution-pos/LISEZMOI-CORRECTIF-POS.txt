@@ -2,6 +2,72 @@
 NEXORA - CORRECTIF POS v3 : LE BILAN DE VENTE PAR VENDEUR
 ================================================================================
 
+################################################################################
+VALIDATION : 14 TESTS SUR 14 - OK   (07/10/2026, projet C:\NEXORA)
+################################################################################
+Les tests ont ete executes sur le projet REEL, avec ses migrations et le vrai
+endpoint /api/v1/sales/export-seller-pdf/ :
+
+    Found 14 test(s).
+    Ran 14 tests in 35.023s
+    OK
+
+Conclusion : le bilan de vente par vendeur FONCTIONNE. Il n'y a plus rien a
+corriger. Il reste seulement a redemarrer les serveurs et a verifier a l'ecran :
+
+    1. backend  : dans C:\NEXORA            ->  py manage.py runserver
+    2. frontend : dans C:\NEXORA\frontend   ->  npm run dev
+    3. POS -> Ctrl+F5 pour vider le cache du navigateur, puis bouton
+       « Mon Bilan Vente PDF ». Vous devez voir la LISTE DEROULANTE des vendeurs,
+       le vendeur connecte preselectionne, et un PDF nomme
+       Vente_Prenom_Nom_....pdf
+
+Test par test, ce qui a ete verifie :
+    queryset limite au vendeur et a la periode ............... ok  (3 000 F)
+    le vendeur 2 ne voit que ses ventes ..................... ok  (4 000 F)
+    ventes annulees / brouillons / hors periode exclus ...... ok
+    cloisonnement entre entreprises .......................... ok
+    resolve_seller identifie le bon compte ................... ok
+    vendeur inconnu refuse ................................... ok  (404)
+    email partiel ambigu refuse .............................. ok
+    vendeur d'une autre entreprise refuse .................... ok
+    export PDF du vendeur choisi ............................. ok
+    export PDF vendeur 2 sans le vendeur 1 ................... ok
+    vendeur inconnu -> 404 ................................... ok
+    export PDF avec email exact .............................. ok
+    caissier limite a son propre bilan ....................... ok
+    export sans parametre repond toujours .................... ok
+
+--------------------------------------------------------------------------------
+SI LE PDF SEMBLE VIDE OU INCOMPLET (ce n'est plus un probleme de code)
+--------------------------------------------------------------------------------
+Le bilan ne comptabilise que les ventes VALIDEES (statut COMPLETED) ayant un
+VENDEUR enregistre. Des ventes saisies sans vendeur n'apparaitront donc dans
+aucun bilan individuel. Pour verifier vos donnees :
+
+    cd /d C:\NEXORA
+    py manage.py shell
+
+puis collez ces lignes :
+
+    from apps.sales.models import Sale
+    print(list(Sale.objects.exclude(seller=None).values_list('seller__email', flat=True).distinct()[:20]))
+    print('ventes sans vendeur :', Sale.objects.filter(seller=None).count())
+
+  - la premiere ligne liste les emails des vendeurs qui ont des ventes ;
+  - si le nombre de « ventes sans vendeur » est eleve, c'est la saisie au POS
+    qu'il faut corriger (choisir le vendeur au moment de l'encaissement), pas le
+    correctif.
+
+Controle direct de l'endpoint dans un navigateur (adaptez les dates et
+l'identifiant, visible dans la liste deroulante du POS) :
+
+  http://127.0.0.1:8008/api/v1/sales/export-seller-pdf/?start_date=2026-09-07&end_date=2026-10-07&seller_id=IDENTIFIANT_DU_VENDEUR
+
+  - vendeur valide  -> PDF « Vente_Prenom_Nom_....pdf »
+  - vendeur inconnu -> {"detail": "Aucun vendeur de cette entreprise ..."} + 404
+
+--------------------------------------------------------------------------------
 DEUX FICHIERS, DEUX ETAPES :
    1. CORRIGER-POS-AUTONOME.bat      -> applique le correctif
    2. TESTER-BILAN-VENDEUR-POS.bat   -> verifie le resultat (attendu : OK, 14 tests)
