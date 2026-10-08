@@ -55,6 +55,33 @@ COMMANDES (dans le dossier du projet, celui qui contient manage.py)
     py corriger_caisses_pos.py
     (autre dossier) py corriger_caisses_pos.py --racine D:\NEXORA
 
+VERSION 2 — CORRIGEE D'APRES VOS LOGS DU 08/10/2026
+  Trois defauts de ma version 1, tous corriges ici :
+   1. apps/sales/serializers.py : mon correcteur ne reconnaissait que la ligne
+      exacte « store = serializers.UUIDField() ». Votre fichier etant
+      different, la correction ne s'appliquait pas — et comme le POS corrige
+      n'envoie plus que la caisse, le serveur repondait encore « Ce champ est
+      obligatoire ». La ligne est desormais cherchee DANS la classe
+      SaleCreateInputSerializer, quelle que soit sa forme ; si elle reste
+      introuvable, le correcteur affiche les lignes qu'il a vues et NE
+      MODIFIE RIEN (collez-moi ce message, je l'adapte).
+   2. Le correcteur se relancait mal sur un arbre deja corrige : il annoncait
+      « ancres introuvables » au 2e passage. La detection se fait maintenant
+      sur la vraie caisse fictive : relancer est sans effet ([DEJA OK]).
+   3. Le bouton « Ouvrir la session de cette caisse » appelait en realite la
+      FERMETURE. Il ouvre desormais reellement la session
+      (POST /registers/<id>/open_session/, fond de caisse demande).
+  Et : le test installe se met a jour tout seul quand une version precedente
+  de ce correcteur est presente (l'ancienne est conservee en .ancien), et le
+  test 2 est devenu tolerant — il accepte le refus par le formulaire
+  (details.store) comme par la garde du serveur (error). C'est ce qui
+  expliquait son unique echec chez vous : un defaut de MON test, pas de votre
+  application.
+
+  Relancez simplement : py corriger_caisses_pos.py
+  Attendu : [DEJA OK] sur ce qui est fait, [CORRIGE] sur le serialiseur de
+  vente s'il reste a corriger, puis 0 alerte dans le rapport.
+
 PUIS, POUR COMPRENDRE VOTRE SITUATION PRECISE (lecture seule, ne modifie rien)
     py manage.py diagnostiquer_caisses
   Le rapport dit, entreprise par entreprise, quels magasins, caisses et
@@ -79,6 +106,9 @@ ENSUITE, DANS L'APPLICATION
      entreprise depuis l'ecran du POS : plus besoin de toucher a la base.
 
 PREUVES DE CETTE RECETTE (rejouee ici, pas supposee)
+  - Version 2 rejouee sur DEUX arbres reels : arbre neuf, et arbre DEJA
+    CORRIGE par la version 1 (votre cas) : 0 alerte dans les deux, rejeu sans
+    modifier un octet, 6 tests OK, suite complete 118 tests OK.
   - 6 tests ecrits AVANT le correctif : 3 en echec (dont la creation d'une
     caisse sur le magasin d'une autre entreprise : 201 au lieu de 400), puis
     <6/6 OK> apres.

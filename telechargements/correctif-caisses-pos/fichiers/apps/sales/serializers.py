@@ -68,9 +68,9 @@ class SaleCreateItemInputSerializer(serializers.Serializer):
 
 
 class SaleCreateInputSerializer(serializers.Serializer):
-    # Le magasin n'est plus obligatoire : si la caisse est fournie, le
-    # serveur en deduit le magasin (une vente ne peut ainsi pas porter un
-    # autre magasin que celui de sa caisse).
+    # Le magasin n'est plus obligatoire : s'il est absent, le serveur le
+    # deduit de la caisse (une vente ne peut donc pas porter un autre
+    # magasin que celui de sa caisse).
     store = serializers.UUIDField(required=False, allow_null=True)
     register = serializers.UUIDField(required=False, allow_null=True)
     customer = serializers.UUIDField(required=False, allow_null=True)

@@ -50,6 +50,7 @@ Usage, dans le dossier du projet (celui qui contient manage.py) :
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -72,49 +73,112 @@ DIAGNOSTIC_TEXTE = '# -*- coding: utf-8 -*-\n"""Diagnostic des magasins et des c
 
 
 def installer_diagnostic(racine):
-    """Installe la commande de diagnostic (nouveau fichier, rien n'est ecrase)."""
+    """Installe (ou met a jour) la commande de diagnostic."""
     chemin = racine / COMMANDE_DIAGNOSTIC
-    if chemin.exists():
-        return 'deja installe', False
     chemin.parent.mkdir(parents=True, exist_ok=True)
     for paquet in (chemin.parent, chemin.parent.parent):
-        marqueur = paquet / '__init__.py'
+        marqueur = chemin.parent.parent / '__init__.py' if paquet == chemin.parent.parent else paquet / '__init__.py'
         if not marqueur.exists():
             marqueur.write_text('', encoding='utf-8')
-    chemin.write_text(DIAGNOSTIC_TEXTE, encoding='utf-8')
-    return 'commande py manage.py diagnostiquer_caisses installee', True
+    return _mettre_a_jour_mon_fichier(
+        racine, chemin, DIAGNOSTIC_TEXTE, 'diagnostiquer_caisses',
+        'commande py manage.py diagnostiquer_caisses')
 
 
-TEST_TEXTE = '"""La caisse du POS doit etre rattachee a un magasin de SON entreprise.\n\nReproduit l\'erreur signalee en caisse :\n\n    Echec de la transaction\n    Magasin introuvable dans votre entreprise\n\nTrois regles sont verrouillees ici :\n\n  1. le magasin d\'une AUTRE entreprise est refuse (c\'est le message signale) ;\n  2. une caisse ne peut pas viser le magasin d\'une autre entreprise (trou\n     ferme par le correctif : avant, la creation passait en 201) ;\n  3. le parcours normal fonctionne : creer la caisse sur son magasin,\n     l\'ouvrir, vendre, et retrouver la vente — y compris en n\'envoyant que\n     la caisse (le serveur en deduit le magasin).\n\nLancer :\n\n    py manage.py test tests.test_caisse_pos_magasin -v 2\n"""\n\nfrom decimal import Decimal\n\nfrom rest_framework import status\n\nfrom tests.test_nexora_backend import BaseNexoraTestCase\n\n\nclass CaissePosMagasinTests(BaseNexoraTestCase):\n\n    def test_1_magasin_d_une_autre_entreprise_refuse_avec_le_message_signe(self):\n        """Le message exact signale en caisse est bien produit par le serveur."""\n        reponse = self.client_a.post(\'/api/v1/sales/\', {\n            \'store\': str(self.store_b.id),       # magasin de l\'entreprise B\n            \'items\': [{\'product\': str(self.product_a1.id), \'quantity\': Decimal(\'1.00\'),\n                       \'unit_price\': Decimal(\'800.00\'), \'tax_rate\': Decimal(\'20.00\')}],\n            \'payment\': {\'amount\': \'944.00\', \'method\': \'CASH\', \'reference\': \'POS-PAY-000001\'},\n        }, format=\'json\')\n        self.assertEqual(reponse.status_code, status.HTTP_400_BAD_REQUEST, reponse.content[:300])\n        self.assertEqual(reponse.data.get(\'error\'), \'Magasin introuvable dans votre entreprise\')\n\n    def test_2_magasin_non_identifiant_refuse_clairement(self):\n        """Un magasin qui n\'est pas un identifiant reel (« store-01 ») est refuse."""\n        reponse = self.client_a.post(\'/api/v1/sales/\', {\n            \'store\': \'store-01\',                 # valeur inventee (caisse fictive)\n            \'register\': \'reg-01\',\n            \'items\': [{\'product\': str(self.product_a1.id), \'quantity\': Decimal(\'1.00\'),\n                       \'unit_price\': Decimal(\'800.00\'), \'tax_rate\': Decimal(\'20.00\')}],\n            \'payment\': {\'amount\': \'944.00\', \'method\': \'CASH\', \'reference\': \'POS-PAY-000002\'},\n        }, format=\'json\')\n        self.assertEqual(reponse.status_code, status.HTTP_400_BAD_REQUEST, reponse.content[:300])\n        self.assertIn(\'store\', reponse.data.get(\'details\', {}))\n\n    def test_3_caisse_ne_peut_pas_viser_le_magasin_d_une_autre_entreprise(self):\n        """Creation d\'une caisse sur le magasin d\'une autre entreprise : refus."""\n        reponse = self.client_b.post(\'/api/v1/registers/\', {\n            \'store\': str(self.store_a.id),       # magasin de l\'entreprise A\n            \'name\': \'Caisse Beta\',\n            \'code\': \'REG-B1\',\n        }, format=\'json\')\n        self.assertEqual(reponse.status_code, status.HTTP_400_BAD_REQUEST, reponse.content[:300])\n\n    def test_4_parcours_normal_creation_ouverture_vente(self):\n        """Creer la caisse sur son magasin, l\'ouvrir, vendre, retrouver la vente."""\n        creation = self.client_a.post(\'/api/v1/registers/\', {\n            \'store\': str(self.store_a.id),\n            \'name\': \'Caisse Comptoir Principal\',\n            \'code\': \'REG-A1\',\n        }, format=\'json\')\n        self.assertEqual(creation.status_code, status.HTTP_201_CREATED, creation.content[:300])\n        caisse = creation.data[\'id\']\n\n        ouverture = self.client_a.post(\n            f\'/api/v1/registers/{caisse}/open_session/\',\n            {\'opening_balance\': 0}, format=\'json\')\n        self.assertIn(ouverture.status_code, (status.HTTP_200_OK, status.HTTP_201_CREATED),\n                      ouverture.content[:300])\n\n        # Le POS corrige n\'envoie QUE la caisse : le serveur en deduit le magasin.\n        vente = self.client_a.post(\'/api/v1/sales/\', {\n            \'register\': caisse,\n            \'items\': [{\'product\': str(self.product_a1.id), \'quantity\': Decimal(\'2.00\'),\n                       \'unit_price\': Decimal(\'800.00\'), \'tax_rate\': Decimal(\'20.00\')}],\n            \'payment\': {\'amount\': \'1920.00\', \'method\': \'CASH\', \'reference\': \'POS-PAY-000003\'},\n        }, format=\'json\')\n        self.assertEqual(vente.status_code, status.HTTP_201_CREATED, vente.content[:300])\n        self.assertEqual(str(vente.data[\'store\']), str(self.store_a.id),\n                         \'la vente doit porter le magasin de sa caisse\')\n        self.assertEqual(Decimal(vente.data[\'total_amount\']), Decimal(\'1920.00\'))\n\n        liste = self.client_a.get(\'/api/v1/sales/\', {\'page\': 1})\n        self.assertEqual(liste.status_code, status.HTTP_200_OK)\n        self.assertIn(vente.data[\'reference\'],\n                      [ligne[\'reference\'] for ligne in liste.data[\'results\']])\n\n    def test_5_caisse_hors_magasin_refusee_avec_un_message_precis(self):\n        """Magasin et caisse fournis mais incoherents : refus explicite."""\n        creation = self.client_a.post(\'/api/v1/registers/\', {\n            \'store\': str(self.store_a.id), \'name\': \'Caisse Comptoir\', \'code\': \'REG-A2\',\n        }, format=\'json\')\n        self.assertEqual(creation.status_code, status.HTTP_201_CREATED, creation.content[:300])\n        autre_magasin = self.store_a  # deuxieme magasin de la MEME entreprise\n\n        from apps.inventory.models import StockMovementType, Store\n        from apps.inventory.services import StockService\n        magasin_bis = Store.objects.create(company=self.company_a, name=\'Annexe\', code=\'MAG-A2\')\n        StockService.record_movement(\n            company=self.company_a, store=magasin_bis, product=self.product_a1,\n            quantity=Decimal(\'10.00\'), movement_type=StockMovementType.INITIAL,\n            reference=\'INIT-ANNEXE\', reason=\'Stock initial annexe\')\n        reponse = self.client_a.post(\'/api/v1/sales/\', {\n            \'store\': str(magasin_bis.id),\n            \'register\': creation.data[\'id\'],      # caisse du premier magasin\n            \'items\': [{\'product\': str(self.product_a1.id), \'quantity\': Decimal(\'1.00\'),\n                       \'unit_price\': Decimal(\'800.00\'), \'tax_rate\': Decimal(\'20.00\')}],\n            \'payment\': {\'amount\': \'944.00\', \'method\': \'CASH\', \'reference\': \'POS-PAY-000004\'},\n        }, format=\'json\')\n        self.assertEqual(reponse.status_code, status.HTTP_400_BAD_REQUEST, reponse.content[:300])\n        self.assertEqual(reponse.data.get(\'error\'), "La caisse choisie n\'appartient pas a ce magasin")\n        del autre_magasin\n\n    def test_6_la_liste_des_caisses_reste_dans_l_entreprise(self):\n        """L\'entreprise A ne voit jamais les caisses de l\'entreprise B."""\n        self.client_b.post(\'/api/v1/registers/\', {\n            \'store\': str(self.store_b.id), \'name\': \'Caisse Beta\', \'code\': \'REG-B2\',\n        }, format=\'json\')\n        reponse = self.client_a.get(\'/api/v1/registers/\')\n        self.assertEqual(reponse.status_code, status.HTTP_200_OK)\n        codes = [c[\'code\'] for c in reponse.data[\'results\']]\n        self.assertNotIn(\'REG-B2\', codes)\n'
+TEST_TEXTE = '"""La caisse du POS doit etre rattachee a un magasin de SON entreprise.\n\nReproduit l\'erreur signalee en caisse :\n\n    Echec de la transaction\n    Magasin introuvable dans votre entreprise\n\nTrois regles sont verrouillees ici :\n\n  1. le magasin d\'une AUTRE entreprise est refuse (c\'est le message signale) ;\n  2. une caisse ne peut pas viser le magasin d\'une autre entreprise (trou\n     ferme par le correctif : avant, la creation passait en 201) ;\n  3. le parcours normal fonctionne : creer la caisse sur son magasin,\n     l\'ouvrir, vendre, et retrouver la vente — y compris en n\'envoyant que\n     la caisse (le serveur en deduit le magasin).\n\nLancer :\n\n    py manage.py test tests.test_caisse_pos_magasin -v 2\n"""\n\nfrom decimal import Decimal\n\nfrom rest_framework import status\n\nfrom tests.test_nexora_backend import BaseNexoraTestCase\n\n\nclass CaissePosMagasinTests(BaseNexoraTestCase):\n\n    def test_1_magasin_d_une_autre_entreprise_refuse_avec_le_message_signe(self):\n        """Le message exact signale en caisse est bien produit par le serveur."""\n        reponse = self.client_a.post(\'/api/v1/sales/\', {\n            \'store\': str(self.store_b.id),       # magasin de l\'entreprise B\n            \'items\': [{\'product\': str(self.product_a1.id), \'quantity\': Decimal(\'1.00\'),\n                       \'unit_price\': Decimal(\'800.00\'), \'tax_rate\': Decimal(\'20.00\')}],\n            \'payment\': {\'amount\': \'944.00\', \'method\': \'CASH\', \'reference\': \'POS-PAY-000001\'},\n        }, format=\'json\')\n        self.assertEqual(reponse.status_code, status.HTTP_400_BAD_REQUEST, reponse.content[:300])\n        self.assertEqual(reponse.data.get(\'error\'), \'Magasin introuvable dans votre entreprise\')\n\n    def test_2_magasin_non_identifiant_refuse_clairement(self):\n        """Un magasin qui n\'est pas un identifiant reel (« store-01 ») est refuse.\n\n        Selon la version de vos fichiers, ce refus vient du formulaire d\'entree\n        (details.store) ou de la garde du serveur (error) : dans les deux cas,\n        le message designe clairement le magasin.\n        """\n        reponse = self.client_a.post(\'/api/v1/sales/\', {\n            \'store\': \'store-01\',                 # valeur inventee (caisse fictive)\n            \'register\': \'reg-01\',\n            \'items\': [{\'product\': str(self.product_a1.id), \'quantity\': Decimal(\'1.00\'),\n                       \'unit_price\': Decimal(\'800.00\'), \'tax_rate\': Decimal(\'20.00\')}],\n            \'payment\': {\'amount\': \'944.00\', \'method\': \'CASH\', \'reference\': \'POS-PAY-000002\'},\n        }, format=\'json\')\n        self.assertEqual(reponse.status_code, status.HTTP_400_BAD_REQUEST, reponse.content[:300])\n        details = reponse.data.get(\'details\') or {}\n        message = \'%s %s\' % (reponse.data.get(\'error\', \'\'), reponse.data.get(\'message\', \'\'))\n        self.assertTrue(\'store\' in details or \'magasin\' in message.lower(),\n                        \'le refus doit designer le magasin : %s\' % reponse.content[:300])\n\n    def test_3_caisse_ne_peut_pas_viser_le_magasin_d_une_autre_entreprise(self):\n        """Creation d\'une caisse sur le magasin d\'une autre entreprise : refus."""\n        reponse = self.client_b.post(\'/api/v1/registers/\', {\n            \'store\': str(self.store_a.id),       # magasin de l\'entreprise A\n            \'name\': \'Caisse Beta\',\n            \'code\': \'REG-B1\',\n        }, format=\'json\')\n        self.assertEqual(reponse.status_code, status.HTTP_400_BAD_REQUEST, reponse.content[:300])\n\n    def test_4_parcours_normal_creation_ouverture_vente(self):\n        """Creer la caisse sur son magasin, l\'ouvrir, vendre, retrouver la vente."""\n        creation = self.client_a.post(\'/api/v1/registers/\', {\n            \'store\': str(self.store_a.id),\n            \'name\': \'Caisse Comptoir Principal\',\n            \'code\': \'REG-A1\',\n        }, format=\'json\')\n        self.assertEqual(creation.status_code, status.HTTP_201_CREATED, creation.content[:300])\n        caisse = creation.data[\'id\']\n\n        ouverture = self.client_a.post(\n            f\'/api/v1/registers/{caisse}/open_session/\',\n            {\'opening_balance\': 0}, format=\'json\')\n        self.assertIn(ouverture.status_code, (status.HTTP_200_OK, status.HTTP_201_CREATED),\n                      ouverture.content[:300])\n\n        # Le POS corrige n\'envoie QUE la caisse : le serveur en deduit le magasin.\n        vente = self.client_a.post(\'/api/v1/sales/\', {\n            \'register\': caisse,\n            \'items\': [{\'product\': str(self.product_a1.id), \'quantity\': Decimal(\'2.00\'),\n                       \'unit_price\': Decimal(\'800.00\'), \'tax_rate\': Decimal(\'20.00\')}],\n            \'payment\': {\'amount\': \'1920.00\', \'method\': \'CASH\', \'reference\': \'POS-PAY-000003\'},\n        }, format=\'json\')\n        self.assertEqual(vente.status_code, status.HTTP_201_CREATED, vente.content[:300])\n        self.assertEqual(str(vente.data[\'store\']), str(self.store_a.id),\n                         \'la vente doit porter le magasin de sa caisse\')\n        self.assertEqual(Decimal(vente.data[\'total_amount\']), Decimal(\'1920.00\'))\n\n        liste = self.client_a.get(\'/api/v1/sales/\', {\'page\': 1})\n        self.assertEqual(liste.status_code, status.HTTP_200_OK)\n        self.assertIn(vente.data[\'reference\'],\n                      [ligne[\'reference\'] for ligne in liste.data[\'results\']])\n\n    def test_5_caisse_hors_magasin_refusee_avec_un_message_precis(self):\n        """Magasin et caisse fournis mais incoherents : refus explicite."""\n        creation = self.client_a.post(\'/api/v1/registers/\', {\n            \'store\': str(self.store_a.id), \'name\': \'Caisse Comptoir\', \'code\': \'REG-A2\',\n        }, format=\'json\')\n        self.assertEqual(creation.status_code, status.HTTP_201_CREATED, creation.content[:300])\n\n        from apps.inventory.models import StockMovementType, Store\n        from apps.inventory.services import StockService\n        magasin_bis = Store.objects.create(company=self.company_a, name=\'Annexe\', code=\'MAG-A2\')\n        StockService.record_movement(\n            company=self.company_a, store=magasin_bis, product=self.product_a1,\n            quantity=Decimal(\'10.00\'), movement_type=StockMovementType.INITIAL,\n            reference=\'INIT-ANNEXE\', reason=\'Stock initial annexe\')\n        reponse = self.client_a.post(\'/api/v1/sales/\', {\n            \'store\': str(magasin_bis.id),\n            \'register\': creation.data[\'id\'],      # caisse du premier magasin\n            \'items\': [{\'product\': str(self.product_a1.id), \'quantity\': Decimal(\'1.00\'),\n                       \'unit_price\': Decimal(\'800.00\'), \'tax_rate\': Decimal(\'20.00\')}],\n            \'payment\': {\'amount\': \'944.00\', \'method\': \'CASH\', \'reference\': \'POS-PAY-000004\'},\n        }, format=\'json\')\n        self.assertEqual(reponse.status_code, status.HTTP_400_BAD_REQUEST, reponse.content[:300])\n        self.assertEqual(reponse.data.get(\'error\'), "La caisse choisie n\'appartient pas a ce magasin")\n\n    def test_6_la_liste_des_caisses_reste_dans_l_entreprise(self):\n        """L\'entreprise A ne voit jamais les caisses de l\'entreprise B."""\n        self.client_b.post(\'/api/v1/registers/\', {\n            \'store\': str(self.store_b.id), \'name\': \'Caisse Beta\', \'code\': \'REG-B2\',\n        }, format=\'json\')\n        reponse = self.client_a.get(\'/api/v1/registers/\')\n        self.assertEqual(reponse.status_code, status.HTTP_200_OK)\n        codes = [c[\'code\'] for c in reponse.data[\'results\']]\n        self.assertNotIn(\'REG-B2\', codes)\n'
+
+
+def _mettre_a_jour_mon_fichier(racine, chemin, texte_voulu, marqueur, description):
+    """Ecrit un fichier installe par ce correcteur, sans jamais ecraser le votre.
+
+    - fichier absent           -> on l'installe ;
+    - identique                -> rien a faire ;
+    - different mais marque    -> c'est une version precedente de CE correcteur :
+                                  on la conserve en .ancien et on met a jour ;
+    - different sans marque    -> c'est votre fichier : on n'y touche pas.
+    """
+    if not chemin.exists():
+        chemin.parent.mkdir(parents=True, exist_ok=True)
+        chemin.write_text(texte_voulu, encoding='utf-8')
+        return '%s installe' % description, True
+    contenu = chemin.read_text(encoding='utf-8', errors='replace')
+    if contenu == texte_voulu:
+        return 'deja installe', False
+    if marqueur not in contenu:
+        return ('fichier existant different (le votre) : conserve tel quel'), False
+    ancien_chemin = racine / DOSSIER_SAUVEGARDE / (str(chemin.relative_to(racine)) + '.ancien')
+    ancien_chemin.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(chemin, ancien_chemin)
+    chemin.write_text(texte_voulu, encoding='utf-8')
+    return '%s mis a jour (ancienne version en .ancien)' % description, True
 
 
 def installer_test(racine):
-    """Installe le test des caisses (nouveau fichier, rien n'est ecrase)."""
-    chemin = racine / FICHIER_TEST
-    if chemin.exists():
-        return 'deja installe', False
+    """Installe (ou met a jour) le test des caisses."""
     if not (racine / 'tests').is_dir():
         return 'dossier tests absent : test non installe', False
-    chemin.write_text(TEST_TEXTE, encoding='utf-8')
-    return 'test tests/test_caisse_pos_magasin.py installe', True
+    return _mettre_a_jour_mon_fichier(
+        racine, racine / FICHIER_TEST, TEST_TEXTE, 'CaissePosMagasinTests',
+        'test tests/test_caisse_pos_magasin.py')
+
+
+MOTIF_STORE_VENTE = re.compile(
+    r'^(?P<indent>[ \t]*)store[ \t]*=[ \t]*serializers\.[A-Za-z_]+Field\([^\n]*\)[ \t]*$', re.M)
+
+
+def _bloc_classe(texte, nom):
+    """Etendue d'une classe : de « class nom » a la classe suivante."""
+    position = texte.find('class %s' % nom)
+    if position == -1:
+        return None
+    suivant = texte.find('\nclass ', position)
+    return position, (suivant if suivant != -1 else len(texte))
 
 
 def corriger_serialiseur_vente(racine):
-    """Ventes : le magasin peut etre deduit de la caisse."""
+    """Ventes : le magasin peut etre deduit de la caisse.
+
+    La ligne du champ est cherchee DANS la classe d'entree des ventes, quelle
+    que soit sa forme exacte (UUIDField, CharField, avec ou sans arguments) :
+    un arbre reel peut differer d'une version a l'autre.
+    """
     chemin = racine / FICHIER_SERIALISEUR_VENTE
     if not chemin.exists():
         return 'fichier absent', False
     texte, retours, bom = lire_fichier(chemin)
-    if 'allow_null=True)' in texte and 'Le magasin n\'est plus obligatoire' in texte:
+
+    bloc = _bloc_classe(texte, 'SaleCreateInputSerializer')
+    if bloc is None:
+        return 'classe SaleCreateInputSerializer introuvable : fichier non modifie', False
+    debut, fin = bloc
+    morceau = texte[debut:fin]
+
+    if 'store = serializers.UUIDField(required=False, allow_null=True)' in morceau:
         return 'deja corrige', False
-    texte, fait = remplacer(texte, ANCRE_STORE_REQUIS, REMPLACEMENT_STORE_OPTIONNEL)
-    if not fait:
-        return 'ancre introuvable : fichier non modifie', False
+
+    correspondance = MOTIF_STORE_VENTE.search(morceau)
+    if not correspondance:
+        apercu = ' | '.join(ligne.strip() for ligne in morceau.split('\n')[:12] if ligne.strip())
+        return ('ligne « store = serializers... » introuvable dans '
+                'SaleCreateInputSerializer. Vu : %s' % apercu[:400]), False
+
+    indentation = correspondance.group('indent')
+    lignes_nouvelles = [
+        "# Le magasin n'est plus obligatoire : s'il est absent, le serveur le",
+        "# deduit de la caisse (une vente ne peut donc pas porter un autre",
+        "# magasin que celui de sa caisse).",
+        "store = serializers.UUIDField(required=False, allow_null=True)",
+    ]
+    remplacement = chr(10).join(indentation + ligne for ligne in lignes_nouvelles)
+    morceau = morceau[:correspondance.start()] + remplacement + morceau[correspondance.end():]
+    texte = texte[:debut] + morceau + texte[fin:]
+
     ok, message = equilibre(texte)
     if not ok:
         return 'ANNULE : %s' % message, False
     ecrire_fichier(chemin, texte, retours, bom)
     return 'magasin deduisible de la caisse', True
+
 
 ANCRE_MAGASIN_AUTO = """        if not store:
             # Aucun magasin precise : comportement d'origine (premier magasin).
@@ -620,14 +684,65 @@ def corriger_serialiseur_caisse(racine):
     return 'magasin de la caisse verrouille', True
 
 
+ANCRE_FIN_CREATION = """      setIsCreatingRegister(false);
+    }
+  };"""
+
+HANDLER_OUVERTURE = "\n  // Ouvrir reellement la session d'une caisse fermee (l'ecran precedent\n  // appelait la fermeture : le bouton « Ouvrir la session » ne l'ouvrait pas).\n  const handleOpenRegister = async () => {\n    if (!activeRegister) return;\n    try {\n      const fond = window.prompt('Fond de caisse a l\\'ouverture (en FCFA)', '0');\n      if (fond === null) return;\n      await apiRequest(`/registers/${activeRegister.id}/open_session/`, {\n        method: 'POST',\n        body: JSON.stringify({ opening_balance: Number(fond) || 0 }),\n      });\n      queryClient.setQueryData(['registers'], {\n        results: [{ ...activeRegister, status: 'OPEN' }],\n        pagination: {},\n      });\n      await queryClient.invalidateQueries({ queryKey: ['registers'] });\n      toast({\n        type: 'success',\n        title: 'Session ouverte',\n        message: activeRegister.name + ' est prete a encaisser.',\n      });\n    } catch (erreur: any) {\n      toast({\n        type: 'error',\n        title: 'Ouverture impossible',\n        message: erreur?.message || 'La session n\\'a pas ete ouverte.',\n      });\n    }\n  };\n"
+
+ANCIEN_BOUTON_OUVERTURE = """              {activeRegister ? (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setClosingCashAmount(activeRegister.current_balance);
+                    setIsCloseRegisterModalOpen(true);
+                  }}
+                >
+                  Ouvrir la session de cette caisse
+                </Button>
+              ) : ("""
+
+NOUVEAU_BOUTON_OUVERTURE = """              {activeRegister ? (
+                <Button type="button" onClick={handleOpenRegister}>
+                  Ouvrir la session de cette caisse
+                </Button>
+              ) : ("""
+
+
+def _mettre_a_niveau_ouverture(texte):
+    """Installe l'ouverture de session reelle (caisse fermee)."""
+    fait = False
+    if 'handleOpenRegister' not in texte:
+        texte, insere = remplacer(texte, ANCRE_FIN_CREATION,
+                                  ANCRE_FIN_CREATION + '\n' + HANDLER_OUVERTURE)
+        fait = fait or insere
+    if ANCIEN_BOUTON_OUVERTURE in texte:
+        texte, remplace = remplacer(texte, ANCIEN_BOUTON_OUVERTURE, NOUVEAU_BOUTON_OUVERTURE)
+        fait = fait or remplace
+    return texte, fait
+
+
 def corriger_pos_caisse(racine):
-    """POS : plus de caisse inventee, ecran d'installation clair."""
+    """POS : plus de caisse inventee, ecran clair, ouverture de session reelle."""
     chemin = racine / FICHIER_POS
     if not chemin.exists():
         return 'fichier absent', False
     texte, retours, bom = lire_fichier(chemin)
-    if 'reg-01' not in texte and 'Aucune caisse enregistree' in texte:
-        return 'deja corrige', False
+
+    if ANCIENNE_CAISSE not in texte:
+        # Caisse fictive deja retiree (ou arbre different) : on ne remplace
+        # plus rien, on met seulement l'ouverture de session a niveau.
+        if 'Aucune caisse enregistree' not in texte:
+            return ('etat inconnu : ni caisse fictive ni ecran d installation '
+                    '(fichier non modifie)'), False
+        texte, fait_ouverture = _mettre_a_niveau_ouverture(texte)
+        if not fait_ouverture:
+            return 'deja corrige', False
+        ok, message = equilibre(texte)
+        if not ok:
+            return 'ANNULE : %s' % message, False
+        ecrire_fichier(chemin, texte, retours, bom)
+        return 'ouverture de session mise a niveau (caisse fermee)', True
 
     # 1) remplacer la caisse inventee par une vraie lecture + outils d'installation
     texte, fait1 = remplacer(texte, ANCIENNE_CAISSE, NOUVELLE_CAISSE)
@@ -638,7 +753,8 @@ def corriger_pos_caisse(racine):
         texte, _ = remplacer(texte, "        store: activeRegister.store,\n", "")
     # 3) ecran d'installation avant le POS (caisse absente ou fermee)
     if fait1:
-        texte, fait2 = remplacer(texte, "\n  return (\n    <DashboardLayout>", ECRAN_CAISSE + "\n  return (\n    <DashboardLayout>")
+        texte, fait2 = remplacer(texte, "\n  return (\n    <DashboardLayout>",
+                                 ECRAN_CAISSE + "\n  return (\n    <DashboardLayout>")
     else:
         fait2 = False
     # 4) en cas d'echec du serveur, l'utilisateur voit le message exact
@@ -652,6 +768,9 @@ def corriger_pos_caisse(racine):
     texte, fait5 = remplacer(texte,
         "import { Product, CashRegister, Partner, PaginatedResponse } from '@/types';",
         "import { Product, CashRegister, Partner, Store, PaginatedResponse } from '@/types';")
+    # 6) ouverture de session reelle quand la caisse est fermee
+    if fait1 and fait2:
+        texte, _ = _mettre_a_niveau_ouverture(texte)
 
     if not (fait1 and fait2 and fait3 and fait4 and fait5):
         return 'ancres introuvables (%s%s%s%s%s) : fichier non modifie' % (
@@ -701,7 +820,9 @@ def verifier(racine):
     if texte is None:
         resultats.append(('ABSENT', str(FICHIER_SERIALISEUR_VENTE)))
     else:
-        if 'store = serializers.UUIDField(required=False' in texte:
+        bloc = _bloc_classe(texte, 'SaleCreateInputSerializer')
+        morceau = texte[bloc[0]:bloc[1]] if bloc else ''
+        if 'store = serializers.UUIDField(required=False, allow_null=True)' in morceau:
             resultats.append(('OK', 'vente (entree) : magasin optionnel (deduit de la caisse)'))
         else:
             resultats.append(('A FAIRE', 'vente (entree) : magasin toujours obligatoire'))
@@ -747,6 +868,10 @@ def verifier(racine):
             resultats.append(('A FAIRE', 'POS : magasin duplique dans l envoi de vente'))
         else:
             resultats.append(('OK', 'POS : vente envoyee avec la seule caisse (magasin deduit)'))
+        if 'handleOpenRegister' in texte:
+            resultats.append(('OK', 'POS : ouverture de session d une caisse fermee operationnelle'))
+        else:
+            resultats.append(('A FAIRE', 'POS : bouton « Ouvrir la session » sans action d ouverture'))
         if 'saveError' in texte:
             resultats.append(('OK', 'POS : echec d enregistrement affiche sur le ticket'))
         else:

@@ -366,6 +366,37 @@ export default function PosPage() {
     }
   };
 
+  // Ouvrir reellement la session d'une caisse fermee (l'ecran precedent
+  // appelait la fermeture : le bouton « Ouvrir la session » ne l'ouvrait pas).
+  const handleOpenRegister = async () => {
+    if (!activeRegister) return;
+    try {
+      const fond = window.prompt('Fond de caisse a l\'ouverture (en FCFA)', '0');
+      if (fond === null) return;
+      await apiRequest(`/registers/${activeRegister.id}/open_session/`, {
+        method: 'POST',
+        body: JSON.stringify({ opening_balance: Number(fond) || 0 }),
+      });
+      queryClient.setQueryData(['registers'], {
+        results: [{ ...activeRegister, status: 'OPEN' }],
+        pagination: {},
+      });
+      await queryClient.invalidateQueries({ queryKey: ['registers'] });
+      toast({
+        type: 'success',
+        title: 'Session ouverte',
+        message: activeRegister.name + ' est prete a encaisser.',
+      });
+    } catch (erreur: any) {
+      toast({
+        type: 'error',
+        title: 'Ouverture impossible',
+        message: erreur?.message || 'La session n\'a pas ete ouverte.',
+      });
+    }
+  };
+
+
   // Fetch products
   const { data: productsData, isLoading } = useQuery<PaginatedResponse<Product>>({
     queryKey: ['products', search],
@@ -707,13 +738,7 @@ export default function PosPage() {
                 Creer un magasin
               </Button>
               {activeRegister ? (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setClosingCashAmount(activeRegister.current_balance);
-                    setIsCloseRegisterModalOpen(true);
-                  }}
-                >
+                <Button type="button" onClick={handleOpenRegister}>
                   Ouvrir la session de cette caisse
                 </Button>
               ) : (

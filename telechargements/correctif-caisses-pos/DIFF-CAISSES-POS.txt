@@ -1,4 +1,4 @@
-DIFF - CAISSE ET MAGASIN (message « Magasin introuvable dans votre entreprise »)
+DIFF - CAISSE ET MAGASIN (v2) : « Magasin introuvable dans votre entreprise »
 ================================================================================
 
 Etat AVANT (vos correctifs precedents appliques) -> etat APRES ce correcteur.
@@ -38,9 +38,9 @@ Etat AVANT (vos correctifs precedents appliques) -> etat APRES ce correcteur.
  
  class SaleCreateInputSerializer(serializers.Serializer):
 -    store = serializers.UUIDField()
-+    # Le magasin n'est plus obligatoire : si la caisse est fournie, le
-+    # serveur en deduit le magasin (une vente ne peut ainsi pas porter un
-+    # autre magasin que celui de sa caisse).
++    # Le magasin n'est plus obligatoire : s'il est absent, le serveur le
++    # deduit de la caisse (une vente ne peut donc pas porter un autre
++    # magasin que celui de sa caisse).
 +    store = serializers.UUIDField(required=False, allow_null=True)
      register = serializers.UUIDField(required=False, allow_null=True)
      customer = serializers.UUIDField(required=False, allow_null=True)
@@ -98,7 +98,7 @@ Etat AVANT (vos correctifs precedents appliques) -> etat APRES ce correcteur.
  import {
    Search,
    ShoppingCart,
-@@ -273,14 +273,97 @@
+@@ -273,16 +273,130 @@
      staleTime: 1000 * 60,
        });
  
@@ -203,8 +203,41 @@ Etat AVANT (vos correctifs precedents appliques) -> etat APRES ce correcteur.
 +    }
    };
  
++  // Ouvrir reellement la session d'une caisse fermee (l'ecran precedent
++  // appelait la fermeture : le bouton « Ouvrir la session » ne l'ouvrait pas).
++  const handleOpenRegister = async () => {
++    if (!activeRegister) return;
++    try {
++      const fond = window.prompt('Fond de caisse a l\'ouverture (en FCFA)', '0');
++      if (fond === null) return;
++      await apiRequest(`/registers/${activeRegister.id}/open_session/`, {
++        method: 'POST',
++        body: JSON.stringify({ opening_balance: Number(fond) || 0 }),
++      });
++      queryClient.setQueryData(['registers'], {
++        results: [{ ...activeRegister, status: 'OPEN' }],
++        pagination: {},
++      });
++      await queryClient.invalidateQueries({ queryKey: ['registers'] });
++      toast({
++        type: 'success',
++        title: 'Session ouverte',
++        message: activeRegister.name + ' est prete a encaisser.',
++      });
++    } catch (erreur: any) {
++      toast({
++        type: 'error',
++        title: 'Ouverture impossible',
++        message: erreur?.message || 'La session n\'a pas ete ouverte.',
++      });
++    }
++  };
++
++
    // Fetch products
-@@ -513,7 +596,6 @@
+   const { data: productsData, isLoading } = useQuery<PaginatedResponse<Product>>({
+     queryKey: ['products', search],
+@@ -513,7 +627,6 @@
    const saleMutation = useMutation({
      mutationFn: async () => {
        const payload = {
@@ -212,7 +245,7 @@ Etat AVANT (vos correctifs precedents appliques) -> etat APRES ce correcteur.
          register: activeRegister.id,
          customer: selectedCustomer?.id || null,
          discount_amount: totalDiscountVal.toFixed(2),
-@@ -550,7 +632,6 @@
+@@ -550,7 +663,6 @@
      },
      onSuccess: (data: any) => {
        const saleDetails = {
@@ -220,7 +253,7 @@ Etat AVANT (vos correctifs precedents appliques) -> etat APRES ce correcteur.
          items: [...cart],
          customer_name: selectedCustomer?.name || 'Client Comptoir',
          subtotal_amount: discountedSubtotal.toFixed(2),
-@@ -559,7 +640,7 @@
+@@ -559,7 +671,7 @@
          payment_method: paymentMethod,
          date: new Date().toLocaleString('fr-FR'),
        };
@@ -229,7 +262,7 @@ Etat AVANT (vos correctifs precedents appliques) -> etat APRES ce correcteur.
        setPaymentModalOpen(false);
        setIsReceiptModalOpen(true);
        clearCart();
-@@ -581,6 +662,150 @@
+@@ -581,6 +693,144 @@
      },
    });
  
@@ -278,13 +311,7 @@ Etat AVANT (vos correctifs precedents appliques) -> etat APRES ce correcteur.
 +                Creer un magasin
 +              </Button>
 +              {activeRegister ? (
-+                <Button
-+                  type="button"
-+                  onClick={() => {
-+                    setClosingCashAmount(activeRegister.current_balance);
-+                    setIsCloseRegisterModalOpen(true);
-+                  }}
-+                >
++                <Button type="button" onClick={handleOpenRegister}>
 +                  Ouvrir la session de cette caisse
 +                </Button>
 +              ) : (
@@ -382,8 +409,31 @@ Etat AVANT (vos correctifs precedents appliques) -> etat APRES ce correcteur.
        <div className="space-y-4">
 
 ################################################################################
-# FICHIERS NEUFS (rien n'est ecrase)
+# apps/sales/serializers.py — SI VOTRE FICHIER DIFFERE (le seul point qui a
+# bloque chez vous : votre ligne n'etait pas « store = serializers.UUIDField() »)
+################################################################################
+
+Le correcteur cherche desormais la ligne du champ DANS la classe
+SaleCreateInputSerializer, quelle que soit sa forme exacte :
+
+AVANT (l'une de ces formes, selon votre arbre) :
+    store = serializers.UUIDField()
+    store = serializers.UUIDField(required=True)
+    store = serializers.PrimaryKeyRelatedField(queryset=Store.objects.all())
+
+APRES :
+    # Le magasin n'est plus obligatoire : s'il est absent, le serveur le
+    # deduit de la caisse (une vente ne peut donc pas porter un autre
+    # magasin que celui de sa caisse).
+    store = serializers.UUIDField(required=False, allow_null=True)
+
+Si la ligne reste introuvable, le correcteur affiche les lignes qu'il a vues
+et NE MODIFIE RIEN : collez-moi ce message, je l'adapte exactement.
+
+################################################################################
+# FICHIERS NEUFS (rien n'est ecrase ; si une version precedente de CE correcteur
+# est deja presente, elle est mise a jour et l'ancienne est gardee en .ancien)
 ################################################################################
 
   apps/pos/management/commands/diagnostiquer_caisses.py  (84 lignes)
-  tests/test_caisse_pos_magasin.py                       (130 lignes)
+  tests/test_caisse_pos_magasin.py                       (136 lignes)

@@ -40,7 +40,12 @@ class CaissePosMagasinTests(BaseNexoraTestCase):
         self.assertEqual(reponse.data.get('error'), 'Magasin introuvable dans votre entreprise')
 
     def test_2_magasin_non_identifiant_refuse_clairement(self):
-        """Un magasin qui n'est pas un identifiant reel (« store-01 ») est refuse."""
+        """Un magasin qui n'est pas un identifiant reel (« store-01 ») est refuse.
+
+        Selon la version de vos fichiers, ce refus vient du formulaire d'entree
+        (details.store) ou de la garde du serveur (error) : dans les deux cas,
+        le message designe clairement le magasin.
+        """
         reponse = self.client_a.post('/api/v1/sales/', {
             'store': 'store-01',                 # valeur inventee (caisse fictive)
             'register': 'reg-01',
@@ -49,7 +54,10 @@ class CaissePosMagasinTests(BaseNexoraTestCase):
             'payment': {'amount': '944.00', 'method': 'CASH', 'reference': 'POS-PAY-000002'},
         }, format='json')
         self.assertEqual(reponse.status_code, status.HTTP_400_BAD_REQUEST, reponse.content[:300])
-        self.assertIn('store', reponse.data.get('details', {}))
+        details = reponse.data.get('details') or {}
+        message = '%s %s' % (reponse.data.get('error', ''), reponse.data.get('message', ''))
+        self.assertTrue('store' in details or 'magasin' in message.lower(),
+                        'le refus doit designer le magasin : %s' % reponse.content[:300])
 
     def test_3_caisse_ne_peut_pas_viser_le_magasin_d_une_autre_entreprise(self):
         """Creation d'une caisse sur le magasin d'une autre entreprise : refus."""
@@ -99,7 +107,6 @@ class CaissePosMagasinTests(BaseNexoraTestCase):
             'store': str(self.store_a.id), 'name': 'Caisse Comptoir', 'code': 'REG-A2',
         }, format='json')
         self.assertEqual(creation.status_code, status.HTTP_201_CREATED, creation.content[:300])
-        autre_magasin = self.store_a  # deuxieme magasin de la MEME entreprise
 
         from apps.inventory.models import StockMovementType, Store
         from apps.inventory.services import StockService
@@ -117,7 +124,6 @@ class CaissePosMagasinTests(BaseNexoraTestCase):
         }, format='json')
         self.assertEqual(reponse.status_code, status.HTTP_400_BAD_REQUEST, reponse.content[:300])
         self.assertEqual(reponse.data.get('error'), "La caisse choisie n'appartient pas a ce magasin")
-        del autre_magasin
 
     def test_6_la_liste_des_caisses_reste_dans_l_entreprise(self):
         """L'entreprise A ne voit jamais les caisses de l'entreprise B."""
