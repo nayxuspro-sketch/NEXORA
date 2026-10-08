@@ -26,7 +26,16 @@
   <h1>Téléchargements NEXORA</h1>
   <p class="sous-titre">Scripts et correctifs locaux pour l’application.</p>
 
-  <h2>✅ CORRECTIF POS v3 — VALIDÉ : 14 tests sur 14 OK sur votre projet C:\NEXORA</h2>
+    <section id="evaluation" style="border:1px solid #30363d;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#161b22,#1c2128)">
+    <h2 style="margin-top:0;border:none;padding:0">📊 Évaluation technique de NEXORA — 5,9/10 (59 %)</h2>
+    <p class="sous-titre">Mesurée sur le code réel du dépôt (tag <code>v1.3.9</code>), pas sur la documentation.
+    Un bon produit (8,0/10 en couverture métier) mais pas encore prêt pour un réseau : 3,0/10 en sécurité, 4,0/10 en fiabilité.
+    Le détail par axe, les points forts, les failles et le plan pour atteindre 82 % sont dans le rapport.</p>
+    <p><a href="EVALUATION-TECHNIQUE-NEXORA.html" style="display:inline-block;background:#238636;color:#fff;padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:600">📄 Ouvrir le rapport d'évaluation</a>
+    <span class="sous-titre" style="margin-left:10px">aussi en <a href="EVALUATION-TECHNIQUE-NEXORA.md">Markdown</a></span></p>
+  </section>
+
+<h2>✅ CORRECTIF POS v3 — VALIDÉ : 14 tests sur 14 OK sur votre projet C:\NEXORA</h2>
   <p class="sous-titre"><strong style="color:#7ee787">VALIDÉ le 07/10/2026 : 14 tests sur 14 passent sur C:\NEXORA</strong> (migrations réelles, vrai endpoint /api/v1/sales/export-seller-pdf/). Le bilan par vendeur fonctionne — filtrage strict par vendeur, ventes annulées/brouillons exclues, vendeur inconnu refusé (404), caissier limité à son propre bilan, PDF généré. Il ne reste qu’à redémarrer le backend et <code>npm run dev</code>, puis Ctrl+F5 dans le POS.</p>
   <p class="sous-titre">Cause trouvée dans le code réel du dépôt : le filtre par vendeur n’était appliqué que si le vendeur était identifié, donc le bilan additionnait les ventes de toute l’entreprise. La v2 <strong>retrouve vos fichiers où qu’ils soient</strong> et écrit un diagnostic si elle hésite.<br />
   <strong>Essayez d’abord le fichier unique <code>CORRIGER-POS-AUTONOME.bat</code></strong> : le programme est inclus dedans, aucun autre fichier n’est nécessaire.<br />
