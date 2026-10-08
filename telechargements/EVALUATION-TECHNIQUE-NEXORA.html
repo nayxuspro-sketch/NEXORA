@@ -65,14 +65,15 @@
       globale des requêtes.</li>
       <li><b>Tests &amp; fiabilité : 4,0 → 6,8.</b> <b>96 tests</b> exécutés sur <code>C:\NEXORA</code>, tous verts
       (2 ignorés) : 21 sécurité, 16 règles d'argent, 14 bilan vendeur, 4 isolation multi-entreprise, 4 caisse/client,
-      2 intégrité des ventes, plus les 31 d'origine et les vôtres — et <b>110 tests verts</b> dans l'arbre de recette
+      2 intégrité des ventes, plus les 31 d'origine et les vôtres — et <b>112 tests verts</b> dans l'arbre de recette
       (dont 5 sur les montants décimaux, 4 sur l'état de vente du vendeur et 9 sur le remboursement
-      à l'annulation : <b>110 après installation de tous les correctifs</b>). Hors périmètre : intégration continue, couverture mesurée.</li>
+      à l'annulation : <b>112 après installation de tous les correctifs</b>). Hors périmètre : intégration continue, couverture mesurée.</li>
       <li><b>Qualité backend : 7,0 → 7,5</b> — plus d'article, de magasin, de caisse ni de client substitué en silence dans une vente, et un <b>remboursement de retour</b> qui se calcule désormais au <b>prix réellement payé</b> (il utilisait le tarif du jour : une hausse de tarif faisait sur-rembourser le client).</li>
       <li><b>Remboursement à l'annulation : implémenté</b> (décision du commerçant, option A). Annuler une vente encaissée écrit un contre-mouvement par paiement, retire les espèces du solde de caisse, diminue la créance client, remet le montant payé à zéro («&nbsp;Remboursé&nbsp;») et rend le stock — avec quatre garde-fous (caisse déjà fermée, retour déjà enregistré, créance jamais négative, vente non payée). 9 tests dédiés, 6 en échec avant le code.</li>
       <li>Les <b>33 défauts «&nbsp;flottant&nbsp;»</b> des champs de montant (<code>0.00</code> au lieu de <code>Decimal</code>) sont <b>corrigés</b> : aucun changement de schéma ni de comportement, vérifié sur une base avec données (31 flottants → 0, données identiques).</li>
       <li><b>Rapport vendeur du POS : période corrigée.</b> La date de fin demandée était écrasée par «&nbsp;maintenant + 4 h&nbsp;» : un état de vente d'une période passée contenait donc les ventes enregistrées depuis (reproduit, puis corrigé — 4 tests dédiés, 3 lignes retirées, aucune autre ligne touchée).</li>
       <li><b>Frontend : 6,5 → 6,8</b> — plus d'enregistrement simulé quand le serveur ne répond pas.</li>
+      <li><b>Ventes fantômes (trouvé le 8/10/2026 sur votre signalement, correcteur livré) :</b> cinq écrans affichaient des <b>données inventées</b> (3 ventes fictives sur <code>/sales/</code>, référence <code>VNT-20260929-001</code>), la caisse émettait un <b>faux ticket</b> puis vidait le panier quand l'enregistrement échouait, le client API <b>simulait un enregistrement réussi</b> sans backend, et l'application <b>s'auto-connectait en « mode démo »</b> avec un faux JWT. Résultat : on croyait avoir vendu alors que rien n'était en base. C'est corrigé : plus de données inventées, plus de faux ticket, connexion obligatoire, erreurs affichées franchement — et le serveur était juste (2 tests le prouvent).</li>
       <li><b>Note globale : 5,9 → 7,2/10 (72 %).</b> Prochain palier réaliste : <b>8,5/10</b>.</li>
     </ul>
   </div>
