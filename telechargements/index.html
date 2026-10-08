@@ -26,6 +26,16 @@
   <h1>Téléchargements NEXORA</h1>
   <p class="sous-titre">Scripts et correctifs locaux pour l’application.</p>
 
+    <section id="regles-argent" style="border:2px solid #8957e5;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#1c1330,#1a1029)">
+      <h2 style="margin-top:0;border:none;padding:0">💰 RÈGLES D'ARGENT — 16 tests + un remboursement corrigé</h2>
+      <p class="sous-titre">Aucun test ne vérifiait les <strong>calculs</strong> : montants de ligne, TVA, remises, statuts de paiement, montant remboursé, écart de caisse. Les 16 tests livrés les verrouillent — et en écrivant le premier d'entre eux, un défaut réel est apparu.</p>
+      <p class="sous-titre"><strong style="color:#c297ff">Défaut trouvé et corrigé :</strong> un retour client était remboursé au <strong>tarif du jour</strong>, pas au prix payé. Vente de 2 articles à 800 F, tarif passé à 900 F, retour d'1 article ⇒ <code>Decimal('900.00') != Decimal('800.00')</code>. Le remboursement se calcule désormais sur la <strong>ligne de vente</strong> (prix réellement payé).</p>
+      <p class="sous-titre"><strong>Vérifié :</strong> 16/16 sur les règles d'argent, et <strong style="color:#7ee787">92 tests, OK</strong> dans l'arbre reproduisant votre projet. <strong>Deux points signalés, non modifiés</strong> (décision à vous) : l'annulation n'annule pas l'encaissement (malgré ce que dit la documentation du code) et les champs de caisse ont un défaut « flottant » qui plante au premier encaissement sur une caisse créée en mémoire.</p>
+      <p><a href="CORRECTIF-REGLES-ARGENT.zip" style="display:inline-block;background:#6e40c9;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-REGLES-ARGENT.zip (9 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">2 fichiers dans <code>C:\NEXORA</code> — <a href="correctif-regles-argent/LISEZMOI-REGLES-ARGENT.txt">notice + décisions à prendre</a> ·
+      <a href="correctif-regles-argent/DIFF-REGLES-ARGENT.txt">différence exacte</a></span></p>
+    </section>
+
     <section id="ventes-integrite" style="border:2px solid #d29922;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#2a1f0d,#241b0b)">
       <h2 style="margin-top:0;border:none;padding:0">🔧 INTÉGRITÉ DES VENTES — magasin, article, caisse et client (2 correctifs)</h2>
       <p class="sous-titre">Cause trouvée dans <em>votre</em> <code>apps/sales/views.py</code> : magasin ou article introuvable dans votre entreprise ⇒ l'application remplaçait <strong>en silence</strong> par le premier du catalogue (une vente pouvait porter le magasin ou l'article d'une <strong>autre entreprise</strong>, d'où les <code>201 != 400</code>).</p>

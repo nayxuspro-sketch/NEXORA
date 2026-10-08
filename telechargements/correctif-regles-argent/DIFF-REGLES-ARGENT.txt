@@ -1,0 +1,30 @@
+DIFFERENCE EXACTE AVEC LE FICHIER QUE VOUS AVEZ DEJA
+===================================================
+Une seule modification : le montant rembourse d'un retour client. Le reste du
+fichier est identique (magasin, article, caisse et client deja gardes).
+
+    avant : remboursement au TARIF DU JOUR (prod.selling_price)
+    apres : remboursement au PRIX PAYE lors de la vente (ligne de vente)
+
+--- AVANT  (correctif caisse/client, deja installe)
++++ APRES  (livre ici)
+@@ -194,10 +194,18 @@
+                 prod = Product.objects.get(id=item_in['product'], company=sale.company)
+             except Product.DoesNotExist:
+                 return Response({'error': f"Produit {item_in['product']} introuvable"}, status=status.HTTP_400_BAD_REQUEST)
++
++            # Le remboursement se calcule au prix REELLEMENT paye lors de la
++            # vente (celui de la ligne de vente), et non au tarif du jour : si
++            # le prix a change depuis la vente, l'ancien code remboursait le
++            # nouveau prix, au detriment du commercant ou du client.
++            ligne_vente = sale.items.filter(product=prod).first()
++            prix_paye = ligne_vente.unit_price if ligne_vente else prod.selling_price
++
+             return_items.append({
+                 'product': prod,
+                 'quantity': item_in['quantity'],
+-                'unit_price': item_in.get('unit_price', prod.selling_price)
++                'unit_price': item_in.get('unit_price', prix_paye)
+             })
+ 
+         try:
