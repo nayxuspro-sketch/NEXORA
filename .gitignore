@@ -6,3 +6,7 @@
 /config/settings.py.nexora-profile-*.tmp
 /apps/reports/views.py.pre-bilan-vendeur-*.bak
 /apps/reports/.nexora-bilan-*.tmp
+
+# Caches Python
+__pycache__/
+*.pyc
