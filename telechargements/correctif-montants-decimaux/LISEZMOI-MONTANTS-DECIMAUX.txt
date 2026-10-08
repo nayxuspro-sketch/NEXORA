@@ -50,6 +50,14 @@ CE QU'IL FAUT FAIRE (2 commandes)
 
        py corriger_montants_decimaux.py
 
+   IMPORTANT, sous PowerShell : tapez bien « py » DEVANT le nom du script.
+   Taper seulement « corriger_montants_decimaux.py » donne l'erreur
+   « n'est pas reconnu comme nom d'applet de commande » (PowerShell n'execute
+   pas un script du dossier courant sans le preciser). Trois formes qui
+   marchent :  py corriger_montants_decimaux.py
+               py .\corriger_montants_decimaux.py
+               .\corriger_montants_decimaux.py
+
    Le correcteur patche VOS fichiers (il ne les remplace pas par les miens),
    corrige les 33 defauts, installe le fichier de tests et affiche la suite.
    Il est sans danger : s'il ne trouve rien, il le dit ; les fichiers modifies
