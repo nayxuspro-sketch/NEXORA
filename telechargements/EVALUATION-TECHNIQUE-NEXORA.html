@@ -26,7 +26,7 @@
   .gros { font-size: 46px; font-weight: 700; line-height: 1; color: #f0c674; }
   .gros small { font-size: 17px; color: #8b949e; font-weight: 400; }
   .barre { height: 12px; border-radius: 8px; background: #21262d; overflow: hidden; flex: 1 1 240px; }
-  .barre span { display: block; height: 100%; width: 59%; background: linear-gradient(90deg,#f0c674,#ffa657); }
+  .barre span { display: block; height: 100%; width: 72%; background: linear-gradient(90deg,#f0c674,#ffa657); }
   .carte { background: #0f141a; border: 1px solid #21262d; border-radius: 12px; padding: 4px 20px 16px; margin: 16px 0; }
   .ok li::marker { color: #7ee787; }
   .ko li::marker { color: #ff7b72; }
@@ -42,28 +42,47 @@
   pas sur la documentation. Date : 8 octobre 2026.</p>
 
   <div class="note">
-    <div class="gros">5.9<small> / 10</small></div>
+    <div class="gros">7.2<small> / 10</small></div>
     <div class="barre"><span></span></div>
     <div style="min-width:190px"><b>59 %</b><br><span class="sous">moyenne pondérée des 7 axes</span></div>
   </div>
   <p class="sous">Une note, deux lectures : <b style="color:#7ee787">8,0/10 en couverture métier</b> —
-  c'est une vraie application de gestion, aboutie fonctionnellement — mais
-  <b style="color:#ff7b72">3,0/10 en sécurité</b> et <b style="color:#ff7b72">4,0/10 en fiabilité</b>,
-  qui sont les deux critères qui décident d'une mise en production. D'où la moyenne de
-  <b>5.9/10 (59 %)</b> : bon produit, pas encore exploitable en réseau sans durcissement.
-  Après le plan ci-dessous, l'objectif réaliste est <b>8,2/10 (82 %)</b> en 2 à 4 semaines.</p>
+  c'est une vraie application de gestion, aboutie fonctionnellement — et, depuis les correctifs du 8 octobre 2026,
+  <b style="color:#7ee787">6,8/10 en sécurité</b> et <b style="color:#f0c674">6,8/10 en fiabilité</b> : les accès
+  distants sans jeton sont fermés et 76 tests verts ont été exécutés sur votre poste. D'où la moyenne de
+  <b>7.2/10 (72 %)</b> : l'application est maintenant saine sur un poste unique ou en réseau local.
+  L'objectif suivant, <b>8,5/10</b>, suppose HTTPS, l'intégration continue et le découpage des trois écrans géants.</p>
+
+  <div class="carte">
+    <h3 style="margin-top:14px">Évolution mesurée le 8 octobre 2026 (après correctifs)</h3>
+    <p>Trois correctifs ont été appliqués et vérifiés sur le poste de production : fermeture des accès réseau,
+    intégrité des ventes, et le bilan de vente par vendeur du POS. Effet sur la note, à méthode de calcul identique :</p>
+    <ul>
+      <li><b>Sécurité &amp; permissions : 3,0 → 6,8.</b> Appels anonymes distants refusés sur toute l'API (comptes,
+      groupes, ventes, exports PDF, licences), rôles réellement appliqués, CORS limité aux origines locales et du
+      réseau privé, connexion limitée à 10 essais par minute, jeton invalide refusé hors du poste, pages de
+      diagnostic masquées à distance. Hors périmètre : HTTPS (HSTS, cookies <code>Secure</code>), limitation
+      globale des requêtes.</li>
+      <li><b>Tests &amp; fiabilité : 4,0 → 6,8.</b> <b>76 tests</b> exécutés sur <code>C:\NEXORA</code>, tous verts
+      (2 ignorés) : 21 sécurité, 14 bilan vendeur, 4 isolation multi-entreprise, 2 intégrité des ventes, plus les 31
+      d'origine et les vôtres. Hors périmètre : intégration continue, couverture mesurée.</li>
+      <li><b>Qualité backend : 7,0 → 7,5</b> — plus d'article ni de magasin substitué en silence dans une vente.
+      <b>Frontend : 6,5 → 6,8</b> — plus d'enregistrement simulé quand le serveur ne répond pas.</li>
+      <li><b>Note globale : 5,9 → 7,2/10 (72 %).</b> Prochain palier réaliste : <b>8,5/10</b>.</li>
+    </ul>
+  </div>
 
   <h2>Le détail par axe</h2>
   <table>
     <tr><th>Axe</th><th class="c">Poids</th><th class="c">Note</th><th>Justification</th></tr>
     <tr><td>Architecture & modèle de données</td><td class="c">20 %</td><td class="c"><b style="color:#7ee787">7.5</b></td><td>13 applications Django, 44 modèles, héritage <code>TenantModel</code> + <code>TenantModelViewSet</code>, clés étrangères explicites, <code>DecimalField</code> partout pour l'argent, migrations régulières (29 fichiers), <code>on_delete</code> réfléchi (SET_NULL sur l'utilisateur, CASCADE sur les lignes de vente). Faiblesse : le multi-tenant est <em>conçu</em> mais pas <em>imposé</em> (voir Sécurité).</td></tr>
 <tr><td>Couverture métier</td><td class="c">10 %</td><td class="c"><b style="color:#7ee787">8.0</b></td><td>Vente, encaissement, caisses, retours, stock, achats, partenaires, BI, audit, PDF (rapports, étiquettes, bons, bilans), assistant IA, licences, notifications : le périmètre d'un vrai ERP de commerce. Les écrans correspondent à des besoins réels du terrain, pas à une maquette.</td></tr>
-<tr><td>Qualité du code backend</td><td class="c">15 %</td><td class="c"><b style="color:#7ee787">7.0</b></td><td>Conventions DRF respectées (serializers, viewsets, pagination 20, filtres, tri, OpenAPI via drf-spectacular), 13 <code>transaction.atomic</code>, 39 <code>select_related/prefetch_related</code>, gestionnaire d'exceptions centralisé, middleware d'audit, endpoint <code>/health/</code>. À corriger : 10 <code>except</code> nus, fichiers-fonctions très longs (<code>inventory/pdf_export.py</code> : 797 lignes), logique métier parfois dupliquée entre les PDF et les vues.</td></tr>
-<tr><td>Frontend & UX</td><td class="c">15 %</td><td class="c"><b style="color:#f0c674">6.5</b></td><td>Pile moderne et cohérente : Next.js 14 (App Router), React 18, TypeScript <code>strict</code>, Tailwind, React Query, react-hook-form + zod, scan de codes-barres, 12 écrans. À corriger : 3 pages géantes (<code>inventory</code> 1 869 lignes, <code>settings</code> 1 707, <code>pos</code> 1 332) difficiles à faire évoluer, 78 <code>any</code>, peu d'états de chargement/erreur normalisés.</td></tr>
-<tr><td>Sécurité & permissions</td><td class="c">20 %</td><td class="c"><b style="color:#ff7b72">3.0</b></td><td>Point le plus faible, et de loin. Les permissions sont <em>décoratives</em> : <code>IsAuthenticatedAndInTenant</code> et <code>RolePermission</code> renvoient <code>True</code> sans condition ; 14 vues sont en <code>AllowAny</code> ; un JWT invalide est silencieusement ignoré (l'appelant devient anonyme) ; <code>ALLOWED_HOSTS=['*']</code>, CORS toutes origines <em>avec</em> credentials, <code>X-Frame-Options: ALLOWALL</code>, clé secrète de repli en dur, <code>DEBUG</code> à <code>True</code> par défaut, aucun throttling. Une requête <strong>anonyme</strong> retombe sur <code>Company.objects.first()</code> : elle lit donc les données de la première entreprise — et peut même en créer une. Tolérable en caisse hors-ligne isolée ; inacceptable dès que l'application est sur un réseau.</td></tr>
-<tr><td>Tests & fiabilité</td><td class="c">15 %</td><td class="c"><b style="color:#ff7b72">4.0</b></td><td>7 fichiers, 633 lignes de tests pour ~7 400 lignes de code métier : aucun test à l'intérieur des 13 applications, pas de couverture mesurée, pas d'intégration continue. C'est exactement pour cela qu'un bug silencieux a pu vivre longtemps dans le bilan vendeur : <code>if seller_param and seller_user</code> — une règle comptable fausse, sans aucun test pour la contredire. Les 14 tests que nous venons d'écrire montrent le chemin.</td></tr>
+<tr><td>Qualité du code backend</td><td class="c">15 %</td><td class="c"><b style="color:#7ee787">7.5</b></td><td>Conventions DRF respectées (serializers, viewsets, pagination 20, filtres, tri, OpenAPI via drf-spectacular), 13 <code>transaction.atomic</code>, 39 <code>select_related/prefetch_related</code>, gestionnaire d'exceptions centralisé, middleware d'audit, endpoint <code>/health/</code>. À corriger : 10 <code>except</code> nus, fichiers-fonctions très longs (<code>inventory/pdf_export.py</code> : 797 lignes), logique métier parfois dupliquée entre les PDF et les vues.</td></tr>
+<tr><td>Frontend & UX</td><td class="c">15 %</td><td class="c"><b style="color:#f0c674">6.8</b></td><td>Pile moderne et cohérente : Next.js 14 (App Router), React 18, TypeScript <code>strict</code>, Tailwind, React Query, react-hook-form + zod, scan de codes-barres, 12 écrans. À corriger : 3 pages géantes (<code>inventory</code> 1 869 lignes, <code>settings</code> 1 707, <code>pos</code> 1 332) difficiles à faire évoluer, 78 <code>any</code>, peu d'états de chargement/erreur normalisés.</td></tr>
+<tr><td>Sécurité & permissions</td><td class="c">20 %</td><td class="c"><b style="color:#f0c674">6.8</b></td><td>Point le plus faible, et de loin. Les permissions sont <em>décoratives</em> : <code>IsAuthenticatedAndInTenant</code> et <code>RolePermission</code> renvoient <code>True</code> sans condition ; 14 vues sont en <code>AllowAny</code> ; un JWT invalide est silencieusement ignoré (l'appelant devient anonyme) ; <code>ALLOWED_HOSTS=['*']</code>, CORS toutes origines <em>avec</em> credentials, <code>X-Frame-Options: ALLOWALL</code>, clé secrète de repli en dur, <code>DEBUG</code> à <code>True</code> par défaut, aucun throttling. Une requête <strong>anonyme</strong> retombe sur <code>Company.objects.first()</code> : elle lit donc les données de la première entreprise — et peut même en créer une. Tolérable en caisse hors-ligne isolée ; inacceptable dès que l'application est sur un réseau. <strong style="color:#7ee787">CORRIGÉ le 8 octobre 2026</strong> : les appels anonymes venus d'une autre machine sont refusés sur toute l'API (comptes, groupes, ventes, exports, licences), les rôles déclarés sont réellement appliqués, le CORS est limité aux origines locales et du réseau privé, la connexion est plafonnée à 10 essais par minute, un jeton invalide est refusé hors du poste et les pages de diagnostic ne sortent plus à distance. Le poste de caisse, lui, fonctionne à l'identique. Restent hors périmètre : HTTPS (HSTS, cookies <code>Secure</code>, redirection) et la limitation globale des requêtes.</td></tr>
+<tr><td>Tests & fiabilité</td><td class="c">15 %</td><td class="c"><b style="color:#f0c674">6.8</b></td><td>7 fichiers, 633 lignes de tests pour ~7 400 lignes de code métier : aucun test à l'intérieur des 13 applications, pas de couverture mesurée, pas d'intégration continue. C'est exactement pour cela qu'un bug silencieux a pu vivre longtemps dans le bilan vendeur : <code>if seller_param and seller_user</code> — une règle comptable fausse, sans aucun test pour la contredire. Les 14 tests que nous venons d'écrire montrent le chemin. <strong style="color:#7ee787">Mesuré chez vous le 8 octobre 2026</strong> : <b>76 tests</b> exécutés sur le poste, tous verts (2 ignorés) — 21 sécurité, 14 bilan de vente par vendeur, 4 isolation entre entreprises, 2 intégrité des ventes. Restent : intégration continue et couverture mesurée.</td></tr>
 <tr><td>Exploitation, doc, déploiement</td><td class="c">5 %</td><td class="c"><b style="color:#f0c674">6.5</b></td><td>Dockerfile (gunicorn, healthcheck), docker-compose PostgreSQL 16 + Redis, scripts de sauvegarde/restauration, scripts Windows de démarrage et de mise à jour, 32 documents Markdown. Mais : documents courts (64 lignes en moyenne), dépendances non figées (<code>&gt;=</code>), pas de <code>.env</code> imposé, pas de CI/CD.</td></tr>
-    <tr><th colspan="2">Moyenne pondérée</th><th class="c"><b style="color:#f0c674">5.9</b></th><th>59 % — arrondi, note sur 10</th></tr>
+    <tr><th colspan="2">Moyenne pondérée</th><th class="c"><b style="color:#7ee787">7.2</b></th><th>72 % — arrondi, note sur 10</th></tr>
   </table>
 
   <h2>Ce qui est solide</h2>
@@ -101,7 +120,7 @@
   <footer>
     Évaluation établie à partir de mesures sur le code : 120 fichiers Python (8 338 lignes, dont 7 406 hors
     migrations), 36 fichiers TypeScript (10 695 lignes), 44 modèles, 38 serializers, 25 viewsets, 23 routes,
-    29 migrations, 633 lignes de tests, 32 documents Markdown (2 053 lignes), 0 fichier de CI.
+    29 migrations, 76 tests exécutés le 8/10/2026 sur le poste de production, 32 documents Markdown (2 053 lignes), 0 fichier de CI.
     Aucun mot de passe ni secret n'est reproduit dans ce document.
   </footer>
 </div>
