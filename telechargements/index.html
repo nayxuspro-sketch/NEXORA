@@ -27,10 +27,14 @@
   <p class="sous-titre">Scripts et correctifs locaux pour l’application.</p>
 
     <section id="ventes-integrite" style="border:2px solid #d29922;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#2a1f0d,#241b0b)">
-      <h2 style="margin-top:0;border:none;padding:0">🔧 INTÉGRITÉ DES VENTES — les 2 tests en échec sont corrigés</h2>
+      <h2 style="margin-top:0;border:none;padding:0">🔧 INTÉGRITÉ DES VENTES — magasin, article, caisse et client (2 correctifs)</h2>
       <p class="sous-titre">Cause trouvée dans <em>votre</em> <code>apps/sales/views.py</code> : magasin ou article introuvable dans votre entreprise ⇒ l'application remplaçait <strong>en silence</strong> par le premier du catalogue (une vente pouvait porter le magasin ou l'article d'une <strong>autre entreprise</strong>, d'où les <code>201 != 400</code>).</p>
       <p class="sous-titre"><strong style="color:#f0c674">Correctif : 2 garde-fous</strong> — identifiant fourni et introuvable ⇒ refus (400) ; identifiant non fourni ⇒ comportement d'origine ; vente normale ⇒ 201 inchangé. Vérifié : <em>vos 2 échecs reproduits à l'identique, puis 4/4 OK</em>, vente normale OK, arbre complet (sécurité + BI + POS + ce correctif) = <strong style="color:#7ee787">72 tests, OK</strong>.</p>
-      <p><a href="CORRECTIF-INTEGRITE-VENTES.zip" style="display:inline-block;background:#9e6a03;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-INTEGRITE-VENTES.zip (9 Ko)</a>
+      <p class="sous-titre"><strong style="color:#f0c674">Correctif 2 — caisse et client :</strong> même défaut, deux champs qui touchent l'argent de près. La vente était rattachée <strong>en silence</strong> à la première caisse (clôture et rapport Z de la mauvaise caisse) et au premier client (historique et créances faussés). Désormais : caisse ou client absent de votre entreprise ⇒ <strong>refus 400</strong> ; vente comptoir sans client ⇒ inchangée. Reproduit avant correction (<code>201 != 400</code>), puis <strong style="color:#7ee787">74 tests OK</strong> dans l'arbre reproduisant votre état.</p>
+      <p><a href="CORRECTIF-INTEGRITE-CAISSE-CLIENT.zip" style="display:inline-block;background:#9e6a03;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-INTEGRITE-CAISSE-CLIENT.zip (7 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">2 fichiers à déposer dans <code>C:\NEXORA</code> — <a href="correctif-integrite-caisse-client/LISEZMOI-CAISSE-CLIENT.txt">notice</a> ·
+      <a href="correctif-integrite-caisse-client/DIFF-INTEGRITE-CAISSE-CLIENT.txt">différence exacte</a></span></p>
+    <p><a href="CORRECTIF-INTEGRITE-VENTES.zip" style="display:inline-block;background:#9e6a03;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-INTEGRITE-VENTES.zip (9 Ko)</a>
       <span class="sous-titre" style="margin-left:10px">2 fichiers à déposer dans <code>C:\NEXORA</code> (aucun script)</span></p>
       <p class="sous-titre">Détails : <a href="correctif-integrite-ventes/LISEZMOI-VENTES-INTEGRITE.txt">notice + vérifications</a> ·
       <a href="correctif-integrite-ventes/DIFF-INTEGRITE-VENTES.txt">différence exacte avec votre fichier</a></p>
