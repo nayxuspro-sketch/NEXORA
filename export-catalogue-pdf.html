@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Exporter le Catalogue des Produits en PDF (par Statut) — disposition corrigée</title>
+<style>
+  :root {
+    --fond: #0b1220; --panneau: #101b30; --carte: #16233c; --champ: #0a1424;
+    --bordure: #22365a; --texte: #eef3fb; --texte-doux: #9fb0c9;
+    --bleu: #2f7bff; --bleu-fonce: #1f5fd6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 30px 16px;
+    background: radial-gradient(900px 480px at 85% -10%, #14294d 0%, transparent 60%), var(--fond);
+    color: var(--texte);
+    font: 14px/1.55 "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+  }
+  .comparateur { font-size: 12.5px; color: var(--texte-doux); display: flex; align-items: center; gap: 8px; }
+  .comparateur input { accent-color: var(--bleu); }
+
+  .fenetre {
+    width: min(560px, 100%);
+    background: var(--panneau); border: 1px solid var(--bordure); border-radius: 14px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .5); overflow: hidden;
+  }
+  .entete { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px 6px; }
+  .entete h1 { margin: 0; font-size: 18px; line-height: 1.4; font-weight: 700; }
+  .entete .fermer {
+    margin-left: auto; background: none; border: none; color: var(--texte-doux);
+    font-size: 16px; cursor: pointer; padding: 4px;
+  }
+  .entete .fermer:hover { color: var(--texte); }
+
+  .corps { padding: 10px 20px 0; }
+  .intro { color: var(--texte-doux); font-size: 13.5px; margin: 6px 0 16px; }
+  .champ label { display: block; font-size: 12.5px; font-weight: 650; margin-bottom: 7px; }
+  .champ select {
+    width: 100%; font: inherit; color: var(--texte); background: var(--champ);
+    border: 1px solid var(--bordure); border-radius: 9px; padding: 11px 12px; font-size: 14.5px;
+  }
+  .encart {
+    border: 1px solid var(--bordure); border-radius: 10px; background: var(--carte);
+    padding: 13px 15px; margin: 16px 0 4px;
+  }
+  .encart h2 { margin: 0 0 8px; font-size: 13.5px; }
+  .encart ul { margin: 0; padding-left: 18px; color: var(--texte-doux); font-size: 12.5px; }
+  .encart li { margin-bottom: 6px; }
+
+  /* ================= PIED DE FENÊTRE : GRILLE « 2 + 1 » (rendu final approuvé) ================= */
+  .pied-fenetre {
+    display: grid;
+    grid-template-columns: 1fr 1fr;   /* Annuler | Ouvrir dans un onglet, moitiés égales */
+    gap: 10px;
+    padding: 16px 20px; margin-top: 14px;
+    border-top: 1px solid var(--bordure);
+  }
+  @media (max-width: 480px) { .pied-fenetre { grid-template-columns: 1fr; } }
+  .pied-fenetre button {
+    white-space: nowrap;          /* le libellé reste sur une seule ligne */
+    width: 100%;                  /* chaque bouton remplit sa cellule */
+    font: inherit; font-weight: 650; border-radius: 9px; cursor: pointer;
+    padding: 10px 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .pied-fenetre .btn-sombre { background: #16233c; color: var(--texte); border: 1px solid var(--bordure); }
+  .pied-fenetre .btn-sombre:hover { border-color: var(--bleu); }
+  .pied-fenetre .btn-primaire { background: var(--bleu); color: #fff; border: 1px solid var(--bleu); grid-column: 1 / -1; }
+  .pied-fenetre .btn-primaire:hover { background: var(--bleu-fonce); }
+
+  /* ---------- Simulation de l'ANCIEN défaut (pour comparaison) ---------- */
+  .fenetre.defaut .pied-fenetre { display: flex; flex-wrap: nowrap; gap: 8px; }
+  .fenetre.defaut .pied-fenetre .btn-onglet {
+    white-space: normal; flex: 0 1 64px; width: 64px;   /* compression : le texte s'empile */
+  }
+
+  .note-correctif {
+    width: min(560px, 100%); background: var(--carte); border: 1px solid var(--bordure);
+    border-radius: 12px; padding: 14px 16px; font-size: 12.5px; color: var(--texte-doux);
+  }
+  .note-correctif h2 { margin: 0 0 8px; font-size: 13px; color: var(--texte); }
+  .note-correctif pre {
+    background: var(--champ); border: 1px solid var(--bordure); border-radius: 8px;
+    padding: 10px 12px; overflow-x: auto; color: #cfe0f7; font-size: 12px; line-height: 1.5;
+  }
+  .notification {
+    position: fixed; right: 18px; bottom: 18px; background: #123f2c; border: 1px solid #1f6b4a;
+    color: #d9f5e7; border-radius: 10px; padding: 11px 15px; font-size: 13.5px; max-width: 340px;
+    animation: app .18s ease;
+  }
+  @keyframes app { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+
+  <label class="comparateur">
+    <input type="checkbox" id="bascule-defaut" />
+    Simuler l'ancien défaut (bouton compressé sur 5 lignes) pour comparer
+  </label>
+
+  <section class="fenetre" id="fenetre" role="dialog" aria-modal="true" aria-labelledby="titre">
+    <header class="entete">
+      <h1 id="titre">Exporter le Catalogue des Produits en PDF (par Statut)</h1>
+      <button class="fermer" type="button" id="fermer" title="Fermer" aria-label="Fermer">✕</button>
+    </header>
+
+    <div class="corps">
+      <p class="intro">
+        Générez un catalogue officiel au format A4 Paysage avec prix de revient,
+        tarifs de vente en FCFA, marges unitaires, stocks disponibles et alertes critiques.
+      </p>
+
+      <div class="champ">
+        <label for="statut">Filtrer par Statut de Produit *</label>
+        <select id="statut">
+          <option>Tous les produits (Actifs &amp; Inactifs)</option>
+          <option>Produits actifs uniquement</option>
+          <option>Produits inactifs uniquement</option>
+          <option>Stock épuisé (alerte critique)</option>
+        </select>
+      </div>
+
+      <div class="encart">
+        <h2>Contenu du document PDF généré :</h2>
+        <ul>
+          <li>Cartouche statistique : total références, ventilation actifs/inactifs, unités
+              globales, valorisation financière globale en FCFA.</li>
+          <li>Tableau complet : Désignation, SKU, Code-barres, Catégorie, Prix Achat HT,
+              Prix Vente TTC, Marge unitaire, Stock réel et Statut coloré.</li>
+        </ul>
+      </div>
+    </div>
+
+    <footer class="pied-fenetre">
+      <button class="btn-sombre" type="button" id="annuler">Annuler</button>
+      <button class="btn-sombre btn-onglet" type="button" id="onglet">Ouvrir dans un onglet (Direct)</button>
+      <button class="btn-primaire" type="button" id="telecharger">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 2v8m0 0l-3-3m3 3l3-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3 13h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        Télécharger le Catalogue PDF
+      </button>
+    </footer>
+  </section>
+
+  <div class="note-correctif">
+    <h2>Correctif CSS appliqué ici (à recoller dans votre projet)</h2>
+    <pre>.pied-fenetre {
+  display: grid;
+  grid-template-columns: 1fr 1fr;   /* Annuler | Ouvrir : moities egales */
+  gap: 10px;
+}
+.pied-fenetre button {
+  white-space: nowrap;              /* libelle sur UNE seule ligne */
+  width: 100%;
+}
+.pied-fenetre .btn-primaire { grid-column: 1 / -1; }  /* CTA pleine largeur */
+@media (max-width: 480px) { .pied-fenetre { grid-template-columns: 1fr; } }</pre>
+  </div>
+
+<script>
+  function notifier(message) {
+    const n = document.createElement("div");
+    n.className = "notification";
+    n.textContent = message;
+    document.body.appendChild(n);
+    setTimeout(() => n.remove(), 3800);
+  }
+  document.getElementById("bascule-defaut").addEventListener("change", (e) => {
+    document.getElementById("fenetre").classList.toggle("defaut", e.target.checked);
+  });
+  document.getElementById("annuler").addEventListener("click", () => notifier("Export annulé."));
+  document.getElementById("fermer").addEventListener("click", () => notifier("Fenêtre fermée."));
+  document.getElementById("onglet").addEventListener("click", () =>
+    notifier("Catalogue ouvert dans un nouvel onglet (aperçu direct)."));
+  document.getElementById("telecharger").addEventListener("click", () =>
+    notifier("Génération du catalogue PDF lancée : « " + document.getElementById("statut").value + " »."));
+</script>
+</body>
+</html>

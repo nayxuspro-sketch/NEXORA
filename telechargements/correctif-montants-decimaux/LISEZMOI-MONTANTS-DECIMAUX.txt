@@ -1,0 +1,100 @@
+================================================================================
+NEXORA - LES CHAMPS DE MONTANT DEVIENNENT DE VRAIS DECIMAUX (plus de flottant)
+================================================================================
+Livre : 1 correcteur + 1 fichier de tests + 7 fichiers corriges en reference.
+Aucune migration. Aucune donnee touchee. Aucun changement de comportement.
+
+--------------------------------------------------------------------------------
+LE DEFAUT, EN UNE PHRASE
+--------------------------------------------------------------------------------
+Un champ de montant declare ainsi
+
+    total_amount = models.DecimalField(..., default=0.00)
+
+rend un FLOTTANT (0.0) pour tout objet neuf qui n'a pas encore ete relu depuis
+la base. Le premier calcul d'argent sur cet objet leve alors :
+
+    TypeError: unsupported operand type(s) for +=: 'float' and 'decimal.Decimal'
+    (fonction process_payment, apps/sales/services.py)
+
+Mesure faite sur votre projet : 47 champs decimaux inspectes, 32 defauts dans
+6 fichiers de modeles, plus 1 dans le formulaire de vente : 33 au total.
+
+--------------------------------------------------------------------------------
+CE QUE CA CHANGE POUR VOUS (et ce que ca ne change PAS)
+--------------------------------------------------------------------------------
+PAS de changement de comportement : vos ecrans, vos montants, vos ventes et
+votre caisse restent identiques au centime pres.
+PAS de migration : Django ne voit aucune difference de schema entre 0.00 et
+Decimal('0.00'). Verifie : la commande "makemigrations --check" repond
+"No changes detected" et "migrate" repond "No migrations to apply".
+PAS de donnees touchees : verifie sur une base SQLite reelle, avec des donnees
+deja en place (vente de 2 780 F dont 1 780 F payes, creance client 1 200 F,
+caisse 12 500 F, stock 47) :
+  - avant correction : 0 champ Decimal, 31 flottants sur les objets neufs ;
+  - apres correction : 31 Decimal, 0 flottant ;
+  - les donnees relues PUIS reenregistrees sont identiques (seul "updated_at",
+    l'horodatage automatique, bouge : c'est normal et sans effet).
+
+CE QUE CA EVITE : le piege se declenche des qu'un objet est manipule en memoire
+- script d'import, commande de maintenance, tache automatique, ou test. C'est
+exactement ce qui s'est produit pendant l'ecriture des tests des regles
+d'argent. Le champ alert_threshold (seuil d'alerte de stock, ecrit 5.00) etait
+concerne aussi.
+
+--------------------------------------------------------------------------------
+CE QU'IL FAUT FAIRE (2 commandes)
+--------------------------------------------------------------------------------
+1) Dezipper ce dossier a la racine du projet (la ou se trouve manage.py), en
+   remplacant les fichiers si Windows le demande, puis :
+
+       py corriger_montants_decimaux.py
+
+   IMPORTANT, sous PowerShell : tapez bien « py » DEVANT le nom du script.
+   Taper seulement « corriger_montants_decimaux.py » donne l'erreur
+   « n'est pas reconnu comme nom d'applet de commande » (PowerShell n'execute
+   pas un script du dossier courant sans le preciser). Trois formes qui
+   marchent :  py corriger_montants_decimaux.py
+               py .\corriger_montants_decimaux.py
+               .\corriger_montants_decimaux.py
+
+   Le correcteur patche VOS fichiers (il ne les remplace pas par les miens),
+   corrige les 33 defauts, installe le fichier de tests et affiche la suite.
+   Il est sans danger : s'il ne trouve rien, il le dit ; les fichiers modifies
+   sont d'abord sauvegardes dans sauvegardes-flottants/ ; relance = aucun
+   changement (idempotent).
+
+2) Verifier :
+
+       py manage.py test tests.test_montants_decimaux -v 2     (attendu : 5 OK)
+       py manage.py test                                       (attendu : OK)
+
+--------------------------------------------------------------------------------
+CE QUE LES 5 TESTS VERROUILLENT
+--------------------------------------------------------------------------------
+1. Inventaire de TOUS les modeles : aucun defaut flottant sur un champ decimal.
+2. Inventaire de TOUS les formulaires : aucun defaut flottant (304 champs).
+3. Encaisser une vente neuve sur une caisse neuve : vente PAID, caisse a 800 F.
+4. Vendre a credit a un client neuf : creance client a 500 F.
+5. Vente envoyee sans remise globale : acceptee, montants en Decimal, stock -1.
+
+--------------------------------------------------------------------------------
+SI VOTRE ARBRE A EVOLUE
+--------------------------------------------------------------------------------
+Le correcteur travaille sur vos fichiers : tout champ de montant ajoute depuis
+serait corrige au passage, et il le signale ("N defaut(s) trouve(s) au lieu des
+33 attendus"). Les 7 fichiers corriges sont aussi fournis tels quels dans
+fichiers-de-reference/, pour comparaison, sans obligation de les utiliser.
+
+--------------------------------------------------------------------------------
+ORDRE PAR RAPPORT AUX AUTRES LIVRAISONS
+--------------------------------------------------------------------------------
+Independant : ce correctif touche les modeles (et le formulaire de vente) ;
+celui de l'annulation touche services.py ; celui des regles d'argent touche
+views.py. Vous pouvez les installer dans n'importe quel ordre.
+
+--------------------------------------------------------------------------------
+RETOUR ARRIERE
+--------------------------------------------------------------------------------
+Copiez le contenu de sauvegardes-flottants/ par-dessus les fichiers modifies.
+Aucune migration n'ayant ete creee, il n'y a rien d'autre a defaire.

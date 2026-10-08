@@ -1,0 +1,49 @@
+# Données de production et rapports générés localement : ne jamais publier dans Git.
+/sauvegardes-postgresql/
+sauvegardes*/
+backups/
+media/
+uploads/
+staticfiles/
+db.sqlite3
+db.sqlite3-journal
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+/audit_production_*.txt
+/config/settings.py.pre-nexora-profile-*.bak
+/config/settings.py.nexora-profile-*.tmp
+/apps/reports/views.py.pre-bilan-vendeur-*.bak
+/apps/reports/.nexora-bilan-*.tmp
+
+# Environnements et caches Python
+/.venv/
+/venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Dépendances et compilations frontend
+**/node_modules/
+**/.next/
+/frontend/out/
+
+# Configuration locale et secrets (un éventuel .env.example reste versionnable)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Artefacts de travail local et journaux
+/.nexora-build/
+*.log
+*.tmp
+*.backup
+*.bak
+*.ancien
+*.sauvegarde-*

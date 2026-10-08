@@ -1,0 +1,27 @@
+NEXORA — ARCHIVE COMPLETE DE LA SOURCE
+Date de préparation : 2026-10-08 (UTC)
+
+PROVENANCE
+- Source de l’application : branche GitHub source-complete, commit
+  680b8ac386c300ad3a5beb5be59729ff1f1628d8.
+- Correctif PDF vendeur v2 intégré : aucun plafond de produits, pagination,
+  colonne SKU 105 points et style dédié 7 pt / interligne 9.
+- Deux gardes TypeScript de nullabilité ajoutées dans le POS pour permettre
+  la compilation de production.
+
+VALIDATION SUR CETTE COPIE
+- manage.py check : aucune erreur.
+- Suite Django : 118 tests réussis, 1 ignoré, aucun échec.
+- Test PDF vendeur ciblé : 6 tests réussis.
+- Correcteur v2 : appliqué à une copie fraîche, test PDF exécuté, puis rejeu
+  idempotent vérifié.
+- npm run build : compilation Next.js de production réussie.
+
+LIMITE ET CONTENU
+L’archive contient le code source et sa documentation, mais pas de base de
+production, sauvegarde, identifiant ni secret d’exploitation, fichier .env,
+média utilisateur, dépendance installée, cache de compilation, rapport de
+diagnostic ni données client. Le réglage Django de développement reste soumis
+à la vérification qui refuse sa clé générique lorsque DEBUG=False.
+Les tests utilisent une base temporaire ; aucune recette sur la base de
+production de l’utilisateur n’est revendiquée.

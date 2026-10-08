@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Configurer les Droits : Direction &amp; Administration Générale — NEXORA</title>
+<style>
+  :root {
+    --fond: #0b1220;
+    --panneau: #0f1a2e;
+    --carte: #13223c;
+    --tuile: #182a47;
+    --tuile-survol: #1e3355;
+    --bordure: #22365a;
+    --texte: #eef3fb;
+    --texte-doux: #9fb0c9;
+    --bleu: #2f7bff;
+    --bleu-vif: #4d94ff;
+    --bleu-fonce: #1f5fd6;
+    --danger: #e5484d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(900px 480px at 85% -10%, #14294d 0%, transparent 60%), var(--fond);
+    color: var(--texte);
+    font: 14px/1.5 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    display: flex; justify-content: center; padding: 28px 16px;
+  }
+  .fenetre {
+    width: min(720px, 100%);
+    background: var(--panneau);
+    border: 1px solid var(--bordure);
+    border-radius: 14px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .5);
+    display: flex; flex-direction: column;
+    max-height: calc(100vh - 56px);
+    overflow: hidden;
+  }
+
+  /* ---- Barre de titre ---- */
+  .entete {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--bordure);
+    background: linear-gradient(100deg, #101c33, #14294d);
+  }
+  .entete h1 { margin: 0; font-size: 16px; font-weight: 650; letter-spacing: .2px; }
+  .entete .sous-titre { margin: 1px 0 0; font-size: 12.5px; color: var(--texte-doux); }
+  .entete .fermer {
+    margin-left: auto; width: 30px; height: 30px; border-radius: 8px;
+    border: 1px solid var(--bordure); background: transparent; color: var(--texte-doux);
+    cursor: pointer; font-size: 14px; line-height: 1;
+  }
+  .entete .fermer:hover { color: var(--texte); border-color: var(--bleu); }
+
+  /* ---- Corps ---- */
+  .corps { padding: 18px; overflow: auto; }
+
+  .champ label {
+    display: block; font-size: 12.5px; font-weight: 650; margin-bottom: 7px;
+  }
+  .champ input {
+    width: 100%; font: inherit; color: var(--texte);
+    background: #0a1424; border: 1px solid var(--bordure);
+    border-radius: 9px; padding: 12px 14px; font-size: 15px;
+  }
+  .champ input:focus { outline: 2px solid rgba(47, 123, 255, .45); border-color: var(--bleu); }
+
+  .ligne-grille {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    margin: 20px 0 12px;
+  }
+  .ligne-grille h2 { margin: 0; font-size: 13.5px; font-weight: 700; }
+  .compteur { color: var(--bleu-vif); font-weight: 700; font-size: 13.5px; white-space: nowrap; }
+
+  /* ---- Sections de permissions ---- */
+  fieldset.section {
+    border: 1px solid var(--bordure); border-radius: 12px;
+    background: var(--carte); margin: 0 0 14px; padding: 0 0 14px;
+  }
+  fieldset.section legend { padding: 0; margin: 0 14px; }
+  .entete-section {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 16px; border-bottom: 1px solid var(--bordure);
+  }
+  .entete-section .icone { color: var(--bleu-vif); flex: 0 0 auto; display: grid; place-items: center; }
+  .entete-section h3 {
+    margin: 0; font-size: 13.5px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase;
+  }
+  .tout-selectionner {
+    margin-left: auto; background: none; border: none; padding: 4px 2px;
+    color: var(--bleu-vif); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  .tout-selectionner:hover { text-decoration: underline; }
+
+  .grille-permissions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 14px 0;
+  }
+  @media (max-width: 560px) { .grille-permissions { grid-template-columns: 1fr; } }
+
+  .tuile {
+    display: flex; align-items: center; gap: 11px;
+    background: var(--tuile); border: 1px solid transparent; border-radius: 9px;
+    padding: 11px 13px; cursor: pointer; user-select: none;
+  }
+  .tuile:hover { background: var(--tuile-survol); }
+  .tuile:has(input:focus-visible) { outline: 2px solid var(--bleu-vif); outline-offset: 2px; }
+  .tuile input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .case {
+    width: 17px; height: 17px; flex: 0 0 auto; border-radius: 4px;
+    background: #f4f7fb; border: 1px solid #cfd8e6; position: relative;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .tuile input:checked + .case { background: var(--bleu); border-color: var(--bleu); }
+  .tuile input:checked + .case::after {
+    content: ""; position: absolute; left: 4.5px; top: 1.5px;
+    width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0;
+    transform: rotate(43deg);
+  }
+  .tuile .libelle { font-size: 13.5px; color: #dbe4f2; }
+  .tuile input:checked ~ .libelle { color: var(--texte); }
+
+  /* ---- Pied ---- */
+  .pied {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding: 14px 18px; border-top: 1px solid var(--bordure); background: #0d1728;
+  }
+  .bouton {
+    font: inherit; font-weight: 650; border-radius: 9px; cursor: pointer;
+    padding: 10px 16px; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .bouton.secondaire { background: #16233c; color: var(--texte); border: 1px solid var(--bordure); }
+  .bouton.secondaire:hover { border-color: var(--bleu); }
+  .bouton.primaire { background: var(--bleu); color: #fff; border: 1px solid var(--bleu); }
+  .bouton.primaire:hover { background: var(--bleu-fonce); border-color: var(--bleu-fonce); }
+
+  .liens-pied { display: flex; gap: 16px; margin-right: auto; align-items: center; }
+  .lien-discret { color: var(--texte-doux); font-size: 12px; text-decoration: none; }
+  .lien-discret:hover { color: var(--bleu-vif); }
+
+  /* ---- Notification ---- */
+  .notification {
+    position: fixed; right: 18px; bottom: 18px; z-index: 40;
+    background: #123f2c; border: 1px solid #1f6b4a; color: #d9f5e7;
+    border-radius: 10px; padding: 11px 15px; font-size: 13.5px; max-width: 360px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .45); animation: apparition .18s ease;
+  }
+  .notification.attention { background: #4a2a12; border-color: #8a5a1f; color: #fbe8cf; }
+  @keyframes apparition { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+  <section class="fenetre" role="dialog" aria-modal="true" aria-labelledby="titre-fenetre">
+
+    <header class="entete">
+      <div>
+        <h1 id="titre-fenetre">Configurer les Droits</h1>
+        <p class="sous-titre">Direction &amp; Administration Générale</p>
+      </div>
+      <button class="fermer" type="button" id="bouton-fermer" title="Fermer" aria-label="Fermer">✕</button>
+    </header>
+
+    <div class="corps">
+      <div class="champ">
+        <label for="nom-profil">Nom du Profil / Rôle Métier *</label>
+        <input type="text" id="nom-profil" value="Auditeur &amp; Contrôleur Financier" required />
+      </div>
+
+      <div class="ligne-grille">
+        <h2>Grille des Droits d'Accès &amp; Permissions Granulaires</h2>
+        <span class="compteur" id="compteur" aria-live="polite">0 sélectionnée(s)</span>
+      </div>
+
+      <div id="sections"></div>
+    </div>
+
+    <footer class="pied">
+      <span class="liens-pied">
+        <a class="lien-discret" href="matrice-droits.html">Matrice avancée des droits</a>
+        <a class="lien-discret" href="telechargements/">📥 Télécharger le correctif Django</a>
+      </span>
+      <button class="bouton secondaire" type="button" id="bouton-annuler">Annuler</button>
+      <button class="bouton primaire" type="button" id="bouton-enregistrer">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M5 8.2l2.1 2.1L11 6.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Enregistrer le Profil et les Droits
+      </button>
+    </footer>
+  </section>
+
+<script>
+/* ============================================================
+   Fenêtre « Configurer les Droits : Direction & Administration Générale »
+   Libellés intégralement en français (fr-FR).
+   Les verbes de permission Django « Can add / Can change / Can delete /
+   Can view » sont rendus ici par leurs équivalents français :
+   « Peut ajouter / Peut modifier / Peut supprimer / Peut consulter ».
+   ============================================================ */
+
+const VERBES = { add: "Peut ajouter", change: "Peut modifier", delete: "Peut supprimer", view: "Peut consulter" };
+
+const SECTIONS = [
+  {
+    titre: "Gestion des Utilisateurs & Équipes",
+    modeles: [{ nom: "Utilisateur", coche: { add: true, change: true, delete: true, view: true } }]
+  },
+  {
+    titre: "Assistant IA & Règles d'Automatisation",
+    modeles: [
+      { nom: "Journal d'Exécution Règle",  coche: { add: true, change: true, delete: true, view: true } },
+      { nom: "Règle d'Automatisation",     coche: { add: true, change: true, delete: true, view: true } }
+    ]
+  },
+  {
+    titre: "Direction & Administration Générale",
+    modeles: [
+      { nom: "Note de Service",        coche: { add: true, change: true, delete: false, view: true } },
+      { nom: "Document Administratif", coche: { add: true, change: false, delete: false, view: true } }
+    ]
+  }
+];
+
+const ICONE_SECTION =
+  '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">' +
+  '<path d="M9 2l7 3.5-7 3.5-7-3.5L9 2z" fill="currentColor"/>' +
+  '<path d="M2 9.5l7 3.5 7-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+  '<path d="M2 12.5l7 3.5 7-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+  '</svg>';
+
+let etatEnregistre = null;
+
+function construireSections() {
+  const zone = document.getElementById("sections");
+  zone.innerHTML = "";
+  SECTIONS.forEach((section, indexSection) => {
+    const cadre = document.createElement("fieldset");
+    cadre.className = "section";
+
+    const legende = document.createElement("legend");
+    const entete = document.createElement("div");
+    entete.className = "entete-section";
+    entete.innerHTML = '<span class="icone">' + ICONE_SECTION + "</span>";
+    const titre = document.createElement("h3");
+    titre.textContent = section.titre;
+    entete.appendChild(titre);
+    const tout = document.createElement("button");
+    tout.type = "button";
+    tout.className = "tout-selectionner";
+    tout.textContent = "Tout sélectionner";
+    tout.addEventListener("click", () => {
+      const cases = [...cadre.querySelectorAll("input[type=checkbox]")];
+      const tousCochees = cases.every(c => c.checked);
+      cases.forEach(c => { c.checked = !tousCochees; });
+      majCompteur();
+    });
+    entete.appendChild(tout);
+    legende.appendChild(entete);
+    cadre.appendChild(legende);
+
+    const grille = document.createElement("div");
+    grille.className = "grille-permissions";
+    section.modeles.forEach(modele => {
+      Object.keys(VERBES).forEach(verbe => {
+        const tuile = document.createElement("label");
+        tuile.className = "tuile";
+        const caseACocher = document.createElement("input");
+        caseACocher.type = "checkbox";
+        caseACocher.dataset.cle = indexSection + ":" + modele.nom + ":" + verbe;
+        caseACocher.checked = !!modele.coche[verbe];
+        caseACocher.addEventListener("change", majCompteur);
+        const visuel = document.createElement("span");
+        visuel.className = "case";
+        visuel.setAttribute("aria-hidden", "true");
+        const libelle = document.createElement("span");
+        libelle.className = "libelle";
+        libelle.textContent = VERBES[verbe] + " " + modele.nom;
+        tuile.append(caseACocher, visuel, libelle);
+        grille.appendChild(tuile);
+      });
+    });
+    cadre.appendChild(grille);
+    zone.appendChild(cadre);
+  });
+}
+
+function majCompteur() {
+  const n = document.querySelectorAll("#sections input:checked").length;
+  document.getElementById("compteur").textContent = n + " sélectionnée(s)";
+}
+
+function etatCourant() {
+  return {
+    profil: document.getElementById("nom-profil").value,
+    coches: [...document.querySelectorAll("#sections input")].map(c => c.checked)
+  };
+}
+
+function notifier(message, attention) {
+  const n = document.createElement("div");
+  n.className = "notification" + (attention ? " attention" : "");
+  n.textContent = message;
+  document.body.appendChild(n);
+  setTimeout(() => { n.style.opacity = "0"; n.style.transition = "opacity .3s"; }, 3800);
+  setTimeout(() => n.remove(), 4200);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  construireSections();
+  majCompteur();
+  etatEnregistre = JSON.stringify(etatCourant());
+
+  document.getElementById("bouton-enregistrer").addEventListener("click", () => {
+    const nom = document.getElementById("nom-profil").value.trim();
+    if (!nom) {
+      notifier("Le champ « Nom du Profil / Rôle Métier » est obligatoire.", true);
+      document.getElementById("nom-profil").focus();
+      return;
+    }
+    const n = document.querySelectorAll("#sections input:checked").length;
+    etatEnregistre = JSON.stringify(etatCourant());
+    notifier("Profil « " + nom + " » enregistré avec " + n + " droit(s) sélectionné(s).");
+  });
+
+  const annuler = () => {
+    if (JSON.stringify(etatCourant()) !== etatEnregistre &&
+        !window.confirm("Des modifications ne sont pas enregistrées. Voulez-vous vraiment fermer la fenêtre ?")) return;
+    notifier("Fenêtre fermée sans enregistrer les modifications.", true);
+  };
+  document.getElementById("bouton-annuler").addEventListener("click", annuler);
+  document.getElementById("bouton-fermer").addEventListener("click", annuler);
+});
+</script>
+</body>
+</html>

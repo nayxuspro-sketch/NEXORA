@@ -1,0 +1,60 @@
+DIFF — « MON BILAN VENTE PDF » COMPLET, CORRECTIF v2
+===================================================
+
+FICHIERS MODIFIES PAR LE CORRECTEUR
+  apps/sales/pdf_seller_report.py
+  frontend/src/app/pos/page.tsx
+  tests/test_etat_vendeur_pdf.py (test v2 ; ancienne version gardee en .ancien)
+
+BACKEND — DONNEES QUI DISPARAISSAIENT
+---------------------------------------------------
+AVANT
+  for p_name, p_data in sorted_prods[:6]:
+
+  -> Au-dela des six premiers produits, aucune ligne n'etait imprimee.
+  -> L'agregation utilisait le nom comme cle : deux produits de meme nom
+     perdaient leur distinction et un SKU n'etait jamais liste.
+  -> total_paid, total_tax, total_discounts et total_items_qty etaient
+     calcules mais jamais presentes dans le document.
+  -> Les quantites etaient affichees avec « :.0f » (arrondi a l'unite) et
+     le nom du client etait coupe apres 26 caracteres.
+
+APRES
+  - Agregation par identifiant du produit ; le nom et le SKU ne fusionnent
+    plus deux references differentes.
+  - Parcours de la liste COMPLETE (pas de [:6]) ; ReportLab repete l'entete
+    et poursuit la table sur autant de pages qu'il faut.
+  - Colonne SKU elargie a 105 points, avec style de cellule dedie de 7 pt
+    (leading 9) : les references longues restent lisibles et extractibles.
+  - Montant encaisse, taxes, remises et nombre d'articles ajoutes aux KPI.
+  - Quantites decimales affichees sans arrondi a l'unite ; nom client complet.
+  - Echappement des noms/SKU pour que « & » et les caracteres de balisage
+    ne fassent pas echouer le rendu PDF.
+
+PERIODE ET IDENTITE DU VENDEUR
+---------------------------------------------------
+  - La fin de periode choisie est respectee ; aucune extension a « maintenant
+    + 4 h » pour les rapports sur une periode passee.
+  - Le POS envoie explicitement l'identifiant du compte connecte si aucun
+    vendeur n'a ete choisi. Le lien HTTP brut non authentifie est retire ; le
+    bouton de telechargement existant passe par le client authentifie.
+  - La vue conserve le filtre strict par entreprise, vendeur, periode et
+    statut COMPLETED. Le correctif ne change pas la regle metier.
+
+TESTS AJOUTES (6)
+---------------------------------------------------
+  1. La periode passee n'inclut pas les ventes d'aujourd'hui.
+  2. Le rapport contient les ventes du vendeur vise, jamais celles du collegue.
+  3. Sans vendeur dans l'URL, un caissier obtient son propre bilan.
+  4. Une vente annulee n'entre pas dans le chiffre d'affaires.
+  5. Le PDF liste les huit SKU et les huit factures, pas seulement six.
+  6. L'agregation garde distincts deux produits de meme nom et conserve
+     les quantites fractionnaires.
+
+Recette : le test cible execute dans la source complete fournie verifie le PDF
+sur huit articles et les SKU extraits. Le rapport utilise une colonne SKU de
+105 points (style 7 pt/9 pt). Le correcteur a ete applique sur une copie fraiche
+puis relance sans changement (idempotence). La suite Django complete passe :
+118 tests reussis, 1 ignore. `npm run build` reussit egalement sur la copie
+integree. Les tests utilisent une base temporaire et ne valident pas la base de
+production.

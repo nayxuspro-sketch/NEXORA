@@ -1,0 +1,20 @@
+VÉRIFICATION DU CHEMIN DJANGO — NEXORA
+
+POURQUOI
+Le dernier audit a signalé des fichiers d’application résolus depuis un lecteur différent de celui confirmé pour le projet. Avant toute modification de sécurité, il faut vérifier que Python utilise bien les fichiers présents à côté du manage.py attendu.
+
+UTILISATION
+1. Téléchargez verifier-chemin-django.zip.
+2. Extrayez ses trois fichiers dans D:\NEXORA, à côté de manage.py.
+3. Lancez verifier-chemin-django.bat.
+4. Collez la sortie complète ici. Ce contrôle ne demande aucun mot de passe.
+
+LE CONTRÔLE
+- Lit le manage.py et examine le chemin de résolution Python pour config et apps.
+- Vérifie quelques modules cités dans l’audit précédent.
+- N’importe pas l’application Django, ne se connecte pas à PostgreSQL, n’accède à aucun secret et ne modifie aucun fichier.
+- N’affiche pas les chemins externes exacts ; il indique seulement si les modules correspondent au dossier où le script a été extrait.
+
+INTERPRÉTATION
+- RESULT=PROJECT_IMPORTS_MATCH_CURRENT_FOLDER : Python trouve les paquets Django dans le dossier courant.
+- RESULT=PATH_MISMATCH_OR_INCOMPLETE : ne modifiez pas settings.py ; envoyez la sortie afin d’identifier la copie réellement utilisée.

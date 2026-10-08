@@ -1,0 +1,78 @@
+NEXORA — « MON BILAN VENTE PDF » : RAPPORT COMPLET (v2)
+======================================================================
+
+PROBLEME CONFIRME DANS LE CODE REEL DU RAPPORT
+-----------------------------------------------------------------------
+La ventilation par produit s'arretait explicitement a six lignes :
+
+    for p_name, p_data in sorted_prods[:6]:
+
+J'ai reproduit l'omission : avec 8 produits vendus, seuls 6 etaient imprimes ;
+les references les moins vendues disparaissaient du tableau. Deux produits
+portant le meme nom etaient aussi fusionnes et un seul SKU etait affiche.
+
+D'autres donnees etaient calculees sans etre imprimees : montant encaisse,
+taxes, remises et quantite totale. Les quantites etaient arrondies a l'unite
+et le nom d'un client tronque a 26 caracteres. Enfin, le lien « Ouvrir dans un
+onglet (Direct) » appelait l'API sans le jeton de session : il pouvait donc
+resoudre l'entreprise par defaut au lieu de reprendre celle du compte connecte.
+
+CE QUE FAIT LE CORRECTIF v2
+-----------------------------------------------------------------------
+- Retire le plafond de six produits ; le tableau complet se poursuit sur
+  autant de pages que necessaire, avec l'entete repetee.
+- Distingue chaque produit par son identifiant en base, meme si plusieurs
+  produits ont le meme nom ; toutes les references SKU restent separees.
+- Elargit la colonne SKU a 105 points et utilise une typographie dediee de 7 pt
+  (interligne 9) pour conserver les references longues lisibles dans le PDF.
+- Affiche les indicateurs deja calcules : encaissements, taxes, remises et
+  quantites vendues ; conserve les ventes detaillees du vendeur selectionne.
+- N'arrondit plus les quantites fractionnaires a l'unite ; ne coupe plus le
+  nom du client.
+- L'export utilise le compte connecte par defaut et le chemin authentifie ;
+  le lien direct sans jeton est retire.
+- Garde la date de fin choisie (corrige egalement l'ancien « maintenant + 4 h »).
+- Ne touche ni aux ventes, ni aux migrations, ni a la base de donnees.
+- Cree une sauvegarde avant toute ecriture ; relance sans effet.
+
+INSTALLATION — UNE SEULE COMMANDE
+-----------------------------------------------------------------------
+1. Extrayez le ZIP dans la racine du vrai projet (le dossier qui contient
+   manage.py et apps\sales\). Le paquet garde ses fichiers auxiliaires sous
+   « fichiers\ » pour ne pas ecraser votre test avant la sauvegarde.
+2. Ouvrez un terminal dans cette racine et lancez :
+
+       py corriger_etat_vendeur_pdf.py
+
+Le correcteur choisit le couple backend/POS du meme projet. S'il ne reconnait
+pas exactement votre version, il affiche [ANNULE] et n'ecrit rien.
+Sauvegardes : sauvegardes-etat-vendeur\
+
+TEST A LANCER DANS VOTRE PROJET
+-----------------------------------------------------------------------
+       py manage.py test tests.test_etat_vendeur_pdf -v 2
+
+Attendu : 6 tests OK (periode, vendeur, ventes annulees, huit produits
+visibles dont deux noms identiques, quantites decimales et KPI).
+
+La selection de periode reste obligatoire : le PDF montre toutes les ventes
+validees (COMPLETED) du vendeur choisi, dans la periode choisie. Les ventes
+annulees/brouillons et les ventes sans vendeur en base sont volontairement
+exclues d'un bilan individuel.
+
+RECETTE SUR LA SOURCE COMPLETE FOURNIE
+-----------------------------------------------------------------------
+- Le correctif a ete applique a une copie fraiche de la branche source-complete
+  (la source active fournie depuis C:\NEXORA), et non au tag ancien v1.3.9.
+- Le test PDF cible verifie la liste exhaustive, dont les huit SKU complets ;
+  colonne SKU de 105 points et style 7 pt/9 pt. Il passe sans affaiblir les
+  assertions sur le texte extrait du PDF.
+- Le correcteur a ete rejoue sur une copie deja corrigee : aucun changement,
+  donc application idempotente.
+- Suite Django complete : 118 tests reussis, 1 ignore, aucun echec.
+- Compilation de production Next.js (`npm run build`) reussie sur la copie
+  integree, avec les gardes TypeScript de caisse incluses dans l'archive
+  complete.
+
+Ces controles utilisent une base de test temporaire. Ils ne remplacent pas une
+recette sur la base de production ni une vente de controle apres migration.

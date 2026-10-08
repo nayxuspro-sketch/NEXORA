@@ -1,0 +1,107 @@
+NEXORA — PACK TOUT EN UN : LISEZ-MOI
+=====================================================================
+
+D'ABORD, UNE CHOSE IMPORTANTE ET HONNÊTE
+----------------------------------------
+Je n'ai jamais eu votre application. Dans notre échange, je n'ai reçu que :
+  - votre fichier « page.tsx » (l'écran /reports) ;
+  - le fichier compilé « bi_analytics.pyc » ;
+  - vos sorties de console.
+
+Je ne peux donc pas vous renvoyer un ZIP de NEXORA : votre application
+complète n'existe que sur votre PC. Personne d'autre ne la possède. En
+inventer une et vous la faire écraser détruirait votre projet et vos données.
+
+C'est pourquoi ce pack fait le travail DANS L'AUTRE SENS : il intervient
+directement sur votre machine, puis il fabrique LE ZIP COMPLET DE VOTRE
+APPLICATION, sur votre Bureau.
+
+CE QUE VOUS FAITES (UN SEUL DOUBLE-CLIC)
+----------------------------------------
+1. Décompressez ce dossier n'importe où (par exemple sur le Bureau).
+2. Double-cliquez sur :  NEXORA-DEMARRER-ICI.bat
+3. Lisez ce qu'il affiche à la fin (tout est récapitulé).
+
+RIEN À TAPER EN LIGNE DE COMMANDE. Rien à copier à la main.
+
+CE QUE LE SCRIPT FAIT, DANS L'ORDRE
+-----------------------------------
+[1/3] FILTRE VENDEUR DE L'ÉCRAN BI (/reports)
+      - trouve tout seul votre projet (D:\NEXORA et/ou C:\NEXORA) ;
+      - sauvegarde vos fichiers actuels ;
+      - installe l'écran /reports terminé : liste déroulante
+        « Tous les vendeurs / <vendeur> » qui filtre réellement les ventes
+        (CA, marge, panier, produits, familles, magasins, clients) ;
+      - vérifie que le backend contient bien le filtre, sinon il l'applique ;
+      - si l'installation échoue, il RESTAURE automatiquement l'ancienne
+        version : aucun risque de casser l'écran.
+
+[2/3] SAUVEGARDE COMPLÈTE DE VOTRE APPLICATION
+      - crée sur votre BUREAU :
+            NEXORA-sauvegarde-complete-<date>-<disque>.zip
+      - contient TOUT votre code et vos données locales ;
+      - exclut uniquement ce qui est inutile ou régénérable :
+        node_modules, environnements virtuels, .git, caches, archives de
+        sauvegarde PostgreSQL ;
+      - c'est votre sauvegarde de référence : conservez-la.
+      - Vous voulez un ZIP vraiment brut (sans exclusion) ? Envoyez-moi un
+        message, je vous donne la commande.
+
+[3/3] DIAGNOSTIC CIBLÉ : BILAN DE VENTE PAR VENDEUR AU POS
+      - le bilan par vendeur du POS est un AUTRE écran que celui déjà corrigé ;
+        je n'en ai jamais vu le code, donc je ne peux pas le corriger à
+        l'aveugle ;
+      - le script réunit tout seul les bons fichiers :
+            apps/pos/**, apps/reports/**, le(s) urls.py, les vues qui
+            parlent de « seller » ou « vendeur », les pages POS du frontend,
+            api.ts, settings.py (mots de passe et SECRET_KEY masqués) ;
+      - il produit sur le BUREAU :
+            nexora-diagnostic-pos-<date>-<disque>.txt
+        (ou plusieurs fichiers « -partie1 », « -partie2 » si c'est volumineux).
+
+CE QUE VOUS M'ENVOYEZ ENSUITE (c'est tout)
+------------------------------------------
+1. Attachez dans la conversation le(s) fichier(s)
+   nexora-diagnostic-pos-<date>-<disque>.txt trouvé(s) sur votre Bureau.
+   (Si un fichier est trop gros pour être joint, collez simplement son
+   contenu dans le message ; ce sont des morceaux numérotés.)
+
+2. Dites-moi en UNE phrase ce qui ne va pas au POS, par exemple :
+   - « il n'y a pas de liste déroulante vendeur » ;
+   - « le filtre existe mais les totaux ne changent pas » ;
+   - « les ventes d'un vendeur n'apparaissent pas dans son bilan ».
+
+Avec ces deux éléments, je vous renvoie les fichiers corrigés du POS à copier
+(et seulement ceux-là), plus le test à lancer. Pas de nouvelles étapes floues.
+
+RELANCER L'APPLICATION APRÈS LE SCRIPT
+--------------------------------------
+1. Backend, dans le dossier affiché par le script :
+       py manage.py runserver
+   Si Windows répond « You don't have permission to access that port » :
+       net stop winnat
+       net start winnat
+   (PowerShell en administrateur), puis relancez. Sinon, redémarrez Windows,
+   ou lancez sur un autre port :  py manage.py runserver 127.0.0.1:8080
+
+2. Frontend, dans le sous-dossier frontend (c'est là qu'est package.json) :
+       cd frontend
+       npm run dev
+
+3. Ouvrez /reports : la liste déroulante des vendeurs doit être en haut,
+   à côté des boutons 7 jours / 30 jours / Trimestre.
+
+QUESTIONS FRÉQUENTES
+--------------------
+- « Le script a modifié C: ET D: ? »
+  Oui, si les deux contiennent un projet. Chaque copie a sa propre sauvegarde.
+  Seul compte le dossier depuis lequel vous lancez « py manage.py runserver ».
+
+- « Est-ce que mes données sont touchées ? »
+  Non. Aucune migration, aucune écriture en base. Seuls deux fichiers de code
+  peuvent être modifiés, et ils sont sauvegardés avant.
+
+- « Et si je veux revenir en arrière ? »
+  Chaque dossier traité contient un sous-dossier
+  « sauvegardes-pack-tout-en-un-<date> » : recopiez les fichiers au même
+  emplacement et tout est comme avant.

@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Téléchargements — Correctif de traduction française des permissions</title>
+<style>
+  body { font: 15px/1.6 "Segoe UI", system-ui, Arial, sans-serif; background: #0b1220; color: #eef3fb; margin: 0; padding: 40px 18px; display: flex; justify-content: center; }
+  main { width: min(680px, 100%); }
+  h1 { font-size: 21px; margin: 0 0 4px; }
+  p.sous-titre { color: #9fb0c9; margin: 0 0 26px; }
+  a.carte {
+    display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit;
+    background: #13223c; border: 1px solid #22365a; border-radius: 12px;
+    padding: 15px 17px; margin-bottom: 12px;
+  }
+  a.carte:hover { border-color: #2f7bff; background: #182a47; }
+  a.carte .icone { font-size: 24px; }
+  a.carte .nom { font-weight: 700; }
+  a.carte .detail { color: #9fb0c9; font-size: 12.5px; }
+  .taille { margin-left: auto; color: #9fb0c9; font-size: 12.5px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Téléchargements NEXORA</h1>
+  <p class="sous-titre">Application complète corrigée, correctifs ciblés et documentation d’installation.</p>
+
+<section id="source-complete" style="border:2px solid #2ea043;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#0b2416,#081c10)">
+      <h2 style="margin-top:0;border:none;padding:0;color:#7ee787">📦 Application NEXORA complète — code source corrigé</h2>
+      <p class="sous-titre">Archive issue de la source complète fournie depuis <code>C:\NEXORA</code> (branche <code>source-complete</code>), avec le bilan PDF vendeur v2 intégré et les gardes TypeScript nécessaires au build. Backend Django, interface Next.js, migrations, tests et guides d’installation inclus.</p>
+      <p><a href="NEXORA-COMPLET-SOURCE-2026-10-08.zip" style="display:inline-block;background:#238636;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ Télécharger l’archive source complète (ZIP)</a>
+      <span class="sous-titre" style="margin-left:10px"><a href="../INSTALLATION-COMPLETE-NEXORA.md">Guide d’installation Windows</a></span></p>
+      <p class="sous-titre">Archive sans base de données, sauvegarde, identifiant ni secret d’exploitation, fichier `.env`, dépendances téléchargées ni fichiers de diagnostic. Validation sur la copie complète : <strong style="color:#7ee787">118 tests Django réussis, 1 ignoré</strong> et <code>npm run build</code> réussi. Aucun de ces contrôles ne valide votre base de production.</p>
+    </section>
+
+    <section id="caisses-pos" style="border:2px solid #db6d28;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#2a1508,#231106)">
+      <h2 style="margin-top:0;border:none;padding:0;color:#ffa657">🧾 « MAGASIN INTROUVABLE DANS VOTRE ENTREPRISE » EN CAISSE — cause double, corrigée</h2>
+      <p class="sous-titre"><strong>Deux causes réelles, reproduites en test :</strong> ① le POS prenait la <strong>première caisse</strong> de la liste et, si la liste était <strong>vide</strong>, utilisait une caisse <strong>inventée</strong> (« Caisse Comptoir Principal », id <code>reg-01</code>, magasin <code>store-01</code>, solde 125 000 F) — elle ressemble à une vraie caisse mais n'existe pas en base, donc <strong>chaque vente était refusée</strong> ; ② le serveur, lui, <a style="color:#ffa657">laissait créer une caisse rattachée au magasin d'une autre entreprise</a> (reproduit : <code>201</code> au lieu d'un refus) — cette caisse envoie ensuite ce magasin étranger à chaque vente, d'où votre message. Le message exact « Magasin introuvable dans votre entreprise » est produit quand le magasin appartient à une <strong>autre entreprise</strong> : c'est désormais ce que votre caisse faisait.</p>
+      <p class="sous-titre"><strong>Corrigé (5 modifications + 2 fichiers neufs, sauvegardes) :</strong> la caisse ne peut plus viser qu'un magasin de <strong>son</strong> entreprise ; le POS n'invente plus rien — caisse vide ⇒ <strong>écran d'installation clair</strong> avec « Créer un magasin » puis « Créer une caisse » (session ouverte automatiquement) ; la vente n'envoie plus que la caisse, et le <strong>magasin est déduit de la caisse</strong> (fini les ventes rattachées à un autre magasin que leur caisse, avec rapport Z faussé) ; magasin et caisse incohérents ⇒ refus explicite « La caisse choisie n'appartient pas à ce magasin ». <strong>Nouveau :</strong> <code>py manage.py diagnostiquer_caisses</code> — rapport en <strong>lecture seule</strong> qui dit, entreprise par entreprise, quels magasins, caisses et comptes existent et signale l'anomalie exacte.</p>
+      <p class="sous-titre" style="color:#ffd7a8"><strong>Version 2 — corrigée d'après vos logs du 08/10/2026 :</strong> ① <code>apps/sales/serializers.py</code> : la ligne du champ magasin est maintenant trouvée <em>dans la classe</em> quelle que soit sa forme (chez vous elle différait, donc le patch ne s'appliquait pas — et le POS corrigé, qui n'envoie plus que la caisse, se heurtait encore à « Ce champ est obligatoire ») ; si elle reste introuvable, le correcteur <strong>affiche les lignes qu'il a vues et ne modifie rien</strong>. ② relancer le correcteur sur un arbre déjà corrigé ne dit plus « ancres introuvables » : il répond <strong>[DEJA OK]</strong>. ③ le bouton « Ouvrir la session de cette caisse » appelait en réalité la <strong>fermeture</strong> : il ouvre désormais vraiment la session (<code>POST /registers/&lt;id&gt;/open_session/</code>). Et le <strong>test 2 est devenu tolérant</strong> — son unique échec chez vous était un défaut de mon test, pas de votre application.</p>
+      <p><a href="CORRECTIF-CAISSES-POS.zip" style="display:inline-block;background:#db6d28;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-CAISSES-POS.zip v2 (47 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">puis <code>py corriger_caisses_pos.py</code> — <strong>« py » devant</strong> · <a href="correctif-caisses-pos/LISEZMOI-CAISSES-POS.txt">notice</a> · <a href="correctif-caisses-pos/DIFF-CAISSES-POS.txt">différence exacte</a></span></p>
+      <p class="sous-titre"><strong>Vérifié (v2) :</strong> rejouée sur un arbre neuf <em>et</em> sur un arbre déjà corrigé par la v1 (0 alerte dans les deux, rejeu sans modifier un octet) ; le cas exact de votre fichier est reproduit en test (v1 : « ancre introuvable » → v2 : corrigé) ; 3 arbres réels, <strong style="color:#7ee787">118 tests OK</strong> chacun, POS compilé (analyseur esbuild). 6 tests écrits <em>avant</em> le code (3 en échec, dont la création de caisse entre entreprises), puis <strong style="color:#7ee787">6/6 OK</strong> ; enchaînement réel des correctifs (ventes fantômes puis caisses) = 11 + 5 corrections, <strong style="color:#7ee787">0 alerte</strong>, les deux fichiers frontend compilent (analyseur esbuild), rejeu <strong>sans modifier un octet</strong> ; suite complète <strong style="color:#7ee787">118 tests OK</strong> (skipped=1, aucune régression) — y compris <em>depuis le ZIP extrait</em>.</p>
+    </section>
+    <section id="ventes-fantomes" style="border:2px solid #f85149;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#2b0f12,#220b0d)">
+      <h2 style="margin-top:0;border:none;padding:0;color:#ff7b72">👻 VENTES FANTÔMES — « les ventes du jour ne sont pas en base » : cause trouvée, corrigée, testée</h2>
+      <p class="sous-titre"><strong>Votre constat :</strong> les données de <code>/sales/</code> n'étaient pas à jour et les ventes du jour semblaient absentes de la base. <strong>La cause est dans le frontend, pas dans la base</strong> : le serveur, lui, renvoie bien la vente du jour dès qu'elle est enregistrée (2 tests écrits pour le prouver). Trois mécanismes se cumulaient : ① l'application <strong>se connectait elle-même en « mode démo »</strong> (<code>demo_active_token_nexora</code>, jeton non-JWT que le serveur refuse — donc requêtes anonymes) ; ② le formulaire de connexion <strong>fabriquait un faux JWT</strong> quand le backend ne répondait pas ; ③ depuis le correctif P0, ces requêtes sont refusées — et les écrans <strong>masquaient l'erreur avec des données inventées</strong> : 3 ventes fictives sur <code>/sales/</code> (<code>VNT-20260929-001</code>, dates à 2/4/6 h), et la caisse <strong>fabriquait un faux ticket</strong> puis vidait le panier sans rien enregistrer en base.</p>
+      <p class="sous-titre"><strong>Correction en une passe — 11 modifications, 8 fichiers, sauvegardes automatiques :</strong> plus de session ni de connexion simulées (la connexion redevient obligatoire) ; plus aucune donnée inventée (sales, reports, inventory, automation) ; plus de ticket de secours : un échec est un échec ; bandeau d'erreur honnête avec bouton <em>Réessayer</em> sur <code>/sales/</code> ; le client API dit clairement <em>« RIEN n'a été enregistré »</em> et cherche le backend sur le proxy, puis <strong>8008</strong>, puis <strong>8000</strong> (vos docs disaient 8000, <code>start-local.bat</code> dit 8008 — les deux fonctionnent maintenant).</p>
+      <p><a href="CORRECTIF-VENTES-FANTOMES.zip" style="display:inline-block;background:#f85149;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-VENTES-FANTOMES.zip (66 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">puis <code>py corriger_ventes_fantomes.py</code> — <strong>« py » devant</strong> · <a href="correctif-ventes-fantomes/LISEZMOI-VENTES-FANTOMES.txt">notice</a> · <a href="correctif-ventes-fantomes/DIFF-VENTES-FANTOMES.txt">différence exacte</a></span></p>
+      <p class="sous-titre"><strong>Vérifié sur 3 arbres réels</strong> (le vôtre avec P0 installé, l'arbre d'origine, et un arbre Windows CRLF+BOM) : 11 corrections, <strong style="color:#ff7b72">20 contrôles OK, 0 alerte</strong>, <strong style="color:#7ee787">0 erreur de syntaxe</strong> (analyseur esbuild, témoin volontairement cassé bien détecté), rejeu <strong>sans modifier un seul octet</strong> (idempotent) ; suite backend complète : <strong style="color:#7ee787">112 tests OK</strong>. Vos correctifs précédents restent intacts (bilan vendeur du POS vérifié automatiquement).</p>
+    </section>
+    <section id="annulation-remboursement" style="border:2px solid #2ea043;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#0b2416,#081c10)">
+      <h2 style="margin-top:0;border:none;padding:0;color:#7ee787">💸 ANNULATION D'UNE VENTE ENCAISSÉE — remboursement automatique (option A)</h2>
+      <p class="sous-titre"><strong>Votre décision est appliquée :</strong> annuler une vente déjà encaissée <strong>rembourse</strong> ce qui a été encaissé. À l'annulation : un <strong>contre-mouvement</strong> est écrit pour chaque paiement (montant négatif, référence <code>ANNUL-…</code> : trace complète), les <strong>espèces quittent le solde de la caisse</strong>, la <strong>créance du client</strong> est diminuée du crédit accordé, le <strong>montant payé revient à 0 F</strong> avec le statut « Remboursé », et le stock est rendu comme avant.</p>
+      <p class="sous-titre"><strong>Quatre garde-fous, tous testés :</strong> ① caisse <strong>déjà fermée</strong> → son solde n'est <em>pas</em> touché (clôture déjà validée), mais le contre-mouvement est écrit et le mentionne ; ② un <strong>retour déjà enregistré</strong> sur la vente → l'annulation est <strong>refusée</strong> (sinon remboursement double) ; ③ créance jamais négative — plafonnée à zéro et tracée ; ④ vente <strong>non payée</strong> → aucun mouvement d'argent.</p>
+      <p class="sous-titre"><strong>Vérifié :</strong> 9 tests écrits <em>avant</em> le code (6 en échec sur le code d'origine, dont « l'argent restait encaissé »), puis <strong style="color:#7ee787">9/9 OK</strong> ; les 16 tests des règles d'argent passent (l'ancien test qui <em>constatait</em> l'absence de remboursement est remplacé par celui de la nouvelle règle) ; suite complète <strong style="color:#7ee787">110 tests, OK</strong>. Le correcteur a été relancé <em>depuis le ZIP extrait</em>, sur deux états possibles de votre fichier : 110 OK dans les deux cas.</p>
+      <p><a href="CORRECTIF-ANNULATION-REMBOURSEMENT.zip" style="display:inline-block;background:#2ea043;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-ANNULATION-REMBOURSEMENT.zip (20 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">puis <code>py corriger_annulation_remboursement.py</code> — <strong>« py » devant</strong> · <a href="correctif-annulation-remboursement/LISEZMOI-ANNULATION-REMBOURSEMENT.txt">notice</a> ·
+      <a href="correctif-annulation-remboursement/DIFF-ANNULATION-REMBOURSEMENT.txt">différence exacte</a></span></p>
+    </section>
+    <section id="etat-vendeur" style="border:2px solid #db6d28;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#2a1508,#231106)">
+      <h2 style="margin-top:0;border:none;padding:0;color:#ffa657">📄 « MON BILAN VENTE PDF » — rapport complet du vendeur connecté (v2)</h2>
+      <p class="sous-titre"><strong>Cause exacte trouvée dans la vue PDF :</strong> le tableau de produits utilisait <code>sorted_prods[:6]</code> — au-delà de six articles, ils <strong>n'étaient jamais imprimés</strong>. Reproduction locale : 8 produits vendus → seulement 6 lignes rendues, SKU 01 et 02 absents. Autre perte : deux produits distincts portant le même nom étaient fusionnés, les quantités fractionnaires arrondies à l'unité, le nom du client coupé à 26 caractères ; encaissements, taxes, remises et unités étaient calculés mais <strong>jamais affichés</strong>.</p>
+      <p class="sous-titre"><strong>Correctif v2 :</strong> liste exhaustive des produits (table paginée, en-tête répété), chaque référence distinguée par son ID même si le nom est identique ; affichage des 4 indicateurs oubliés ; quantités décimales préservées et nom client complet. Le POS envoie explicitement l'ID du vendeur connecté par défaut ; le lien PDF brut sans jeton, qui pouvait perdre le contexte de session/entreprise, est retiré. Le correctif conserve le filtre entreprise + vendeur + ventes validées et respecte la période choisie. La colonne SKU fait 105 points, avec un style dédié de 7 pt (interligne 9) pour garder les références longues lisibles.</p>
+      <p><a href="CORRECTIF-ETAT-VENDEUR.zip" style="display:inline-block;background:#db6d28;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-ETAT-VENDEUR.zip v2</a>
+      <span class="sous-titre" style="margin-left:10px">dans la racine du projet : <code>py corriger_etat_vendeur_pdf.py</code> · puis <code>py manage.py test tests.test_etat_vendeur_pdf -v 2</code> (6 tests) · <a href="correctif-etat-vendeur/LISEZMOI-ETAT-VENDEUR.txt">notice</a> · <a href="correctif-etat-vendeur/DIFF-ETAT-VENDEUR.txt">différence exacte</a></span></p>
+      <p class="sous-titre"><strong>Vérifié sur la source complète fournie (pas sur le tag v1.3.9) :</strong> test PDF ciblé réussi, SKU complets conservés à l’extraction ; correcteur appliqué sur une copie fraîche puis relancé sans changement (idempotent) ; suite Django : <strong style="color:#7ee787">118 tests réussis, 1 ignoré</strong> ; build de production Next.js réussi. Tests sur base temporaire : recette de production et vente de contrôle restent à faire sur votre poste après installation.</p>
+    </section>
+    <section id="regles-argent" style="border:2px solid #8957e5;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#1c1330,#1a1029)">
+      <h2 style="margin-top:0;border:none;padding:0">💰 RÈGLES D'ARGENT — 16 tests + un remboursement corrigé</h2>
+      <p class="sous-titre">Aucun test ne vérifiait les <strong>calculs</strong> : montants de ligne, TVA, remises, statuts de paiement, montant remboursé, écart de caisse. Les 16 tests livrés les verrouillent — et en écrivant le premier d'entre eux, un défaut réel est apparu.</p>
+      <p class="sous-titre"><strong style="color:#c297ff">Défaut trouvé et corrigé :</strong> un retour client était remboursé au <strong>tarif du jour</strong>, pas au prix payé. Vente de 2 articles à 800 F, tarif passé à 900 F, retour d'1 article ⇒ <code>Decimal('900.00') != Decimal('800.00')</code>. Le remboursement se calcule désormais sur la <strong>ligne de vente</strong> (prix réellement payé).</p>
+      <p class="sous-titre"><strong>Vérifié :</strong> 16/16 sur les règles d'argent (validés sur votre poste), et <strong style="color:#7ee787">96 tests, OK</strong> chez vous. <strong>Deux points signalés, à vous de décider</strong> : l'annulation n'annule pas l'encaissement (malgré ce que disait la documentation du code — corrigée depuis) et les champs de montant avaient un défaut « flottant » — <strong style="color:#7ee787">corrigé</strong>, voir la carte 🧮 ci-dessous.</p>
+      <p class="sous-titre"><strong style="color:#c297ff">Suite — décision d'annulation :</strong> la documentation du code annonçait <em>« adjusts payments »</em> alors que l'annulation ne touche <strong>pas</strong> à l'argent (la vente reste <code>PAID</code>, la caisse inchangée). La documentation dit maintenant la vérité (<strong>96 tests OK sur votre poste, zéro changement de comportement</strong>), et la notice détaille les deux règles possibles : <strong>A</strong> remboursement automatique (2 h, à valider) ou <strong>B</strong> statu quo documenté (en place). <strong style="color:#7ee787">Décision prise : option A</strong> — le remboursement automatique est <strong>livré</strong>, voir la carte 💸.</p>
+      <p class="sous-titre">Le défaut « flottant » des champs de solde est lui aussi corrigé (carte 🧮).</p>
+      <p class="sous-titre">📄 <a href="correctif-annulation-decision/LISEZMOI-ANNULATION-DECISION.txt">Feuille de décision</a> ·
+      <a href="CORRECTIF-ANNULATION-DECISION.zip">CORRECTIF-ANNULATION-DECISION.zip (6 Ko, 1 fichier, aucun changement de comportement)</a></p>
+      <p><a href="CORRECTIF-REGLES-ARGENT.zip" style="display:inline-block;background:#6e40c9;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-REGLES-ARGENT.zip (9 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">2 fichiers dans <code>C:\NEXORA</code> — <a href="correctif-regles-argent/LISEZMOI-REGLES-ARGENT.txt">notice + décisions à prendre</a> ·
+      <a href="correctif-regles-argent/DIFF-REGLES-ARGENT.txt">différence exacte</a></span></p>
+    </section>
+
+    <section id="montants-decimaux" style="border:2px solid #2ea043;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#0d2416,#0b1d12)">
+      <h2 style="margin:0 0 10px;color:#7ee787">🧮 MONTANTS DÉCIMAUX — 33 défauts « flottants » corrigés</h2>
+      <p class="sous-titre">Un champ de montant écrit <code>default=0.00</code> rend un <strong>flottant</strong> (0,0) pour tout objet neuf non relu depuis la base : le premier calcul d'argent plante alors avec <code>TypeError: unsupported operand type(s) for +=: 'float' and 'decimal.Decimal'</code>. <strong>Mesuré chez vous :</strong> 47 champs décimaux inspectés → <strong>32 défauts</strong> dans 6 fichiers de modèles + <strong>1</strong> dans le formulaire de vente = <strong>33</strong>, dont le seuil d'alerte de stock (<code>5.00</code>) que personne n'avait vu.</p>
+      <p class="sous-titre"><strong>Prouvé sans risque :</strong> <strong style="color:#7ee787">aucune migration</strong> (Django ne voit aucune différence de schéma : <code>makemigrations --check</code> → <em>No changes detected</em>, <code>migrate</code> → <em>No migrations to apply</em>) et <strong style="color:#7ee787">aucune donnée touchée</strong> — testé sur une base SQLite réelle avec une vente de 2 780 F, une créance de 1 200 F et une caisse de 12 500 F : <strong>0 Decimal / 31 flottants → 31 Decimal / 0 flottant</strong>, données relues <em>et</em> réenregistrées identiques. <strong>110 tests, OK</strong> (dont 9 sur le remboursement).</p>
+      <p><a href="CORRECTIF-MONTANTS-DECIMAUX.zip" style="display:inline-block;background:#2ea043;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-MONTANTS-DECIMAUX.zip (15 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">puis <code>py corriger_montants_decimaux.py</code> — <strong>tapez bien « py » devant</strong> (sous PowerShell, le nom seul est refusé) · 1 commande, idempotente, avec sauvegardes · <a href="correctif-montants-decimaux/LISEZMOI-MONTANTS-DECIMAUX.txt">notice</a> ·
+      <a href="correctif-montants-decimaux/DIFF-MONTANTS-DECIMAUX.txt">différence exacte des 7 fichiers</a></span></p>
+    </section>
+    <section id="ventes-integrite" style="border:2px solid #d29922;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#2a1f0d,#241b0b)">
+      <h2 style="margin-top:0;border:none;padding:0">🔧 INTÉGRITÉ DES VENTES — magasin, article, caisse et client (2 correctifs)</h2>
+      <p class="sous-titre">Cause trouvée dans <em>votre</em> <code>apps/sales/views.py</code> : magasin ou article introuvable dans votre entreprise ⇒ l'application remplaçait <strong>en silence</strong> par le premier du catalogue (une vente pouvait porter le magasin ou l'article d'une <strong>autre entreprise</strong>, d'où les <code>201 != 400</code>).</p>
+      <p class="sous-titre"><strong style="color:#f0c674">Correctif : 2 garde-fous</strong> — identifiant fourni et introuvable ⇒ refus (400) ; identifiant non fourni ⇒ comportement d'origine ; vente normale ⇒ 201 inchangé. Vérifié : <em>vos 2 échecs reproduits à l'identique, puis 4/4 OK</em>, vente normale OK, arbre complet (sécurité + BI + POS + ce correctif) = <strong style="color:#7ee787">72 tests, OK</strong>.</p>
+      <p class="sous-titre"><strong style="color:#f0c674">Correctif 2 — caisse et client :</strong> même défaut, deux champs qui touchent l'argent de près. La vente était rattachée <strong>en silence</strong> à la première caisse (clôture et rapport Z de la mauvaise caisse) et au premier client (historique et créances faussés). Désormais : caisse ou client absent de votre entreprise ⇒ <strong>refus 400</strong> ; vente comptoir sans client ⇒ inchangée. Reproduit avant correction (<code>201 != 400</code>), puis <strong style="color:#7ee787">74 tests OK</strong> dans l'arbre reproduisant votre état.</p>
+      <p><a href="CORRECTIF-INTEGRITE-CAISSE-CLIENT.zip" style="display:inline-block;background:#9e6a03;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-INTEGRITE-CAISSE-CLIENT.zip (7 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">2 fichiers à déposer dans <code>C:\NEXORA</code> — <a href="correctif-integrite-caisse-client/LISEZMOI-CAISSE-CLIENT.txt">notice</a> ·
+      <a href="correctif-integrite-caisse-client/DIFF-INTEGRITE-CAISSE-CLIENT.txt">différence exacte</a></span></p>
+    <p><a href="CORRECTIF-INTEGRITE-VENTES.zip" style="display:inline-block;background:#9e6a03;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-INTEGRITE-VENTES.zip (9 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">2 fichiers à déposer dans <code>C:\NEXORA</code> (aucun script)</span></p>
+      <p class="sous-titre">Détails : <a href="correctif-integrite-ventes/LISEZMOI-VENTES-INTEGRITE.txt">notice + vérifications</a> ·
+      <a href="correctif-integrite-ventes/DIFF-INTEGRITE-VENTES.txt">différence exacte avec votre fichier</a></p>
+    </section>
+
+    <section id="securite-p0" style="border:2px solid #2ea043;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#0f2417,#12261a)">
+      <h2 style="margin-top:0;border:none;padding:0">🔒 CORRECTIF DE SÉCURITÉ P0 — testé : 70 tests sur 70 OK</h2>
+      <p class="sous-titre">Ferme les accès venus du réseau : liste des comptes (lecture <em>et</em> création) ouverte sans jeton, données de la première entreprise servies à tout appelant anonyme, jeton invalide ignoré en silence, rôles jamais vérifiés, CORS ouvert à tous, pages de diagnostic Django renvoyées à distance, connexion sans limite de tentatives, et enregistrement simulé côté interface quand le serveur ne répond pas.</p>
+      <p class="sous-titre"><strong style="color:#7ee787">Le poste de caisse ne change pas</strong> : appel connecté = inchangé · anonyme depuis le poste = inchangé (PDF, onglets, hors-ligne) · anonyme depuis ailleurs = refusé (401).</p>
+      <p><a href="SECURITE-P0-NEXORA.zip" style="display:inline-block;background:#238636;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ Télécharger SECURITE-P0-NEXORA.zip (33 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">aucun script à lancer : on ouvre le zip et on dépose les fichiers dans <code>C:\NEXORA</code></span></p>
+      <p class="sous-titre">Détails : <a href="securite-p0/LISEZMOI-SECURITE-P0.txt">notice d'installation</a> ·
+      <a href="securite-p0/PREUVE-TESTS-NEXORA.txt">sorties réelles des tests (avant/après)</a> ·
+      <a href="securite-p0/DIFF-SECURITE-P0.txt">différence exacte avec le code d'origine</a></p>
+    </section>
+
+    <section id="evaluation" style="border:1px solid #30363d;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#161b22,#1c2128)">
+    <h2 style="margin-top:0;border:none;padding:0">📊 Évaluation technique de NEXORA — 7,2/10 (72 %) après correctifs</h2>
+    <p class="sous-titre">Mesurée sur le code réel du dépôt (tag <code>v1.3.9</code>), pas sur la documentation.
+    Un bon produit (8,0/10 en couverture métier), désormais sain en réseau local : 6,8/10 en sécurité et 6,8/10 en fiabilité depuis les correctifs (76 tests verts sur votre poste).
+    Le détail par axe, les points forts, les failles et le plan pour atteindre 82 % sont dans le rapport.</p>
+    <p><a href="EVALUATION-TECHNIQUE-NEXORA.html" style="display:inline-block;background:#238636;color:#fff;padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:600">📄 Ouvrir le rapport d'évaluation</a>
+    <span class="sous-titre" style="margin-left:10px">aussi en <a href="EVALUATION-TECHNIQUE-NEXORA.md">Markdown</a></span></p>
+  </section>
+
+<h2>✅ CORRECTIF POS v3 — filtre vendeur : 14 tests sur 14 (C:\NEXORA)</h2>
+  <p class="sous-titre"><strong style="color:#7ee787">VALIDÉ le 07/10/2026 : 14 tests sur 14 passent sur C:\NEXORA</strong> (migrations réelles, vrai endpoint /api/v1/sales/export-seller-pdf/) pour le filtrage du vendeur, l'exclusion des annulations/brouillons et l'accès du caissier à son propre bilan. <strong>Cette recette v3 ne vérifiait pas que la ventilation PDF listait plus de six produits :</strong> le correctif v2 du contenu complet est décrit plus haut dans cette page.</p>
+  <p class="sous-titre">Cause trouvée dans le code réel du dépôt : le filtre par vendeur n’était appliqué que si le vendeur était identifié, donc le bilan additionnait les ventes de toute l’entreprise. La v2 <strong>retrouve vos fichiers où qu’ils soient</strong> et écrit un diagnostic si elle hésite.<br />
+  <strong>Essayez d’abord le fichier unique <code>CORRIGER-POS-AUTONOME.bat</code></strong> : le programme est inclus dedans, aucun autre fichier n’est nécessaire.<br />
+  <strong>Correctif appliqué sur C:\NEXORA le 07/10 à 15:31</strong> (projet choisi automatiquement, l’ancien correctif présent dans votre fichier a été conservé sans effet sur le résultat : notre bloc est le dernier avant la construction du PDF).<br />
+  <strong>Nouveau en v3 :</strong> votre diagnostic a montré deux copies du projet (<code>C:\NEXORA</code> avec la vue PDF vendeur et l’écran POS complet, <code>D:\NEXORA</code> sans le bilan vendeur). La v2 mélangeait les deux ; la v3 <strong>choisit le couple vue + écran du même projet</strong>, écarte les dossiers sans la fonctionnalité, ignore ses propres sauvegardes, et dit ce qu’elle a décidé avant de modifier. Les helpers sont renommés <code>_nexora_*</code> pour ne plus entrer en conflit avec un correctif déjà présent dans votre fichier.</p>
+  <a class="carte" href="solution-pos/CORRIGER-POS-AUTONOME.bat" download>
+    <span class="icone">🟢</span>
+    <span>
+      <span class="nom">CORRIGER-POS-AUTONOME.bat — À LANCER EN PREMIER</span><br />
+      <span class="detail">Fichier unique et autonome : le programme de correction est inclus dedans. Double-clic, il choisit le bon projet, le corrige, sauvegarde avant d’écrire et affiche quoi faire ensuite</span>
+    </span>
+    <span class="taille">73 Ko</span>
+  </a>
+  <a class="carte" href="correctif-bilan-vendeur-pos.zip" download>
+    <span class="icone">📦</span>
+    <span>
+      <span class="nom">correctif-bilan-vendeur-pos.zip</span><br />
+      <span class="detail">Tout-en-un v3 : les deux lanceurs (.bat autonome + .bat multi-dossiers), script de sélection du bon projet, les 2 fichiers corrigés, 14 tests Django et le LISEZMOI</span>
+    </span>
+    <span class="taille">68 Ko</span>
+  </a>
+  <a class="carte" href="solution-pos/TESTER-BILAN-VENDEUR-POS.bat" download>
+    <span class="icone">🧪</span>
+    <span>
+      <span class="nom">TESTER-BILAN-VENDEUR-POS.bat — À LANCER APRÈS LE CORRECTIF</span><br />
+      <span class="detail">Fichier unique et autonome : écrit le test dans &lt;projet&gt;\tests\ puis lance manage.py test. Attend l’écriture de « OK (14 tests) » : filtrage par vendeur, ventes annulées/brouillons exclues, vendeur inconnu refusé, caissier limité à son bilan, PDF généré</span>
+    </span>
+    <span class="taille">23 Ko</span>
+  </a>
+  <a class="carte" href="solution-pos/APPLIQUER-CORRECTIF-POS.bat" download>
+    <span class="icone">▶️</span>
+    <span>
+      <span class="nom">APPLIQUER-CORRECTIF-POS.bat</span><br />
+      <span class="detail">Double-clic : détecte le projet, corrige, sauvegarde, et vous dit quoi faire ensuite. En cas d’échec, il crée DIAGNOSTIC-POS.txt à côté de lui</span>
+    </span>
+    <span class="taille">2 Ko</span>
+  </a>
+  <a class="carte" href="solution-pos/fichiers/apps/sales/pdf_seller_report.py" download>
+    <span class="icone">🐍</span>
+    <span>
+      <span class="nom">apps/sales/pdf_seller_report.py</span><br />
+      <span class="detail">Backend v2 : toutes les ventes et références produits du vendeur, sans plafond à six articles ; agrégation conservant les SKU distincts, KPI complets et tableau multi-pages</span>
+    </span>
+    <span class="taille">30 Ko</span>
+  </a>
+  <a class="carte" href="solution-pos/fichiers/frontend/src/app/pos/page.tsx" download>
+    <span class="icone">⚛️</span>
+    <span>
+      <span class="nom">frontend/src/app/pos/page.tsx</span><br />
+      <span class="detail">Écran POS v2 : ID du vendeur connecté garanti par défaut, export authentifié, PDF complet avec nombre de pages variable</span>
+    </span>
+    <span class="taille">58 Ko</span>
+  </a>
+  <a class="carte" href="solution-pos/LISEZMOI-CORRECTIF-POS.txt" download>
+    <span class="icone">📄</span>
+    <span>
+      <span class="nom">LISEZMOI-CORRECTIF-POS.txt</span><br />
+      <span class="detail">Pourquoi la v1 s’est arrêtée chez vous, ce que fait la v2, installation, test automatique, vérification à l’écran et empreintes SHA-256</span>
+    </span>
+    <span class="taille">9 Ko</span>
+  </a>
+
+  <h2>Démarrage local avec PostgreSQL</h2>
+  <p class="sous-titre">Remplace le démarrage automatique sur SQLite ; saisie du mot de passe masquée, sans migration ni réinstallation des dépendances à chaque lancement.</p>
+  <a class="carte" href="start-local-postgresql.zip" download>
+    <span class="icone">📦</span>
+    <span>
+      <span class="nom">start-local-postgresql.zip</span><br />
+      <span class="detail">À extraire dans D:\NEXORA ; contient le lanceur BAT, son script PowerShell et la procédure</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="start-local-postgresql.bat" download>
+    <span class="icone">▶️</span>
+    <span>
+      <span class="nom">start-local-postgresql.bat</span><br />
+      <span class="detail">Fichier à lancer après extraction des deux scripts dans D:\NEXORA</span>
+    </span>
+    <span class="taille">BAT</span>
+  </a>
+  <a class="carte" href="start-local-postgresql.ps1" download>
+    <span class="icone">🔐</span>
+    <span>
+      <span class="nom">start-local-postgresql.ps1</span><br />
+      <span class="detail">Compagnon du BAT : demande le mot de passe en saisie masquée et valide la connexion PostgreSQL</span>
+    </span>
+    <span class="taille">PowerShell</span>
+  </a>
+
+  <h2>Sauvegarde manuelle PostgreSQL</h2>
+  <p class="sous-titre">Crée une archive de nexora_db sans modifier la base. À copier ensuite sur un disque externe ou un NAS ; le test complet de restauration reste à faire.</p>
+  <a class="carte" href="sauvegarde-postgresql.zip" download>
+    <span class="icone">🛡️</span>
+    <span>
+      <span class="nom">sauvegarde-postgresql.zip</span><br />
+      <span class="detail">À extraire dans D:\NEXORA ; invite masquée, vérification de l’archive, aucune migration ni suppression</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="sauvegarder-postgresql.bat" download>
+    <span class="icone">▶️</span>
+    <span>
+      <span class="nom">sauvegarder-postgresql.bat</span><br />
+      <span class="detail">Point d’entrée à lancer après extraction des fichiers à côté de manage.py</span>
+    </span>
+    <span class="taille">BAT</span>
+  </a>
+  <a class="carte" href="sauvegarder-postgresql.ps1" download>
+    <span class="icone">🔐</span>
+    <span>
+      <span class="nom">sauvegarder-postgresql.ps1</span><br />
+      <span class="detail">Compagnon du BAT : pg_dump PostgreSQL 18, saisie masquée et archive contrôlée</span>
+    </span>
+    <span class="taille">PowerShell</span>
+  </a>
+  <a class="carte" href="LISEZMOI-sauvegarde-postgresql.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-sauvegarde-postgresql.txt</span><br />
+      <span class="detail">Installation, vérification et limites de la sauvegarde</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+
+  <h2>Audit de sécurité préproduction</h2>
+  <p class="sous-titre">Contrôle en lecture seule de la configuration Django réellement chargée et exécution de check --deploy ; aucun fichier, aucune donnée et aucune migration ne sont modifiés.</p>
+  <a class="carte" href="audit-securite-production.zip" download>
+    <span class="icone">🔎</span>
+    <span>
+      <span class="nom">audit-securite-production.zip</span><br />
+      <span class="detail">À extraire dans D:\NEXORA ; secrets, noms d’hôtes et origines CORS masqués</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="audit-securite-production.bat" download>
+    <span class="icone">▶️</span>
+    <span>
+      <span class="nom">audit-securite-production.bat</span><br />
+      <span class="detail">Point d’entrée à lancer après extraction des fichiers à côté de manage.py</span>
+    </span>
+    <span class="taille">BAT</span>
+  </a>
+  <a class="carte" href="audit-securite-production.ps1" download>
+    <span class="icone">🔐</span>
+    <span>
+      <span class="nom">audit-securite-production.ps1</span><br />
+      <span class="detail">Audit local avec invite masquée, sans modification</span>
+    </span>
+    <span class="taille">PowerShell</span>
+  </a>
+  <a class="carte" href="audit_configuration_production.py" download>
+    <span class="icone">🐍</span>
+    <span>
+      <span class="nom">audit_configuration_production.py</span><br />
+      <span class="detail">Lecture des indicateurs de configuration, sans afficher les secrets</span>
+    </span>
+    <span class="taille">Python</span>
+  </a>
+  <a class="carte" href="LISEZMOI-audit-securite-production.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-audit-securite-production.txt</span><br />
+      <span class="detail">Procédure et précautions avant de partager le rapport</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+
+  <h2>Vérifier le chemin Django avant toute correction</h2>
+  <p class="sous-titre">Le dernier audit a signalé des modules chargés depuis un lecteur inattendu. Ce contrôle ne demande aucun mot de passe et n’accède pas à la base.</p>
+  <a class="carte" href="verifier-chemin-django.zip" download>
+    <span class="icone">🧭</span>
+    <span>
+      <span class="nom">verifier-chemin-django.zip</span><br />
+      <span class="detail">À extraire dans D:\NEXORA ; vérifie que config et apps viennent bien du dossier du projet</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="LISEZMOI-verifier-chemin-django.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-verifier-chemin-django.txt</span><br />
+      <span class="detail">Procédure sans identifiants ni accès à PostgreSQL</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+
+  <h2>Inspection ciblée de settings.py</h2>
+  <p class="sous-titre">Repère les lignes de sécurité à corriger dans D:\NEXORA sans importer Django, accéder à PostgreSQL ni afficher de secrets.</p>
+  <a class="carte" href="inspecter-settings-securite.zip" download>
+    <span class="icone">🛡️</span>
+    <span>
+      <span class="nom">inspecter-settings-securite.zip</span><br />
+      <span class="detail">À extraire à côté de manage.py ; fournit les numéros de ligne et masque les valeurs sensibles</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="LISEZMOI-inspecter-settings-securite.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-inspecter-settings-securite.txt</span><br />
+      <span class="detail">Mode d’emploi et limites de l’inspection statique</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+
+  <h2>Correctif du bilan vendeur</h2>
+  <p class="sous-titre">Ajoute un filtre API seller_id au bilan : la gestion peut sélectionner un vendeur, tandis qu’un compte CASHIER reste limité à ses propres ventes.</p>
+  <a class="carte" href="corriger-bilan-vendeur.zip" download>
+    <span class="icone">🧾</span>
+    <span>
+      <span class="nom">corriger-bilan-vendeur.zip</span><br />
+      <span class="detail">À extraire dans D:\NEXORA ; sauvegarde du fichier ciblé, confirmation OUI et vérification Django</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="LISEZMOI-corriger-bilan-vendeur.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-corriger-bilan-vendeur.txt</span><br />
+      <span class="detail">Périmètre, vérification et limites sur les ventes historiques</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+
+  <h2>🛟 PACK TOUT EN UN — à faire maintenant</h2>
+  <p class="sous-titre"><strong>Un seul double-clic.</strong> Le script trouve tout seul votre projet (C:\NEXORA et/ou D:\NEXORA), installe le filtre vendeur de l’écran BI, crée <strong>le ZIP complet de votre application sur votre Bureau</strong>, puis produit le <strong>diagnostic du bilan vendeur du POS</strong> à m’envoyer. Lisez d’abord <em>LISEZMOI-D-ABORD.txt</em>.</p>
+  <a class="carte" href="NEXORA-PACK-TOUT-EN-UN.zip" download style="border-color:#16a34a">
+    <span class="icone">🛟</span>
+    <span>
+      <span class="nom">NEXORA-PACK-TOUT-EN-UN.zip</span><br />
+      <span class="detail">Décompressez, double-cliquez sur NEXORA-DEMARRER-ICI.bat, lisez le récapitulatif affiché à la fin</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="pack-complet/LISEZMOI-D-ABORD.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-D-ABORD.txt</span><br />
+      <span class="detail">Ce que fait le pack, ce qu’il envoie, comment relancer l’application</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+
+  <h2>⭐ Solution finale — filtre de vente par vendeur</h2>
+  <p class="sous-titre"><strong>À faire en premier.</strong> Contient l’écran <code>/reports</code> <em>fini</em> (fichier complet, plus de patch ligne à ligne) + un installateur qui <strong>détecte tout seul le projet</strong> (D:\NEXORA, C:\NEXORA…), sauvegarde, installe, vérifie le backend et lance <code>manage.py check</code>. Un seul double-clic.</p>
+  <a class="carte" href="SOLUTION-FINALE-filtre-vendeur.zip" download style="border-color:#2563eb">
+    <span class="icone">⭐</span>
+    <span>
+      <span class="nom">SOLUTION-FINALE-filtre-vendeur.zip</span><br />
+      <span class="detail">Décompressez, double-cliquez sur INSTALLER-SOLUTION-FINALE.bat, puis redémarrez Django (dans le dossier du projet) et npm run dev (dans le sous-dossier frontend). Le LISEZMOI explique aussi l’erreur Windows « You don’t have permission to access that port ».</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="solution-finale/LISEZMOI-SOLUTION-FINALE.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-SOLUTION-FINALE.txt</span><br />
+      <span class="detail">Le geste unique, ce que l’installateur fait, vérifications et retour arrière</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+  <a class="carte" href="solution-finale/page.tsx" download>
+    <span class="icone">⚛️</span>
+    <span>
+      <span class="nom">page.tsx (fichier final complet)</span><br />
+      <span class="detail">Si vous préférez copier à la main vers frontend\src\app\reports\page.tsx (écrasez l’ancien après sauvegarde)</span>
+    </span>
+    <span class="taille">TSX</span>
+  </a>
+
+  <h2>Filtre vendeur de l’écran BI (variante scriptée)</h2>
+  <p class="sous-titre">Ajoute la liste déroulante « Tous les vendeurs / &lt;vendeur&gt; » sur l’écran Business Intelligence &amp; Décision et transmet <code>seller_id</code> à <code>/reports/bi-analytics/</code> : tous les KPI du bilan suivent alors le vendeur choisi.</p>
+  <a class="carte" href="corriger-filtre-vendeur-bi.zip" download>
+    <span class="icone">📊</span>
+    <span>
+      <span class="nom">corriger-filtre-vendeur-bi.zip</span><br />
+      <span class="detail">Correctif complet (backend + écran). Contient aussi completer_filtre_vendeur_bi.py et completer-filtre-vendeur-bi.bat, à utiliser si page.tsx avait été modifié depuis l’extraction</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="completer_filtre_vendeur_bi.py" download>
+    <span class="icone">🧩</span>
+    <span>
+      <span class="nom">completer_filtre_vendeur_bi.py</span><br />
+      <span class="detail">Complète uniquement les éléments manquants dans page.tsx (liste déroulante, seller_id, export PDF) — s’arrête sans rien écrire si un repère manque</span>
+    </span>
+    <span class="taille">PY</span>
+  </a>
+  <a class="carte" href="RAPPORT-verification-filtre-vendeur.txt" download>
+    <span class="icone">🔍</span>
+    <span>
+      <span class="nom">RAPPORT-verification-filtre-vendeur.txt</span><br />
+      <span class="detail">Ce qui a été vérifié hors de votre machine : compilation TSX, exécution du patcheur, simulation de filtrage sur 6 ventes</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+  <a class="carte" href="LISEZMOI-corriger-filtre-vendeur-bi.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-corriger-filtre-vendeur-bi.txt</span><br />
+      <span class="detail">Ce qui était faux, périmètre des KPI, nuances et retour arrière</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+  <a class="carte" href="page-bi-filtre-vendeur.tsx" download>
+    <span class="icone">⚛️</span>
+    <span>
+      <span class="nom">page-bi-filtre-vendeur.tsx</span><br />
+      <span class="detail">Version corrigée de frontend/src/app/reports/page.tsx (à copier manuellement si besoin)</span>
+    </span>
+    <span class="taille">TSX</span>
+  </a>
+
+  <h2>Profil de production conditionnel</h2>
+  <p class="sous-titre">Ajout ciblé à config/settings.py, avec sauvegarde préalable et validation des préconditions. Le profil reste inactif en local et refuse de démarrer sans hôtes exacts et reverse proxy HTTPS.</p>
+  <a class="carte" href="appliquer-profil-production.zip" download>
+    <span class="icone">🛠️</span>
+    <span>
+      <span class="nom">appliquer-profil-production.zip</span><br />
+      <span class="detail">À extraire dans D:\NEXORA ; demande confirmation, crée une sauvegarde et n’applique aucune migration</span>
+    </span>
+    <span class="taille">ZIP</span>
+  </a>
+  <a class="carte" href="LISEZMOI-profil-production.txt" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">LISEZMOI-profil-production.txt</span><br />
+      <span class="detail">Variables requises, comportement local et limites avant déploiement</span>
+    </span>
+    <span class="taille">TXT</span>
+  </a>
+
+  <h2>Migration SQLite vers PostgreSQL</h2>
+  <p class="sous-titre">Transfert vérifié et réversible pour l’installation Windows dans D:\NEXORA.</p>
+  <a class="carte" href="migrer_sqlite_vers_postgresql.ps1" download>
+    <span class="icone">🗄️</span>
+    <span>
+      <span class="nom">migrer_sqlite_vers_postgresql.ps1</span><br />
+      <span class="detail">Sauvegarde SQLite, export, création du rôle/base, import et vérification — sans modifier settings.py</span>
+    </span>
+    <span class="taille">PowerShell</span>
+  </a>
+
+  <h2>Traduction des permissions</h2>
+  <p class="sous-titre">« Can add … » → « Peut ajouter … ».</p>
+
+  <a class="carte" href="correctif-permissions-fr-a-coller.zip" download>
+    <span class="icone">📦</span>
+    <span>
+      <span class="nom">correctif-permissions-fr-a-coller.zip</span><br />
+      <span class="detail">À dézipper DIRECTEMENT dans le dossier de votre app Django : crée integration_django/ + procédure</span>
+    </span>
+    <span class="taille">7 Ko</span>
+  </a>
+
+  <a class="carte" href="correctif-permissions-fr.zip" download>
+    <span class="icone">🗜</span>
+    <span>
+      <span class="nom">correctif-permissions-fr.zip</span><br />
+      <span class="detail">Archive complète : paquet integration_django, procédure d'installation, chaînes fr-FR, fenêtre de référence</span>
+    </span>
+    <span class="taille">16 Ko</span>
+  </a>
+
+  <a class="carte" href="../integration_django/permissions_fr.py" download>
+    <span class="icone">🐍</span>
+    <span>
+      <span class="nom">permissions_fr.py</span><br />
+      <span class="detail">Table de correspondance, filtre de template, signal post_migrate</span>
+    </span>
+  </a>
+
+  <a class="carte" href="../integration_django/management/commands/traduire_permissions.py" download>
+    <span class="icone">🐍</span>
+    <span>
+      <span class="nom">traduire_permissions.py</span><br />
+      <span class="detail">Commande manage.py ( --dry-run / --revert )</span>
+    </span>
+  </a>
+
+  <a class="carte" href="PROCEDURE-INSTALLATION.md" download>
+    <span class="icone">📘</span>
+    <span>
+      <span class="nom">PROCEDURE-INSTALLATION.md</span><br />
+      <span class="detail">Procédure de mise à jour pas à pas (étapes 0 à 7)</span>
+    </span>
+  </a>
+
+  <a class="carte" href="../i18n/fr-FR.json" download>
+    <span class="icone">🌐</span>
+    <span>
+      <span class="nom">fr-FR.json</span><br />
+      <span class="detail">Chaînes françaises de la fenêtre et correspondance des verbes</span>
+    </span>
+  </a>
+
+  <a class="carte" href="../index.html">
+    <span class="icone">🪟</span>
+    <span>
+      <span class="nom">fenetre-configurer-droits.html</span><br />
+      <span class="detail">Ouvrir la fenêtre traduite (aperçu interactif)</span>
+    </span>
+  </a>
+</main>
+</body>
+</html>

@@ -1,0 +1,97 @@
+RAPPORT DE VÉRIFICATION — FILTRE VENDEUR DU BILAN BI
+====================================================
+
+Ce qui a été contrôlé AVANT livraison (hors de votre machine) :
+
+1. Interface frontend (frontend/src/app/reports/page.tsx)
+   - la nouvelle version a été compilée en analyse syntaxique TypeScript
+     (tsc --noEmit --jsx preserve) : aucune erreur de syntaxe ;
+   - le fichier conserve les fins de ligne CRLF d'origine ;
+   - le sélecteur « Tous les vendeurs / <vendeur> » est alimenté par
+     available_sellers, transmis par seller_id, et réinitialisable.
+
+2. Backend Django (apps/reports/bi_analytics.py)
+   - la structure exacte de la méthode get() a été reconstituée depuis le
+     fichier compilé bi_analytics.cpython-314.pyc fourni (Python 3.14) :
+     elle confirme les points d'insertion utilisés par le correctif ;
+   - le script de correctif a été exécuté de bout en bout sur un projet
+     factice reproduisant cette structure : insertions correctes, fichier
+     recompilable, relance sans effet (idempotence), mode --verifier ;
+   - une simulation sans Django (faux ORM) a ensuite appelé la méthode get()
+     corrigée sur un jeu de 6 ventes. Résultats obtenus :
+
+Fichier testé : /tmp/essai4/apps/reports/bi_analytics.py
+
+1) Appel global (aucun seller_id)
+   réponses : {'status': 'success', 'requested_view': 'executive', 'period_days': 30, 'insights_explanation': ["Le niveau d'activité est stable par rapport à la période de référence précédente."], 'sales_overview': {'current_revenue': '11000', 'previous_revenue': '4000', 'growth_pct': '175.00', 'sales_count': 3, 'avg_basket': '3666.67', 'tax_collected': '1980', 'discounts_granted': '50'}, 'top_products': [], 'sellers_performance': [], 'selected_seller': '', 'available_sellers': [{'id': '1', 'email': 'v1@nexora.bf'}, {'id': '2', 'email': 'v2@nexora.bf'}]}
+  [OK]   statut 200
+  [OK]   3 ventes COMPLETED de la période (v1:2, v2:0, sans vendeur:1)
+  [OK]   CA global = 11 000 (1000+2000+8000)
+  [OK]   selected_seller vide
+  [OK]   2 vendeurs disponibles (v1, v2)
+  [OK]   vendeurs triés par email
+
+2) Appel filtré sur le vendeur 1
+   réponses : {'status': 'success', 'requested_view': 'executive', 'period_days': 30, 'insights_explanation': ["Le niveau d'activité est stable par rapport à la période de référence précédente."], 'sales_overview': {'current_revenue': '3000', 'previous_revenue': '0.00', 'growth_pct': '0.00', 'sales_count': 2, 'avg_basket': '1500.00', 'tax_collected': '540', 'discounts_granted': '50'}, 'top_products': [], 'sellers_performance': [], 'selected_seller': '1', 'available_sellers': [{'id': '1', 'email': 'v1@nexora.bf'}, {'id': '2', 'email': 'v2@nexora.bf'}]}
+  [OK]   statut 200
+  [OK]   selected_seller = 1
+  [OK]   le vendeur 1 a 2 ventes sur la période
+  [OK]   CA du vendeur 1 = 3 000
+  [OK]   CA période précédente du vendeur 1 = 0
+  [OK]   la liste des vendeurs reste complète
+
+3) Appel filtré sur le vendeur 2 (vente en période précédente)
+  [OK]   aucune vente du vendeur 2 sur 30 jours
+  [OK]   CA période précédente du vendeur 2 = 4 000
+
+4) seller_id invalide
+  [OK]   statut 400 (et pas 500)
+
+TOUS LES CONTRÔLES SONT PASSÉS
+
+3. Points de contrôle de la simulation
+   - appel sans seller_id : bilan complet (3 ventes de la période, 11 000) ;
+   - seller_id=1 : 2 ventes et 3 000 seulement (les ventes du vendeur 2 et
+     celles sans vendeur sont bien exclues) ;
+   - seller_id=2 : 0 vente sur la période courante et 4 000 sur la période
+     précédente (le filtre s'applique aussi à la période de comparaison) ;
+   - seller_id=abc : réponse 400, jamais d'erreur 500 ;
+   - available_sellers reste complet quel que soit le filtre appliqué.
+
+4. Contrôle du complément de l'interface (completer_filtre_vendeur_bi.py)
+   Le premier correctif a signalé « corrigé par insertions ciblées » : votre
+   page.tsx avait changé depuis l'extraction, donc la liste déroulante et
+   l'envoi de seller_id manquaient. Le compléteur livré a été testé sur 5 cas :
+
+   - fichier d'origine reconstitué au bit près -> résultat strictement
+     identique à la version de référence (même SHA-256) ;
+   - fichier partiellement corrigé (état + clé de requête déjà posés, comme
+     sur votre machine) -> complété, résultat identique à la référence ;
+   - fichier déjà complet -> aucune écriture ;
+   - repère principal absent -> repli sur le repère secondaire, insertion OK ;
+   - repères du sélecteur totalement absents -> ARRÊT SANS ÉCRITURE avec les
+     numéros de lignes à envoyer pour un correctif sur mesure.
+
+   La détection « déjà corrigé » du script principal a aussi été durcie : un
+   état seulement partiel est désormais signalé « correction PARTIELLE » au
+   lieu d'être annoncé comme terminé.
+
+5. Solution finale (remplacement de fichier, plus de patch)
+   L'écran /reports est désormais livré sous forme de FICHIER COMPLET
+   (page.tsx) et non plus de patch en plusieurs passes :
+   - le fichier final a été compilé par TypeScript sans erreur de syntaxe ;
+   - il contient les 4 marqueurs contrôlés par l'installateur
+     (selectedSeller, seller_id=, liste « Tous les vendeurs », available_sellers) ;
+   - il dérive au caractère près de VOTRE page.tsx d'origine (SHA-256 vérifié) :
+     aucune ligne non liée au filtre n'a été modifiée ;
+   - l'installateur sauvegarde page.tsx ET bi_analytics.py avant toute écriture,
+     remplace l'écran, vérifie le backend (et le corrige seulement s'il manque),
+     puis lance manage.py check.
+
+Ce qui reste à vérifier SUR VOTRE MACHINE :
+   - python manage.py check (lancé par le script) ;
+   - python manage.py test tests.test_bi_vendeur_filtre -v 2 (proposé par le script) ;
+   - l'affichage réel de la liste déroulante dans l'écran /reports.
+
+En cas de doute, le script s'arrête sans rien écrire : aucune modification
+partielle n'est laissée derrière lui.

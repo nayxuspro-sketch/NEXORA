@@ -1,0 +1,28 @@
+DIFFERENCE EXACTE : apps/sales/services.py
+=========================================
+Modification du COMMENTAIRE de la fonction cancel_sale, et rien d'autre.
+Verification : aucune ligne executable du fichier n'est touchee (seules les
+lignes entre triples guillemets changent).
+
+--- AVANT apps/sales/services.py
++++ APRES apps/sales/services.py
+@@ -201,7 +201,18 @@
+     @transaction.atomic
+     def cancel_sale(cls, sale, user=None, reason=''):
+         """
+-        Cancels a sale, reverts all stock deductions, and adjusts payments.
++        Annule une vente et rend les articles au stock.
++
++        AUCUN MOUVEMENT D'ARGENT : cette methode ne touche NI aux paiements
++        enregistres, NI au solde de la caisse, NI a la creance du client.
++        Une vente deja encaissee puis annulee reste donc marquee payee et son
++        montant reste compte dans la caisse. Le remboursement eventuel doit
++        etre fait par le retour client (process_return) ou manuellement.
++
++        La documentation precedente annoncait "adjusts payments" : c'etait
++        inexact, et cette phrase a ete corrigee pour ne pas laisser croire a un
++        remboursement automatique. Pour changer la REGLE METIER (remboursement
++        automatique a l'annulation), voir la notice du correctif.
+         """
+         if sale.status == SaleStatus.CANCELLED:
+             raise ValidationError("Cette vente est déjà annulée.")

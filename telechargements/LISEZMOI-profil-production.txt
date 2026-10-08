@@ -1,0 +1,37 @@
+PROFIL DE PRODUCTION NEXORA — AJOUT CONDITIONNEL ET RÉVERSIBLE
+
+POURQUOI
+L’inspection a identifié le fichier config/settings.py et les affectations exactes à durcir. Le paquet ajoute un bloc de configuration de production qui reste inactif en mode local. Il ne remplace pas le déploiement complet.
+
+INSTALLATION
+1. Arrêtez le serveur Django avec Ctrl+C.
+2. Téléchargez appliquer-profil-production.zip.
+3. Extrayez ses trois fichiers dans D:\NEXORA, à côté de manage.py.
+4. Lancez appliquer-profil-production.bat et tapez OUI seulement si la cible et les préconditions affichées sont correctes.
+5. Le script sauvegarde config/settings.py avant de l’éditer. Si une précondition ne correspond plus au diagnostic, il s’arrête sans modification.
+6. Installez également la version actuelle de start-local-postgresql.zip : elle force NEXORA_ENVIRONMENT=development pendant le lancement local.
+7. Relancez start-local-postgresql.bat pour vérifier que l’usage local et PostgreSQL fonctionnent toujours.
+
+CE QUE LE PROFIL FERA UNIQUEMENT AVEC NEXORA_ENVIRONMENT=production
+- DEBUG=False ; ALLOWED_HOSTS doit être fourni explicitement dans NEXORA_ALLOWED_HOSTS, sans joker.
+- CORS_ALLOW_ALL_ORIGINS=False ; les origines facultatives proviennent de NEXORA_CORS_ALLOWED_ORIGINS et NEXORA_CSRF_TRUSTED_ORIGINS (HTTPS uniquement).
+- Le profil refuse de démarrer sans NEXORA_HTTPS_MODE=proxy : le reverse proxy doit terminer TLS et remplacer lui-même X-Forwarded-Proto.
+- Active les cookies Secure, la redirection HTTPS, XFrameOptionsMiddleware et une journalisation console.
+- Réduit les durées JWT à 30 minutes (accès) et 8 heures (actualisation). L’application de liste noire JWT n’est pas ajoutée ici : elle demande une migration après sauvegarde.
+- HSTS reste à 0 par défaut. Ne définissez NEXORA_HSTS_SECONDS qu’après validation de HTTPS.
+
+VARIABLES À CONFIGURER AVANT D’ACTIVER LE PROFIL
+NEXORA_ENVIRONMENT=production
+NEXORA_ALLOWED_HOSTS=<noms DNS/IP exacts, séparés par des virgules>
+NEXORA_CORS_ALLOWED_ORIGINS=<origines HTTPS du front, séparées par des virgules ; vide si même origine>
+NEXORA_CSRF_TRUSTED_ORIGINS=<origines HTTPS nécessaires, séparées par des virgules>
+NEXORA_HTTPS_MODE=proxy
+NEXORA_HSTS_SECONDS=0 (puis augmenter seulement après validation TLS)
+NEXORA_LOG_LEVEL=INFO
+
+IMPORTANT
+- Le profil reste dormant si NEXORA_ENVIRONMENT n’est pas « production ». Le lanceur local mis à jour force « development » et préserve le comportement local.
+- L’ajout ne lance aucune migration et ne modifie aucune donnée PostgreSQL.
+- Le profil ne configure pas à lui seul le reverse proxy, le serveur WSGI/ASGI, le service Windows ou la distribution des fichiers statiques. Ne l’activez pas avant que TLS et le reverse proxy soient réellement opérationnels.
+- Il ne configure pas MEDIA_ROOT et n’ajoute pas Whitenoise ; ces points restent à vérifier pour le déploiement.
+- La sauvegarde PostgreSQL et un test de restauration isolé restent recommandés avant toute mise en service.

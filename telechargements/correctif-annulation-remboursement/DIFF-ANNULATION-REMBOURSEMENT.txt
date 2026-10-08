@@ -1,0 +1,107 @@
+DIFFERENCE EXACTE : apps/sales/services.py (fonction cancel_sale)
+==================================================================
+
+Seule la fonction d'annulation change : le remboursement de l'encaissement.
+Tout le reste du fichier est identique au caractere pres.
+
+Lecture du diff : les lignes en '-' disparaissent, celles en '+' arrivent.
+La ligne verte de + est un ajout visible dans le fichier corrige.
+
+(Si vous aviez installe le fichier annulation/decision, la seule autre
+ difference est le texte du commentaire de la meme fonction : le corps
+ corrige est identique a celui-ci.)
+
+Bilan : 78 lignes ajoutees, 1 lignes retirees dans cancel_sale.
+
+--- AVANT apps/sales/services.py
++++ APRES apps/sales/services.py
+@@ -201,11 +201,88 @@
+     @transaction.atomic
+     def cancel_sale(cls, sale, user=None, reason=''):
+         """
+-        Cancels a sale, reverts all stock deductions, and adjusts payments.
++        Annule une vente et rend les articles au stock.
++
++        MOUVEMENT D'ARGENT (regle validee le 8 octobre 2026) : annuler une vente
++        deja encaissee rembourse ce qui a ete encaisse.
++          1. un CONTRE-MOUVEMENT est ecrit pour chaque paiement (montant negatif,
++             meme methode, meme caisse, reference ANNUL-...) : trace complete ;
++          2. les especes sont retirees du solde de la caisse concernee ;
++          3. la creance du client est diminuee du credit accorde sur la vente ;
++          4. le montant paye revient a zero, statut « Rembourse ».
++
++        Garde-fous :
++          - caisse non ouverte (session deja cloturee) : le solde n'est PAS
++            touche, la trace du contre-mouvement le precise ;
++          - retour deja enregistre sur la vente : l'annulation est refusee
++            (sinon l'argent serait rendu deux fois) ;
++          - creance client plafonnee a zero, jamais negative, et tracee ;
++          - vente non payee : aucun mouvement d'argent.
+         """
+         if sale.status == SaleStatus.CANCELLED:
+             raise ValidationError("Cette vente est déjà annulée.")
+ 
++        # Un retour a deja rendu du stock ET de l'argent : annuler en plus
++        # rembourserait le client deux fois.
++        retour = sale.returns.first()
++        if retour is not None:
++            raise ValidationError(
++                "Un retour (%s) a déjà été enregistré sur cette vente : "
++                "l'annuler rembourserait deux fois. Passez par le retour, ou "
++                "supprimez-le d'abord." % retour.reference
++            )
++
++        # 1-2-3. Contre-mouvement par paiement, caisse et creance ajustees.
++        rembourse = False
++        for paiement in sale.payments.all():
++            montant_oppose = -paiement.amount
++            if montant_oppose == Decimal('0.00'):
++                continue
++            rembourse = True
++            traces = []
++
++            caisse_cible = paiement.register or sale.register
++            if paiement.payment_method == PaymentMethod.CASH and caisse_cible is not None:
++                if caisse_cible.status == RegisterStatus.OPEN:
++                    caisse_cible.current_balance += montant_oppose
++                    caisse_cible.save()
++                else:
++                    # Garde-fou : la caisse est deja cloturee, son solde a ete
++                    # controle et arrete. On ne le modifie pas apres coup, mais
++                    # le contre-mouvement est ecrit : l'argent rendu est trace.
++                    traces.append('caisse fermee : solde non modifie')
++
++            if paiement.payment_method == PaymentMethod.CREDIT and sale.customer is not None:
++                creance = sale.customer.current_balance + montant_oppose
++                if creance < Decimal('0.00'):
++                    creance = Decimal('0.00')
++                    traces.append('creance plafonnee a zero')
++                sale.customer.current_balance = creance
++                sale.customer.save()
++
++            reference = 'ANNUL-%s' % sale.reference
++            if reason:
++                reference = '%s (%s)' % (reference, reason)
++            if traces:
++                reference = '%s [%s]' % (reference, ' ; '.join(traces))
++
++            Payment.objects.create(
++                company=sale.company,
++                sale=sale,
++                amount=montant_oppose,
++                payment_method=paiement.payment_method,
++                register=paiement.register,
++                partner=paiement.partner,
++                reference=reference[:100],
++                processed_by=user,
++            )
++
++        # 4. Remboursement au niveau de la vente
++        if rembourse:
++            sale.paid_amount = Decimal('0.00')
++            sale.payment_status = PaymentStatus.REFUNDED
++
++        # 5. Retour des articles au stock (comportement inchange)
+         for item in sale.items.all():
+             StockService.record_movement(
+                 company=sale.company,

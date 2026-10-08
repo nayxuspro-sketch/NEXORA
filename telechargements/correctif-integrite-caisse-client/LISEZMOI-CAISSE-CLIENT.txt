@@ -1,0 +1,78 @@
+================================================================================
+NEXORA - INTEGRITE DES VENTES (suite) : la CAISSE et le CLIENT
+================================================================================
+Suite directe du correctif precedent (magasin et article). Meme defaut, deux
+autres champs : ces deux-la touchent l'argent de tres pres.
+
+--------------------------------------------------------------------------------
+CE QUI SE PASSAIT
+--------------------------------------------------------------------------------
+  if not register:
+      register = CashRegister.objects.filter(company=company).first()
+  ...
+  if not customer:
+      customer = Partner.objects.filter(company=company, partner_type='CUSTOMER').first()
+
+Quand la caisse ou le client transmis n'existait pas dans votre entreprise,
+l'application les remplacait en silence par la PREMIERE caisse et le PREMIER
+client du catalogue. Consequences verifiables :
+  - la vente etait comptabilisee dans la cloture et le rapport Z de la MAUVAISE
+    caisse : les especes d'une caisse peuvent apparaitre sur une autre ;
+  - la vente etait imputee au MAUVAIS client : historique, creances et chiffre
+    d'affaires de ce client fausses, sans aucun avertissement.
+
+Reproduction avant correctif, dans un projet identique au votre :
+    AssertionError: 201 != 400
+    corps de reponse : register "1b408471..." (premiere caisse de A) alors que
+    la caisse de l'entreprise B etait demandee ; customer "3fc63014..."
+    (premier client de A) alors qu'un client de B etait demande.
+
+--------------------------------------------------------------------------------
+CE QUI CHANGE (2 garde-fous, rien d'autre)
+--------------------------------------------------------------------------------
+  caisse fournie et absente de votre entreprise  ->  refus (400) "Caisse introuvable..."
+  client fourni et absent de votre entreprise    ->  refus (400) "Client introuvable..."
+  aucun client precise (vente comptoir)          ->  comportement d'origine
+  caisse et client de votre entreprise           ->  201, inchange, avec les
+                                                     bons rattachements
+
+Precision technique : le formulaire d'entree n'accepte que des identifiants
+techniques (UUID). Une caisse ou un client d'une autre entreprise ne peut donc
+jamais etre valide par erreur : il est refuse, jamais remplace.
+
+--------------------------------------------------------------------------------
+INSTALLATION (aucun script)
+--------------------------------------------------------------------------------
+1. Ouvrez CORRECTIF-INTEGRITE-CAISSE-CLIENT.zip (double-clic, ne l'extrayez pas).
+2. Ctrl+A, puis glissez le tout dans C:\NEXORA, et confirmez "Remplacer les
+   fichiers dans la destination".
+   Contenu : apps\sales\views.py et tests\test_integrite_caisse_client.py
+
+--------------------------------------------------------------------------------
+VERIFICATION (2 minutes)
+--------------------------------------------------------------------------------
+    cd /d C:\NEXORA
+
+    py manage.py test tests.test_integrite_caisse_client -v 2
+      attendu : Ran 4 tests ... OK
+
+    py manage.py test tests.test_nexora_backend.MultiTenantIsolationTests -v 2
+      attendu : Ran 4 tests ... OK      (les 2 correctifs precedent tiennent)
+
+    py manage.py test
+      attendu : OK, aucun FAIL ni ERROR
+
+--------------------------------------------------------------------------------
+FICHIERS LIVRES (empreintes SHA-256, premiers caracteres)
+--------------------------------------------------------------------------------
+  apps/sales/views.py                          10450 o  28a5280b37069ec5d4db...
+  tests/test_integrite_caisse_client.py         3358 o  03924dd6e5757d9f6568...
+
+Verifications effectuees avant livraison (Django 5.2.18, DRF 3.18.3) :
+  - defaut reproduit a l'identique (201 != 400, mauvais rattachements visibles
+    dans la reponse) ;
+  - apres correctif : 4 tests d'integrite caisse/client OK ;
+  - les 4 tests d'isolation (magasin, article) toujours OK ;
+  - arbre reproduisant votre etat reel (securite P0 + filtre BI + bilan vendeur
+    POS + integrite ventes + ce correctif) : 74 tests, OK.
+================================================================================

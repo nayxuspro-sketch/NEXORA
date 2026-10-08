@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXORA ERP & POS - Manuel d'Utilisation Exhaustif et Illustré</title>
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --secondary: #10b981;
+      --dark: #0f172a;
+      --slate: #334155;
+      --light: #f8fafc;
+      --border: #e2e8f0;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info-bg: #eff6ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f1f5f9;
+      color: var(--slate);
+      line-height: 1.7;
+      padding: 30px;
+    }
+    .container {
+      max-width: 1150px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 14px;
+      box-shadow: 0 4px 25px rgba(0,0,0,0.07);
+      padding: 50px;
+    }
+    .header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header h1 {
+      font-size: 28px;
+      color: var(--dark);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .badge-curr {
+      background: #ecfdf5;
+      color: #047857;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid #a7f3d0;
+    }
+    .print-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .print-btn:hover { background: var(--primary-dark); }
+    h2 {
+      color: var(--dark);
+      font-size: 22px;
+      margin: 40px 0 16px;
+      padding-left: 14px;
+      border-left: 5px solid var(--primary);
+    }
+    h3 {
+      font-size: 17px;
+      color: var(--dark);
+      margin: 24px 0 10px;
+    }
+    h4 {
+      font-size: 15px;
+      color: var(--slate);
+      margin: 18px 0 8px;
+      font-weight: 700;
+    }
+    p, li {
+      font-size: 15px;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+    ul, ol {
+      margin-left: 26px;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0 28px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      text-align: left;
+    }
+    th {
+      background: var(--light);
+      color: var(--dark);
+      font-weight: 600;
+    }
+    .shortcut {
+      background: #e2e8f0;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: bold;
+      color: #1e293b;
+      border: 1px solid #cbd5e1;
+    }
+    .box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 24px 0;
+    }
+    .box-tip {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+    }
+    .box-warning {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+    }
+    .figure-box {
+      margin: 28px 0 36px;
+      text-align: center;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      background: #f8fafc;
+    }
+    .figure-box img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      border: 1px solid #cbd5e1;
+    }
+    .figure-box figcaption {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #475569;
+      margin-top: 12px;
+    }
+    .step-badge {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-right: 6px;
+    }
+    @media print {
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; padding: 20px; }
+      .print-btn { display: none; }
+      .figure-box { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>📖 Manuel Utilisateur & Guide Pratique Exhaustif</h1>
+      <p style="margin-top: 4px;">NEXORA Enterprise ERP & POS — Guide opérationnel avec captures d'écran et procédures pas-à-pas</p>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <span class="badge-curr">Édition Afrique de l'Ouest (FCFA / XOF)</span>
+      <button class="print-btn" onclick="window.print()">🖨️ Imprimer ou Enregistrer en PDF</button>
+    </div>
+  </div>
+
+  <h2>1. Introduction & Démarrage du Logiciel</h2>
+  <p>
+    Ce manuel détaillé s'adresse à l'ensemble du personnel utilisateur de <strong>NEXORA</strong> : directeurs de magasins, gérants, comptables, magasiniers et caissiers.
+    NEXORA est nativement configuré pour la zone <strong>UEMOA</strong> (Burkina Faso, Côte d'Ivoire, Sénégal, Mali, Niger, Togo, Bénin, Guinée-Bissau), fonctionnant exclusivement en <strong>Franc CFA (FCFA / XOF)</strong> et appliquant le régime fiscal standard de <strong>TVA à 18%</strong>.
+  </p>
+
+  <h3>Comment accéder à l'application :</h3>
+  <p>
+    Une fois votre ordinateur démarré, ouvrez votre navigateur habituel (Microsoft Edge, Google Chrome, Mozilla Firefox) et saisissez :
+  </p>
+  <ul>
+    <li><strong>Adresse de votre application de caisse et gestion :</strong> <code style="font-weight:bold; color:#0284c7;">http://localhost:3000</code></li>
+    <li><strong>Portail d'administration technique :</strong> <code>http://localhost:8008/admin/</code></li>
+  </ul>
+
+  <h3>Comptes d'accès par défaut :</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Rôle</th>
+        <th>Identifiant</th>
+        <th>Mot de passe</th>
+        <th>Périmètre de travail autorisé</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Directeur Général / Gérant</strong></td>
+        <td><code>admin</code></td>
+        <td><code>Admin123456!</code></td>
+        <td>Accès intégral : Tableaux de bord financiers, gestion des prix et marges, création des articles, réceptions fournisseurs, audits et déclarations fiscales.</td>
+      </tr>
+      <tr>
+        <td><strong>Caissier / Vendeur Comptoir</strong></td>
+        <td><code>cashier</code></td>
+        <td><code>Cashier123!</code></td>
+        <td>Accès exclusif : Écran Point de Vente (POS), enregistrement des encaissements (Espèces, Mobile Money), impression des tickets et clôture de sa session (Rapport Z).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Le Tableau de Bord Stratégique (Dashboard)</h2>
+  <p>
+    Le tableau de bord est le centre de pilotage de votre commerce. Conçu selon le principe de la hiérarchie visuelle, il permet au gérant de comprendre l'état de santé de son activité en moins de <strong>3 secondes</strong>.
+  </p>
+
+  <div class="figure-box">
+    <img src="/docs/screenshots/01_dashboard.png" alt="Capture d'écran du Tableau de bord NEXORA">
+    <figcaption>Figure 1.0 — Tableau de Bord Stratégique NEXORA avec indicateurs financiers en FCFA et alertes de stock en temps réel</figcaption>
+  </div>
+
+  <h3>Détail des 4 indicateurs fondamentaux (Niveau 1) :</h3>
+  <ul>
+    <li><strong>Chiffre d'Affaires (30 derniers jours) :</strong> Somme totale des ventes nettes réalisées, exprimée en FCFA, avec le taux de progression par rapport au mois précédent et le nombre total de transactions.</li>
+    <li><strong>Marge Brute Réalisée :</strong> Bénéfice commercial brut après soustraction automatique du coût d'achat des marchandises vendues.</li>
+    <li><strong>Articles en Stock :</strong> Nombre total d'unités physiques présentes dans vos entrepôts et points de vente.</li>
+    <li><strong>Alertes Rupture de Stock :</strong> Nombre précis d'articles ayant atteint ou dépassé leur seuil minimum de sécurité et nécessitant un réapprovisionnement urgent.</li>
+  </ul>
+
+  <h3>Graphique d'affluence et module d'alerte (Niveau 2) :</h3>
+  <p>
+    Le graphique central ventile les ventes jour par jour (du Lundi au Dimanche) pour identifier immédiatement vos journées de forte affluence commerciale.
+    À droite, le panneau <em>Alertes de Réapprovisionnement</em> liste les articles critiques avec leur stock restant et leur seuil d'alerte, assorti d'un bouton direct d'accès à la commande fournisseur.
+  </p>
+
+  <h2>3. La Caisse Enregistreuse Tactile (Point de Vente / POS)</h2>
+  <p>
+    Le module POS est l'outil quotidien des caissiers. Il est optimisé pour un passage ultra-rapide des clients, soit via <strong>écran tactile</strong>, soit via <strong>douchette de lecture de code-barres</strong>, soit intégralement au <strong>clavier</strong> sans toucher à la souris.
+  </p>
+
+  <div class="figure-box">
+    <img src="/docs/screenshots/02_pos.png" alt="Capture de l'écran Point de Vente POS">
+    <figcaption>Figure 2.0 — Interface tactile de la Caisse Enregistreuse POS NEXORA (Sélection d'articles et Panneau d'encaissement)</figcaption>
+  </div>
+
+  <h3>Procédure détaillée d'un encaissement client pas-à-pas :</h3>
+
+  <p><span class="step-badge">Étape 1</span> <strong>Ouvrir la Caisse :</strong> Cliquez sur le bouton bleu <em>« Ouvrir Caisse »</em> en haut de la page ou appuyez sur la touche de raccourci <span class="shortcut">F8</span>.</p>
+
+  <p><span class="step-badge">Étape 2</span> <strong>Sélectionner les articles du client :</strong></p>
+  <ul>
+    <li><strong>Méthode Douchette :</strong> Scannez le code-barres sur l'emballage ; le produit est instantanément ajouté au panier avec sa quantité et son prix en FCFA.</li>
+    <li><strong>Méthode Tactile :</strong> Appuyez sur la vignette du produit dans la partie gauche de l'écran. Chaque clic incrémente la quantité de 1.</li>
+    <li><strong>Méthode Recherche Clavier :</strong> Appuyez sur <span class="shortcut">F2</span>, saisissez les premières lettres du produit (ex: "HP", "Souris", "Riz") et appuyez sur Entrée.</li>
+  </ul>
+
+  <p><span class="step-badge">Étape 3</span> <strong>Ajuster les quantités ou remises :</strong></p>
+  <p>
+    Dans le panneau de droite (Ticket en cours), cliquez sur les boutons <code>+</code> ou <code>-</code> pour ajuster la quantité. Vous pouvez également saisir une remise en pourcentage ou en montant fixe autorisée par la direction.
+  </p>
+
+  <p><span class="step-badge">Étape 4</span> <strong>Sélectionner le mode de paiement :</strong></p>
+  <ul>
+    <li><strong>Espèces (Cash) avec Rendu de Monnaie :</strong> Sélectionnez <em>Espèces</em> et entrez le montant donné par le client (ex: le client donne un billet de 10 000 FCFA pour un achat de 8 500 FCFA). NEXORA affiche immédiatement en très grand : <strong>RENDU MONNAIE : 1 500 FCFA</strong>.</li>
+    <li><strong>Mobile Money (Orange Money, Moov Money, Wave) :</strong> Sélectionnez l'opérateur concerné et validez la réception du SMS ou de la notification de confirmation sur votre terminal de caisse.</li>
+    <li><strong>Carte Bancaire / Chèque :</strong> Sélectionnez Carte Bancaire et notez le numéro d'autorisation bancaire.</li>
+  </ul>
+
+  <p><span class="step-badge">Étape 5</span> <strong>Validation & Impression (<span class="shortcut">F8</span> ou Entrée) :</strong></p>
+  <p>
+    Le ticket thermique 80mm est imprimé automatiquement, le tiroir-caisse connecté s'ouvre et les quantités vendues sont décomptées du stock en temps réel.
+  </p>
+
+  <div class="box box-tip">
+    <strong>⌨️ Raccourcis Clavier indispensables pour le Caissier :</strong><br>
+    • <span class="shortcut">F2</span> : Mettre le curseur immédiatement dans le champ de recherche article<br>
+    • <span class="shortcut">F4</span> : Sélectionner un client enregistré (Comptoir par défaut, ou Société à crédit)<br>
+    • <span class="shortcut">F8</span> : Valider et ouvrir la fenêtre d'encaissement<br>
+    • <span class="shortcut">F10</span> : Mettre la vente en attente (servir le client suivant sans perdre la vente en cours)<br>
+    • <span class="shortcut">ESC</span> : Annuler l'opération en cours ou vider le panier
+  </div>
+
+  <h2>4. Gestion du Catalogue & Fiches Produits</h2>
+  <p>
+    Le module <em>Catalogue</em> permet de référencer l'intégralité de vos marchandises et de fixer vos conditions tarifaires.
+  </p>
+
+  <div class="figure-box">
+    <img src="/docs/screenshots/04_catalog.png" alt="Capture du Catalogue et fiches produits">
+    <figcaption>Figure 3.0 — Liste et configuration des fiches articles avec prix en FCFA, TVA et alertes de stock</figcaption>
+  </div>
+
+  <h3>Comment créer un nouvel article :</h3>
+  <ol>
+    <li>Rendez-vous dans le menu <strong>Articles & Catalogue</strong>.</li>
+    <li>Cliquez sur le bouton bleu <strong>« + Nouvel Article »</strong>.</li>
+    <li>Remplissez les informations essentielles :
+      <ul>
+        <li><strong>Code SKU / Référence interne :</strong> Code unique identifiant l'article (ex: <code>LAPTOP-HP-01</code>).</li>
+        <li><strong>Code-barres EAN :</strong> À scanner directement depuis l'emballage pour permettre la détection par la douchette.</li>
+        <li><strong>Désignation complète :</strong> Libellé clair qui figurera sur le ticket de caisse et les factures.</li>
+        <li><strong>Catégorie / Rayon :</strong> Pour ventiler vos rapports de vente.</li>
+        <li><strong>Prix d'Achat Hors Taxe (FCFA) :</strong> Permet au système de calculer automatiquement votre marge brute.</li>
+        <li><strong>Prix de Vente TTC (FCFA) :</strong> Prix final payé par le client en magasin.</li>
+        <li><strong>Taux de TVA :</strong> Choisissez <strong>18% (Taux standard UEMOA)</strong> ou <strong>0% (Exonéré)</strong>.</li>
+        <li><strong>Seuil d'Alerte Minimum :</strong> Quantité charnière en dessous de laquelle l'article doit être commandé.</li>
+      </ul>
+    </li>
+    <li>Cliquez sur <strong>Enregistrer</strong>. Le produit est immédiatement disponible en caisse !</li>
+  </ol>
+
+  <h2>5. Gestion des Dépôts, Stocks & Inventaires</h2>
+  <p>
+    NEXORA assure une traçabilité totale : chaque produit entrant ou sortant génère un mouvement d'inventaire signé par son auteur.
+  </p>
+
+  <div class="figure-box">
+    <img src="/docs/screenshots/05_inventory.png" alt="Capture de l'état des stocks et mouvements">
+    <figcaption>Figure 4.0 — Journal des mouvements d'entrepôt (Ventes, Réceptions d'achats, Transferts et Pertes)</figcaption>
+  </div>
+
+  <h3>Les différents types de mouvements de stock :</h3>
+  <ul>
+    <li><strong>SORTIE VENTE POS (Automatique) :</strong> Décrémente instantanément le stock à chaque validation de ticket de caisse.</li>
+    <li><strong>ENTRÉE ACHAT FOURNISSEUR :</strong> Incrémente les stocks dès la réception de marchandises commandées auprès d'un grossiste.</li>
+    <li><strong>TRANSFERT INTER-DÉPÔTS :</strong> Permet de déplacer des stocks entre un magasin de vente et un entrepôt de stockage déporté.</li>
+    <li><strong>AJUSTEMENT D'INVENTAIRE :</strong> Utilisé lors des inventaires physiques périodiques pour régulariser les écarts de stock justifiés (casse, avarie, vol, erreur de comptage).</li>
+  </ul>
+
+  <h2>6. Clôture Quotidienne de Caisse (Rapport Z Officiel)</h2>
+  <p>
+    À la fin de chaque journée de vente ou lors d'un changement de caissier, la loi commerciale et fiscale impose la réalisation d'une <strong>Clôture de Caisse (Rapport Z)</strong>. Cette opération est non modifiable et engage la responsabilité du caissier.
+  </p>
+
+  <div class="figure-box">
+    <img src="/docs/screenshots/06_closure_z.png" alt="Capture de la clôture de caisse et rapport Z">
+    <figcaption>Figure 5.0 — Procédure de clôture quotidienne : Recomptage des espèces, rapprochement Mobile Money et calcul des écarts</figcaption>
+  </div>
+
+  <h3>Procédure de fin de journée pas-à-pas :</h3>
+  <ol>
+    <li>Dans le module Point de Vente, cliquez sur le bouton rouge en haut à droite <strong>« Clôturer Caisse (Z) »</strong>.</li>
+    <li><strong>Comptage physique des espèces :</strong>
+      Comptez les billets et pièces présents dans votre tiroir-caisse et renseignez le formulaire coupure par coupure (billets de 10 000, 5 000, 2 000, 1 000 FCFA et pièces). Le système calcule automatiquement le total liquide réel.
+    </li>
+    <li><strong>Contrôle des encaissements électroniques :</strong>
+      Consultez les soldes de la journée sur vos téléphones de caisse (Orange Money, Moov Money, Wave) et confirmez les montants.
+    </li>
+    <li><strong>Calcul automatique de l'écart :</strong>
+      Le logiciel compare le montant théorique calculé par les ventes avec le montant physique recompté :
+      <ul>
+        <li><strong>Écart = 0 FCFA :</strong> La caisse est parfaitement juste.</li>
+        <li><strong>Écart négatif (Déficit) :</strong> Il manque de l'argent dans le tiroir.</li>
+        <li><strong>Écart positif (Surplus) :</strong> Il y a un excédent de caisse.</li>
+      </ul>
+    </li>
+    <li><strong>Émission du Rapport Z :</strong> Cliquez sur <strong>« Valider et Clôturer la Session »</strong>. Le ticket officiel <em>Rapport Z</em> est imprimé avec le récapitulatif fiscal de TVA du jour et les compteurs sont archivés de manière inaltérable.</li>
+  </ol>
+
+  <h2>7. Rapports Financiers, Marges & Déclaration de TVA (18%)</h2>
+  <p>
+    Le module <em>Rapports</em> met à la disposition des experts-comptables et des chefs d'entreprise tous les états certifiés pour la comptabilité et la télédéclaration auprès de l'administration fiscale (DGI).
+  </p>
+
+  <div class="figure-box">
+    <img src="/docs/screenshots/03_reports.png" alt="Capture des rapports financiers et fiscalité TVA">
+    <figcaption>Figure 6.0 — États financiers consolidés et déclaration de TVA (18% standard UEMOA)</figcaption>
+  </div>
+
+  <h3>Les rapports comptables disponibles :</h3>
+  <ul>
+    <li><strong>Chiffre d'Affaires Brut & Net :</strong> Ventilation par jour, semaine, mois ou trimestre en Franc CFA.</li>
+    <li><strong>État Récapitulatif de TVA (18%) :</strong>
+      <ul>
+        <li><strong>TVA Collectée :</strong> Montant de la taxe à 18% perçue sur l'ensemble des ventes clients.</li>
+        <li><strong>TVA Déductible :</strong> Montant de la taxe acquittée sur vos factures d'achat fournisseurs.</li>
+        <li><strong>TVA Nette à reverser :</strong> Différence exacte à déclarer et payer à la recette des impôts.</li>
+      </ul>
+    </li>
+    <li><strong>Marges & Rentabilité :</strong> Analyse de la rentabilité réelle par rayon et mise en évidence des produits générant le plus fort bénéfice net.</li>
+  </ul>
+
+  <hr style="border: 0; border-top: 1px solid var(--border); margin: 40px 0;">
+  <p style="text-align: center; font-size: 13.5px; color: #94a3b8;">
+    NEXORA Enterprise Platform • Conforme règlementations fiscales UEMOA / OHADA • Support technique : support@nexora.local
+  </p>
+</div>
+
+<script>
+/* correctif-disposition-bouton-v2 : garde le libelle sur une ligne et empeche */
+/* l'ecrasement du bouton, quel que soit le CSS d'origine. ASCII uniquement. */
+(function () {
+  function corriger(btn) {
+    if (btn.getAttribute("data-fr-fix")) return;
+    btn.setAttribute("data-fr-fix", "1");
+    btn.style.whiteSpace = "nowrap";
+    btn.style.flex = "0 0 auto";
+    btn.style.width = "auto";
+    btn.style.height = "auto";
+    btn.style.alignSelf = "center";
+    var p = btn.parentElement;
+    if (!p) return;
+    var ok = p.children.length > 0;
+    for (var i = 0; i < p.children.length; i++) {
+      var t = p.children[i].tagName;
+      if (t !== "BUTTON" && t !== "A") { ok = false; break; }
+    }
+    if (ok) {
+      p.style.display = "flex";
+      p.style.alignItems = "center";
+      p.style.gap = "10px";
+      p.style.flexWrap = "wrap";
+    }
+  }
+  var suivis = [];
+  function suivre(doc) {
+    if (!doc || !doc.body || typeof MutationObserver === "undefined") return;
+    if (suivis.indexOf(doc) >= 0) return;
+    suivis.push(doc);
+    new MutationObserver(function () { scanner(doc); }).observe(doc.body, { childList: true, subtree: true });
+  }
+  function scanner(doc) {
+    if (!doc) return;
+    var btns = doc.querySelectorAll("button, a");
+    for (var i = 0; i < btns.length; i++) {
+      if (/Ouvrir dans un onglet/i.test(btns[i].textContent)) corriger(btns[i]);
+    }
+    var ifr = doc.querySelectorAll("iframe");
+    for (var j = 0; j < ifr.length; j++) {
+      try { var d = ifr[j].contentDocument; if (d) { scanner(d); suivre(d); } } catch (e) {}
+    }
+  }
+  function demarrer() {
+    scanner(document);
+    suivre(document);
+    window.addEventListener("load", function () { scanner(document); });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", demarrer);
+  } else { demarrer(); }
+})();
+</script>
+</body>
+</html>
