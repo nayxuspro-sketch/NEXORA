@@ -1,0 +1,93 @@
+================================================================================
+NEXORA - ANNULATION D'UNE VENTE : la documentation dit maintenant la verite
+================================================================================
+Fichier livre : apps/sales/services.py (un seul). Aucun script a lancer.
+Zero changement de comportement : seule la documentation du code est corrigee.
+
+--------------------------------------------------------------------------------
+CE QUI EST CORRIGE (et pourquoi c'etait important)
+--------------------------------------------------------------------------------
+Le commentaire de la fonction d'annulation annoncait :
+
+    "Cancels a sale, reverts all stock deductions, and adjusts payments."
+
+Or cette fonction ne touche PAS aux paiements, ni au solde de caisse, ni a la
+creance du client. Un developpeur (ou un futur moi) pouvait donc croire, en
+lisant le code, qu'annuler une vente rendait l'argent : ce n'etait pas le cas.
+La documentation dit maintenant exactement ce que fait le code, avec la phrase
+"AUCUN MOUVEMENT D'ARGENT" et le renvoi vers le retour client.
+
+Ce point a ete DECOUVERT PAR LES TESTS des regles d'argent (livres au tour
+precedent) : c'est exactement leur utilite.
+
+--------------------------------------------------------------------------------
+LA DECISION QUI VOUS REVIENT : rembourser automatiquement ou pas ?
+--------------------------------------------------------------------------------
+Deux regles metier possibles a l'annulation d'une vente DEJA ENCAISSEE.
+
+OPTION A - remboursement automatique (le comportement que l'ancien commentaire
+annoncait) :
+  - un contre-mouvement est ecrit pour chaque paiement (tracabilite) ;
+  - le solde de la caisse est diminue des especes, la creance du client des
+    montants a credit ; le montant paye de la vente revient a zero.
+  Trois regles restent a figer, avec ma proposition :
+   1. caisse deja fermee (rapport Z fait) : ne pas toucher son solde, tracer
+      l'ajustement dans les ventes et les creances (la prochaine ouverture
+      remet de toute facon le solde a l'ouverture declaree) ;
+   2. retour partiel deja effectue : REFUSER l'annulation et passer par le
+      retour client, pour ne jamais rembourser deux fois la meme piece ;
+   3. stock deja rendu par un retour : meme garde que (2), pour ne pas remettre
+      deux fois le meme article en stock.
+  Effort : environ 2 heures avec ses propres tests. RISQUE : modifie le
+  comportement de l'argent -> a valider explicitement par vous.
+
+OPTION B - statu quo, mais documentation honnete (ce qui est livre ici) :
+  - l'annulation reste une correction de saisie : le stock est rendu, aucun
+    mouvement d'argent ;
+  - le remboursement se fait par le bouton de retour client (dont le prix est
+    desormais correct depuis le correctif des regles d'argent) ou a la main ;
+  - aucun risque, aucun test supplementaire requis.
+
+MA RECOMMANDATION : garder B pour l'instant (il est deja en place et prouve), et
+passer a A seulement si vos caissiers annulent souvent des ventes deja
+encaissees au lieu de faire un retour. Dans ce cas, repondez simplement "A" : je
+livre le remboursement automatique avec ses tests, et vous le verifiez comme
+d'habitude avant de l'utiliser en caisse.
+
+--------------------------------------------------------------------------------
+TROISIEME POINT (aussi en attente de votre accord)
+--------------------------------------------------------------------------------
+Les champs de solde sont declares avec un defaut "flottant" (0.00, sans Decimal)
+dans apps/pos/models.py (opening_balance, current_balance) et
+apps/partners/models.py (current_balance). Consequence : le premier
+encaissement sur une caisse creee EN MEMOIRE leve
+    TypeError: unsupported operand type(s) for +=: 'float' and 'decimal.Decimal'
+L'application n'est jamais touchee (elle relit toujours depuis la base), mais
+tout script ou test futur tombe dans le piege. Correctif : default=Decimal('0.00')
+accompagne d'une migration generee et testee (aucun impact sur les donnees
+existantes). Effort : 20 minutes. Repondez "flottants" et je le livre.
+
+--------------------------------------------------------------------------------
+INSTALLATION ET VERIFICATION (aucun script)
+--------------------------------------------------------------------------------
+1. Ouvrez CORRECTIF-ANNULATION-DECISION.zip, Ctrl+A, glissez dans C:\NEXORA,
+   confirmez "Remplacer". (1 fichier : apps\sales\services.py)
+2. Puis :
+
+    cd /d C:\NEXORA
+    py manage.py test tests.test_regles_argent -v 2      attendu : 16 tests OK
+    py manage.py test                                    attendu : OK
+
+--------------------------------------------------------------------------------
+FICHIERS LIVRES
+--------------------------------------------------------------------------------
+  apps/sales/services.py            11025 octets   sha256 199e584b7b55d5e752f7...
+  LISEZMOI-ANNULATION-DECISION.txt  cette notice
+  DIFF-ANNULATION-DOC.txt           la difference exacte (commentaire seul)
+
+Verifications effectuees avant livraison (Django 5.2.18) :
+  - le diff ne contient aucune ligne de code, uniquement la documentation ;
+  - le test d'annulation passe (comportement inchange : constat) ;
+  - les 16 tests des regles d'argent passent ;
+  - suite complete de l'arbre reproduisant votre projet : 92 tests, OK.
+================================================================================
