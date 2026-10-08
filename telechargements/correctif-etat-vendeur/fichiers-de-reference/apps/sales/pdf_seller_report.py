@@ -3,6 +3,7 @@ import uuid
 from apps.common.renderers import PassthroughBinaryRenderer
 from io import BytesIO
 from decimal import Decimal
+from xml.sax.saxutils import escape
 from datetime import datetime
 from django.utils import timezone
 from django.http import HttpResponse
@@ -120,10 +121,62 @@ def _nexora_ventes_du_vendeur(company, seller_user, start_date, end_date):
     )
 
 
+def _nexora_agreger_articles(sales):
+    """Agrege les lignes sans fusionner deux produits distincts de meme nom."""
+    product_sales = {}
+    total_items_qty = Decimal('0.00')
+    cogs_total = Decimal('0.00')
+
+    for sale in sales:
+        for item in sale.items.all():
+            product = item.product
+            p_name = product.name if product else 'Article divers'
+            p_sku = product.sku if product else '-'
+            cost_p = Decimal(str(product.cost_price or '0.00')) if product else Decimal('0.00')
+            quantity = Decimal(str(item.quantity or '0.00'))
+            line_total = Decimal(str(item.total or '0.00'))
+
+            product_id = getattr(product, 'pk', None) if product else None
+            if product_id is None and product is not None:
+                product_id = getattr(product, 'id', None)
+            product_key = product_id if product_id is not None else (p_sku, p_name)
+
+            total_items_qty += quantity
+            cogs_total += quantity * cost_p
+            if product_key not in product_sales:
+                product_sales[product_key] = {
+                    'name': p_name,
+                    'sku': p_sku,
+                    'qty': Decimal('0.00'),
+                    'revenue': Decimal('0.00'),
+                    'profit': Decimal('0.00'),
+                }
+            product_sales[product_key]['qty'] += quantity
+            product_sales[product_key]['revenue'] += line_total
+            product_sales[product_key]['profit'] += line_total - (quantity * cost_p)
+
+    return product_sales, total_items_qty, cogs_total
+
+
+def _nexora_produits_tries(product_sales):
+    """Retourne TOUS les produits, du CA le plus eleve au plus faible."""
+    return sorted(
+        product_sales.values(),
+        key=lambda produit: (produit['revenue'], str(produit['name']).casefold(), str(produit['sku'])),
+        reverse=True,
+    )
+
+
+def _nexora_formater_quantite(valeur):
+    """Affiche les quantites decimales sans arrondir a l'unite."""
+    quantite = Decimal(str(valeur or '0.00'))
+    return format(quantite, ',.2f').replace(',', ' ').rstrip('0').rstrip('.')
+
+
 class SellerSalesReportPdfView(APIView):
     renderer_classes = [PassthroughBinaryRenderer]
     """
-    Exports a 2-page customized PDF report for an individual seller/cashier:
+    Exports a complete, multi-page PDF report for an individual seller/cashier:
     - Page 1: Official Sales Statement for the given period (filtered strictly to this seller).
     - Page 2: Advanced Sales Analysis & AI-driven Smart Commercial Suggestions.
     
@@ -252,29 +305,8 @@ class SellerSalesReportPdfView(APIView):
         total_discounts = sum([s.discount_amount for s in sales], Decimal('0.00'))
         avg_basket = (total_revenue / Decimal(str(total_sales_count))).quantize(Decimal('1.00')) if total_sales_count > 0 else Decimal('0.00')
 
-        # Product breakdown
-        product_sales = {}
-        total_items_qty = Decimal('0.00')
-        cogs_total = Decimal('0.00')
-
-        for s in sales:
-            for item in s.items.all():
-                p_name = item.product.name if item.product else 'Article divers'
-                p_sku = item.product.sku if item.product else '-'
-                cost_p = item.product.cost_price if item.product else Decimal('0.00')
-                total_items_qty += item.quantity
-                cogs_total += item.quantity * cost_p
-
-                if p_name not in product_sales:
-                    product_sales[p_name] = {
-                        'sku': p_sku,
-                        'qty': Decimal('0.00'),
-                        'revenue': Decimal('0.00'),
-                        'profit': Decimal('0.00')
-                    }
-                product_sales[p_name]['qty'] += item.quantity
-                product_sales[p_name]['revenue'] += item.total
-                product_sales[p_name]['profit'] += item.total - (item.quantity * cost_p)
+        # Ventilation exhaustive : aucun produit n'est fusionne ou tronque.
+        product_sales, total_items_qty, cogs_total = _nexora_agreger_articles(sales)
 
         gross_margin = total_revenue - cogs_total
         margin_pct = (gross_margin / total_revenue * Decimal('100')).quantize(Decimal('0.1')) if total_revenue > Decimal('0.00') else Decimal('0.0')
@@ -402,7 +434,7 @@ class SellerSalesReportPdfView(APIView):
         )
 
         # -------------------------------------------------------------
-        # PAGE 1 : ÉTAT OFFICIEL DES VENTES DU VENDEUR
+        # ETAT OFFICIEL DES VENTES DU VENDEUR
         # -------------------------------------------------------------
         company_name = company.name if company else "NEXORA ENTERPRISE"
         seller_name = seller_user.get_full_name() or seller_user.email if seller_user else "Vendeur Caisse"
@@ -453,6 +485,33 @@ class SellerSalesReportPdfView(APIView):
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ]))
         elements.append(kpi_table)
+        elements.append(Spacer(1, 5))
+
+        # Indicateurs complementaires deja calcules : encaissements, taxes,
+        # remises et quantite totale d'articles vendus.
+        kpi_detail_data = [
+            [
+                Paragraph("<b>Montant encaissé</b>", cell_bold),
+                Paragraph("<b>Taxes</b>", cell_bold),
+                Paragraph("<b>Remises</b>", cell_bold),
+                Paragraph("<b>Articles vendus</b>", cell_bold),
+            ],
+            [
+                Paragraph(f"<b>{total_paid:,.0f} FCFA</b>".replace(',', ' '), cell_bold),
+                Paragraph(f"{total_tax:,.0f} FCFA".replace(',', ' '), cell_style),
+                Paragraph(f"{total_discounts:,.0f} FCFA".replace(',', ' '), cell_style),
+                Paragraph(_nexora_formater_quantite(total_items_qty), cell_style),
+            ],
+        ]
+        kpi_detail_table = Table(kpi_detail_data, colWidths=[135, 130, 135, 138])
+        kpi_detail_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#cbd5e1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+            ('PADDING', (0, 0), (-1, -1), 5),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ]))
+        elements.append(kpi_detail_table)
         elements.append(Spacer(1, 10))
 
         # Detailed Table of Sales for this Seller
@@ -475,12 +534,12 @@ class SellerSalesReportPdfView(APIView):
                 c_name = s.customer.name if s.customer else "Client Comptoir"
                 pay_status = 'Soldé' if s.payment_status == 'PAID' else 'Partiel' if s.payment_status == 'PARTIAL' else 'En attente'
                 pay_color = '#047857' if s.payment_status == 'PAID' else '#b45309' if s.payment_status == 'PARTIAL' else '#b91c1c'
-                items_summary = f"{sum([it.quantity for it in s.items.all()], Decimal('0.00')):,.0f} art."
+                items_summary = f"{_nexora_formater_quantite(sum((it.quantity for it in s.items.all()), Decimal('0.00')))} art."
 
                 sales_table_data.append([
                     Paragraph(f"<b>{s.reference}</b>", cell_bold),
                     Paragraph(s.created_at.strftime('%d/%m/%Y %H:%M'), cell_style),
-                    Paragraph(f"<b>{c_name[:26]}</b>" if s.customer else c_name[:26], cell_style),
+                    Paragraph(f"<b>{escape(str(c_name))}</b>" if s.customer else escape(str(c_name)), cell_style),
                     Paragraph(items_summary, cell_style),
                     Paragraph(f"<b>{s.total_amount:,.0f}</b>".replace(',', ' '), cell_bold_right),
                     Paragraph(f"{s.paid_amount:,.0f}".replace(',', ' '), cell_style_right),
@@ -512,7 +571,7 @@ class SellerSalesReportPdfView(APIView):
         elements.append(sales_table)
 
         # -------------------------------------------------------------
-        # PAGE 2 : ANALYSE DES VENTES DU VENDEUR & SUGGESTIONS COMMERCIALES
+        # ANALYSE DES VENTES DU VENDEUR & SUGGESTIONS COMMERCIALES
         # -------------------------------------------------------------
         elements.append(PageBreak())
 
@@ -534,13 +593,14 @@ class SellerSalesReportPdfView(APIView):
         elements.append(Paragraph(diag_intro, analysis_body))
 
         # Top product analysis
-        sorted_prods = sorted(product_sales.items(), key=lambda x: x[1]['revenue'], reverse=True)
+        sorted_prods = _nexora_produits_tries(product_sales)
         if sorted_prods:
-            top_prod_name, top_prod_data = sorted_prods[0]
+            top_prod_data = sorted_prods[0]
+            top_prod_name = escape(str(top_prod_data['name']))
             top_share = (top_prod_data['revenue'] / total_revenue * Decimal('100')).quantize(Decimal('0.1')) if total_revenue > 0 else Decimal('0.0')
             prod_analysis_text = (
                 f"• <b>Moteur principal des ventes :</b> L'article <b>« {top_prod_name} »</b> a constitué le produit phare avec "
-                f"<b>{top_prod_data['qty']:,.0f} unité(s) vendue(s)</b> générant <b>{top_prod_data['revenue']:,.0f} FCFA</b> "
+                f"<b>{_nexora_formater_quantite(top_prod_data['qty'])} unité(s) vendue(s)</b> générant <b>{top_prod_data['revenue']:,.0f} FCFA</b> "
                 f"(soit <b>{top_share}%</b> des recettes du vendeur). La marge brute apportée sur cette seule référence est de <b>{top_prod_data['profit']:,.0f} FCFA</b>."
             ).replace(',', ' ')
             elements.append(Paragraph(prod_analysis_text, analysis_body))
@@ -553,8 +613,9 @@ class SellerSalesReportPdfView(APIView):
 
         elements.append(Spacer(1, 6))
 
-        # Top Products table
-        elements.append(Paragraph("<b>2. Répartition des Ventes par Produit & Contribution à la Marge :</b>", section_heading))
+        # Ventilation complete par article (la table continue sur autant de pages
+        # que necessaire ; son entete est repetee a chaque nouvelle page).
+        elements.append(Paragraph("<b>2. Répartition complète des Ventes par Produit & Contribution à la Marge :</b>", section_heading))
         p_table_headers = [
             Paragraph("<b>Produit / Article</b>", table_header_style),
             Paragraph("<b>SKU</b>", table_header_style),
@@ -565,18 +626,27 @@ class SellerSalesReportPdfView(APIView):
         ]
 
         p_table_data = [p_table_headers]
-        for p_name, p_data in sorted_prods[:6]:
+        for p_data in sorted_prods:
+            p_name = escape(str(p_data['name']))
+            p_sku = escape(str(p_data['sku'] or '-'))
             share = (p_data['revenue'] / total_revenue * Decimal('100')).quantize(Decimal('0.1')) if total_revenue > 0 else Decimal('0.0')
             p_table_data.append([
                 Paragraph(p_name, cell_style),
-                Paragraph(p_data['sku'], cell_style),
-                Paragraph(f"{p_data['qty']:,.0f}".replace(',', ' '), cell_style),
+                Paragraph(p_sku, cell_style),
+                Paragraph(_nexora_formater_quantite(p_data['qty']), cell_style),
                 Paragraph(f"{p_data['revenue']:,.0f} FCFA".replace(',', ' '), cell_bold),
                 Paragraph(f"{p_data['profit']:,.0f} FCFA".replace(',', ' '), cell_bold),
                 Paragraph(f"{share}%", cell_style),
             ])
 
-        p_table = Table(p_table_data, colWidths=[180, 80, 70, 85, 80, 43])
+        if not sorted_prods:
+            p_table_data.append([
+                Paragraph("Aucun article vendu sur cette période.", cell_style),
+                Paragraph("", cell_style), Paragraph("", cell_style),
+                Paragraph("", cell_style), Paragraph("", cell_style), Paragraph("", cell_style),
+            ])
+
+        p_table = Table(p_table_data, colWidths=[180, 80, 70, 85, 80, 43], repeatRows=1, splitByRow=1)
         p_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
             ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),

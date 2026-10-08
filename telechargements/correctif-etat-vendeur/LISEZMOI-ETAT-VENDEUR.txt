@@ -1,95 +1,73 @@
-================================================================================
-NEXORA - ETAT DE VENTE INDIVIDUEL DU VENDEUR : la periode demandee est respectee
-================================================================================
-Livre : 1 correcteur + 1 fichier de tests (4 tests) + le fichier corrige en
-reference. Aucune migration. Aucune donnee touchee.
-Aucun script a comprendre : 2 commandes, et le correcteur patche VOS fichiers.
+NEXORA — « MON BILAN VENTE PDF » : RAPPORT COMPLET (v2)
+======================================================================
 
---------------------------------------------------------------------------------
-LE PROBLEME (reproduit, puis corrige)
---------------------------------------------------------------------------------
-Le rapport « ETAT DE VENTE INDIVIDUEL DU VENDEUR » (bouton du POS, PDF de
-2 pages) affichait des chiffres faux des qu'on choisissait une periode passee.
+PROBLEME CONFIRME DANS LE CODE REEL DU RAPPORT
+-----------------------------------------------------------------------
+La ventilation par produit s'arretait explicitement a six lignes :
 
-Exemple reproduit par les tests, dans un projet de recette :
-  - vente d'Awa le 15/01/2026 ............ 960 F
-  - vente de Bouba le 16/01/2026 .......... 2 880 F
-  - vente d'Awa le jour meme .............. 1 920 F
-  - rapport demande du 01/01 au 31/01/2026 :
-        AVANT : il contenait la vente du jour (1 920 F) -> totaux faux
-        APRES : 960 F exactement, seules les ventes de janvier
+    for p_name, p_data in sorted_prods[:6]:
 
---------------------------------------------------------------------------------
-LA CAUSE : UNE SEULE LIGNE
---------------------------------------------------------------------------------
-Dans apps/sales/pdf_seller_report.py, apres le calcul de la date de fin :
+J'ai reproduit l'omission : avec 8 produits vendus, seuls 6 etaient imprimes ;
+les references les moins vendues disparaissaient du tableau. Deux produits
+portant le meme nom etaient aussi fusionnes et un seul SKU etait affiche.
 
-        if not end_date:
-            end_date = now + timezone.timedelta(days=1)
-        else:
-            # S'assurer que les ventes de la minute presente ...
-            end_date = max(end_date, now + timezone.timedelta(hours=4))
+D'autres donnees etaient calculees sans etre imprimees : montant encaisse,
+taxes, remises et quantite totale. Les quantites etaient arrondies a l'unite
+et le nom d'un client tronque a 26 caracteres. Enfin, le lien « Ouvrir dans un
+onglet (Direct) » appelait l'API sans le jeton de session : il pouvait donc
+resoudre l'entreprise par defaut au lieu de reprendre celle du compte connecte.
 
-La date de fin choisie (31/01/2026 a 23:59:59) etait remplacee par
-« maintenant + 4 h » (08/10/2026). Le rapport debordait donc sur TOUTES les
-ventes enregistrees depuis la date demandee : c'est ce que vous voyiez.
+CE QUE FAIT LE CORRECTIF v2
+-----------------------------------------------------------------------
+- Retire le plafond de six produits ; le tableau complet se poursuit sur
+  autant de pages que necessaire, avec l'entete repetee.
+- Distingue chaque produit par son identifiant en base, meme si plusieurs
+  produits ont le meme nom ; toutes les references SKU restent separees.
+- Affiche les indicateurs deja calcules : encaissements, taxes, remises et
+  quantites vendues ; conserve les ventes detaillees du vendeur selectionne.
+- N'arrondit plus les quantites fractionnaires a l'unite ; ne coupe plus le
+  nom du client.
+- L'export utilise le compte connecte par defaut et le chemin authentifie ;
+  le lien direct sans jeton est retire.
+- Garde la date de fin choisie (corrige egalement l'ancien « maintenant + 4 h »).
+- Ne touche ni aux ventes, ni aux migrations, ni a la base de donnees.
+- Cree une sauvegarde avant toute ecriture ; relance sans effet.
 
-Cette ligne avait ete ajoutee pour ne pas rater les ventes de la minute en
-cours. Elle est inutile : le code place deja la fin de periode a 23:59:59 de
-la journee selectionnee, ce qui couvre toute la journee.
-
---------------------------------------------------------------------------------
-CE QUE FAIT LE CORRECTEUR
---------------------------------------------------------------------------------
-  - il retire ce bloc fautif et laisse la date de fin demandee telle quelle ;
-  - il installe tests/test_etat_vendeur_pdf.py (4 tests) ;
-  - il sauvegarde votre fichier dans sauvegardes-etat-vendeur/ ;
-  - il verifie que le fichier corrige compile AVANT d'ecrire ;
-  - il ne touche a rien d'autre, et ne fait rien si le fichier est deja juste.
-
---------------------------------------------------------------------------------
-A FAIRE (2 commandes)
---------------------------------------------------------------------------------
-1) Dezipper ce dossier a la racine du projet (la ou se trouve manage.py), en
-   remplacant si Windows le demande, puis :
+INSTALLATION — UNE SEULE COMMANDE
+-----------------------------------------------------------------------
+1. Extrayez le ZIP dans la racine du vrai projet (le dossier qui contient
+   manage.py et apps\sales\). Le paquet garde ses fichiers auxiliaires sous
+   « fichiers\ » pour ne pas ecraser votre test avant la sauvegarde.
+2. Ouvrez un terminal dans cette racine et lancez :
 
        py corriger_etat_vendeur_pdf.py
 
-   Resultat attendu :
-       fichier : apps/sales/pdf_seller_report.py
-       [CORRIGE] la date de fin choisie est desormais respectee
+Le correcteur choisit le couple backend/POS du meme projet. S'il ne reconnait
+pas exactement votre version, il affiche [ANNULE] et n'ecrit rien.
+Sauvegardes : sauvegardes-etat-vendeur\
 
-   (Pour seulement faire le point, sans rien modifier :
-       py corriger_etat_vendeur_pdf.py --verifier )
+TEST A LANCER DANS VOTRE PROJET
+-----------------------------------------------------------------------
+       py manage.py test tests.test_etat_vendeur_pdf -v 2
 
-2) Verifier :
+Attendu : 6 tests OK (periode, vendeur, ventes annulees, huit produits
+visibles dont deux noms identiques, quantites decimales et KPI).
 
-       py manage.py test tests.test_etat_vendeur_pdf -v 2   (attendu : 4 OK)
-       py manage.py test                                   (attendu : OK)
+La selection de periode reste obligatoire : le PDF montre toutes les ventes
+validees (COMPLETED) du vendeur choisi, dans la periode choisie. Les ventes
+annulees/brouillons et les ventes sans vendeur en base sont volontairement
+exclues d'un bilan individuel.
 
-Puis, dans l'application : bouton « Rapport Individuel Vendeur » du POS,
-periode du 01/01 au 31/01 : le PDF ne doit plus contenir que les ventes de
-cette periode, et les totaux doivent y correspondre.
+PREUVES DE RECETTE EFFECTUEES ICI
+-----------------------------------------------------------------------
+- Reproduction sur le correctif POS v3 distribue : 8 produits en entree,
+  ancien rendu = 6, deux SKU absents.
+- Correcteur v2 rejoue depuis un ZIP v3 extrait : ancien bloc de date corrige,
+  plafond retire, POS mis a jour ; deuxieme passage = aucun octet modifie.
+- Helpers reels du backend executes sur 8 produits, dont deux de meme nom :
+  8 produits distincts, 10 unites exactes, cout total verifie, quantite 1.25
+  preservee.
+- Syntaxe backend Python et POS TypeScript/JSX (esbuild) verifiees.
 
---------------------------------------------------------------------------------
-CE QUE LES 4 TESTS VERROUILLENT (jeu de donnees controle, 2 vendeurs)
---------------------------------------------------------------------------------
-1. la periode demandee est respectee : le rapport de janvier ne contient ni la
-   vente du jour (1 920 F), ni celle de Bouba (2 880 F) — et affiche 960 F ;
-2. seules les ventes du vendeur demande apparaissent ;
-3. sans vendeur precise, un caissier ne voit que son propre bilan ;
-4. une vente annulee ne compte plus dans le chiffre d'affaires.
-
---------------------------------------------------------------------------------
-ETAT DE VOS CORRECTIFS (rien n'a ete perdu)
---------------------------------------------------------------------------------
-Le correctif « bilan de vente par vendeur » (POS v3.1) reste en place : le
-correcteur ne touche PAS au calcul du vendeur ni a ses marqueurs _nexora_*.
-Verifie dans l'arbre de recette : 101 tests OK apres correction
-(96 deja chez vous + 5 montants decimaux + 4 de ce correctif), 0 echec.
-
---------------------------------------------------------------------------------
-RETOUR ARRIERE
---------------------------------------------------------------------------------
-Copiez le contenu de sauvegardes-etat-vendeur/ par-dessus le fichier modifie.
-Aucune migration n'ayant ete creee, il n'y a rien d'autre a defaire.
+Je n'ai pas acces a votre base C:\NEXORA depuis cet espace : le test Django
+final doit donc etre lance sur votre projet reel avant la vente de controle.

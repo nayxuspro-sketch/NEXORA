@@ -12,8 +12,7 @@ endpoint /api/v1/sales/export-seller-pdf/ :
     Ran 14 tests in 35.023s
     OK
 
-Conclusion : le bilan de vente par vendeur FONCTIONNE. Il n'y a plus rien a
-corriger. Il reste seulement a redemarrer les serveurs et a verifier a l'ecran :
+Conclusion de la v3 : le FILTRE par vendeur est valide (14/14 tests). Cette recette ne controlait pas la completude des produits imprimes : le PDF plafonnait a six produits et plusieurs KPI calcules etaient omis. Pour la correction de contenu v2, utilisez le fichier separe CORRECTIF-ETAT-VENDEUR.zip v2 (script unique py corriger_etat_vendeur_pdf.py), decrit sur la page des telechargements. Il reste ensuite a redemarrer les serveurs et verifier a l'ecran :
 
     1. backend  : dans C:\NEXORA            ->  py manage.py runserver
     2. frontend : dans C:\NEXORA\frontend   ->  npm run dev

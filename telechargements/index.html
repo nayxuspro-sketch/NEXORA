@@ -53,13 +53,12 @@
       <a href="correctif-annulation-remboursement/DIFF-ANNULATION-REMBOURSEMENT.txt">différence exacte</a></span></p>
     </section>
     <section id="etat-vendeur" style="border:2px solid #db6d28;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#2a1508,#231106)">
-      <h2 style="margin-top:0;border:none;padding:0;color:#ffa657">📄 ÉTAT DE VENTE INDIVIDUEL DU VENDEUR — période respectée (chiffres justes)</h2>
-      <p class="sous-titre"><strong>Le problème signalé, reproduit puis corrigé :</strong> le rapport PDF du POS (« Rapport Individuel Vendeur », 2 pages) affichait des chiffres faux dès qu'on choisissait une <strong>période passée</strong>. Exemple mesuré : un rapport demandé du <strong>01/01 au 31/01/2026</strong> contenait une vente du <strong>8 octobre</strong> — donc des totaux gonflés.</p>
-      <p class="sous-titre"><strong>La cause : une seule ligne.</strong> <code>end_date = max(end_date, now + timezone.timedelta(hours=4))</code> écrasait la date de fin choisie par « maintenant + 4 h ». La ligne visait les ventes de la minute en cours, mais elle était inutile : le code place déjà la fin de période à <strong>23:59:59 du jour sélectionné</strong>. <strong>Correctif :</strong> la date demandée est respectée (3 lignes retirées, 4 commentaires ajoutés, rien d'autre).</p>
-      <p class="sous-titre"><strong>Vérifié :</strong> recette <strong style="color:#7ee787">rouge avant</strong> (le rapport de janvier contenait bien la vente du jour) puis <strong style="color:#7ee787">verte après</strong> — 4 tests sur un jeu de 2 vendeurs, contrôlant <em>les montants</em> (960 F attendus, 1 920 F et 2 880 F interdits), le vendeur, l'accès caissier et les ventes annulées. Suite complète : <strong style="color:#7ee787">101 tests, OK</strong>. Le correcteur a été relancé <em>depuis le ZIP extrait dans un arbre identique au vôtre</em> (correctif POS en place) : 4/4 puis 101 OK.</p>
-      <p><a href="CORRECTIF-ETAT-VENDEUR.zip" style="display:inline-block;background:#db6d28;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-ETAT-VENDEUR.zip (16 Ko)</a>
-      <span class="sous-titre" style="margin-left:10px">puis <code>py corriger_etat_vendeur_pdf.py</code> (idempotent, sauvegarde automatique) · <a href="correctif-etat-vendeur/LISEZMOI-ETAT-VENDEUR.txt">notice</a> ·
-      <a href="correctif-etat-vendeur/DIFF-ETAT-VENDEUR.txt">différence exacte</a></span></p>
+      <h2 style="margin-top:0;border:none;padding:0;color:#ffa657">📄 « MON BILAN VENTE PDF » — rapport complet du vendeur connecté (v2)</h2>
+      <p class="sous-titre"><strong>Cause exacte trouvée dans la vue PDF :</strong> le tableau de produits utilisait <code>sorted_prods[:6]</code> — au-delà de six articles, ils <strong>n'étaient jamais imprimés</strong>. Reproduction locale : 8 produits vendus → seulement 6 lignes rendues, SKU 01 et 02 absents. Autre perte : deux produits distincts portant le même nom étaient fusionnés, les quantités fractionnaires arrondies à l'unité, le nom du client coupé à 26 caractères ; encaissements, taxes, remises et unités étaient calculés mais <strong>jamais affichés</strong>.</p>
+      <p class="sous-titre"><strong>Correctif v2 :</strong> liste exhaustive des produits (table paginée, en-tête répété), chaque référence distinguée par son ID même si le nom est identique ; affichage des 4 indicateurs oubliés ; quantités décimales préservées et nom client complet. Le POS envoie explicitement l'ID du vendeur connecté par défaut ; le lien PDF brut sans jeton, qui pouvait perdre le contexte de session/entreprise, est retiré. Le correctif conserve le filtre entreprise + vendeur + ventes validées et respecte la période choisie.</p>
+      <p><a href="CORRECTIF-ETAT-VENDEUR.zip" style="display:inline-block;background:#db6d28;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-ETAT-VENDEUR.zip v2</a>
+      <span class="sous-titre" style="margin-left:10px">dans la racine du projet : <code>py corriger_etat_vendeur_pdf.py</code> · puis <code>py manage.py test tests.test_etat_vendeur_pdf -v 2</code> (6 tests) · <a href="correctif-etat-vendeur/LISEZMOI-ETAT-VENDEUR.txt">notice</a> · <a href="correctif-etat-vendeur/DIFF-ETAT-VENDEUR.txt">différence exacte</a></span></p>
+      <p class="sous-titre"><strong>Vérifié ici :</strong> correcteur appliqué à une copie du ZIP POS v3, syntaxe backend et POS compilées (esbuild), rejeu sans modifier un octet ; helpers réels testés sur 8 produits distincts, deux noms identiques et quantité 1,25. <strong>Je n'ai pas accès à votre base locale</strong> : le test Django ciblé doit encore être lancé dans votre vrai <code>C:\NEXORA</code> avant validation d'une vente réelle.</p>
     </section>
     <section id="regles-argent" style="border:2px solid #8957e5;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#1c1330,#1a1029)">
       <h2 style="margin-top:0;border:none;padding:0">💰 RÈGLES D'ARGENT — 16 tests + un remboursement corrigé</h2>
@@ -117,8 +116,8 @@
     <span class="sous-titre" style="margin-left:10px">aussi en <a href="EVALUATION-TECHNIQUE-NEXORA.md">Markdown</a></span></p>
   </section>
 
-<h2>✅ CORRECTIF POS v3 — VALIDÉ : 14 tests sur 14 OK sur votre projet C:\NEXORA</h2>
-  <p class="sous-titre"><strong style="color:#7ee787">VALIDÉ le 07/10/2026 : 14 tests sur 14 passent sur C:\NEXORA</strong> (migrations réelles, vrai endpoint /api/v1/sales/export-seller-pdf/). Le bilan par vendeur fonctionne — filtrage strict par vendeur, ventes annulées/brouillons exclues, vendeur inconnu refusé (404), caissier limité à son propre bilan, PDF généré. Il ne reste qu’à redémarrer le backend et <code>npm run dev</code>, puis Ctrl+F5 dans le POS.</p>
+<h2>✅ CORRECTIF POS v3 — filtre vendeur : 14 tests sur 14 (C:\NEXORA)</h2>
+  <p class="sous-titre"><strong style="color:#7ee787">VALIDÉ le 07/10/2026 : 14 tests sur 14 passent sur C:\NEXORA</strong> (migrations réelles, vrai endpoint /api/v1/sales/export-seller-pdf/) pour le filtrage du vendeur, l'exclusion des annulations/brouillons et l'accès du caissier à son propre bilan. <strong>Cette recette v3 ne vérifiait pas que la ventilation PDF listait plus de six produits :</strong> le correctif v2 du contenu complet est décrit plus haut dans cette page.</p>
   <p class="sous-titre">Cause trouvée dans le code réel du dépôt : le filtre par vendeur n’était appliqué que si le vendeur était identifié, donc le bilan additionnait les ventes de toute l’entreprise. La v2 <strong>retrouve vos fichiers où qu’ils soient</strong> et écrit un diagnostic si elle hésite.<br />
   <strong>Essayez d’abord le fichier unique <code>CORRIGER-POS-AUTONOME.bat</code></strong> : le programme est inclus dedans, aucun autre fichier n’est nécessaire.<br />
   <strong>Correctif appliqué sur C:\NEXORA le 07/10 à 15:31</strong> (projet choisi automatiquement, l’ancien correctif présent dans votre fichier a été conservé sans effet sur le résultat : notre bloc est le dernier avant la construction du PDF).<br />
@@ -159,7 +158,7 @@
     <span class="icone">🐍</span>
     <span>
       <span class="nom">apps/sales/pdf_seller_report.py</span><br />
-      <span class="detail">Backend corrigé : vendeur identifié strictement (UUID/email exact), 404 si introuvable, bilan limité aux ventes validées de CE vendeur</span>
+      <span class="detail">Backend v2 : toutes les ventes et références produits du vendeur, sans plafond à six articles ; agrégation conservant les SKU distincts, KPI complets et tableau multi-pages</span>
     </span>
     <span class="taille">30 Ko</span>
   </a>
@@ -167,7 +166,7 @@
     <span class="icone">⚛️</span>
     <span>
       <span class="nom">frontend/src/app/pos/page.tsx</span><br />
-      <span class="detail">Écran POS corrigé : liste déroulante des vendeurs (vendeur connecté présélectionné) et envoi de l’identifiant du vendeur au serveur</span>
+      <span class="detail">Écran POS v2 : ID du vendeur connecté garanti par défaut, export authentifié, PDF complet avec nombre de pages variable</span>
     </span>
     <span class="taille">58 Ko</span>
   </a>

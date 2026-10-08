@@ -196,18 +196,25 @@ export default function PosPage() {
     }
   }, [authUser]);
 
+  const getSellerPdfQueryParams = () => {
+    // Ne jamais laisser le parametre vendeur vide : le PDF est celui du
+    // compte connecte par defaut, sauf selection explicite d'un responsable.
+    const sellerId = sellerPdfPeriod.seller_id || String((authUser as any)?.id || '');
+    const sellerEmail = sellerPdfPeriod.seller_email || authUser?.email || '';
+    return new URLSearchParams({
+      start_date: sellerPdfPeriod.start_date,
+      end_date: sellerPdfPeriod.end_date,
+      ...(sellerId ? { seller_id: sellerId } : sellerEmail ? { seller: sellerEmail } : {}),
+    });
+  };
+
   const handleExportSellerPdf = async () => {
     try {
+      if (!(authUser as any)?.id) {
+        throw new Error('Compte vendeur non identifié. Reconnectez-vous puis réessayez.');
+      }
       setIsExportingSellerPdf(true);
-      const queryParams = new URLSearchParams({
-        start_date: sellerPdfPeriod.start_date,
-        end_date: sellerPdfPeriod.end_date,
-        ...(sellerPdfPeriod.seller_id
-          ? { seller_id: sellerPdfPeriod.seller_id }
-          : sellerPdfPeriod.seller_email
-            ? { seller: sellerPdfPeriod.seller_email }
-            : {}),
-      });
+      const queryParams = getSellerPdfQueryParams();
       await downloadPdfFile(
         `/api/v1/sales/export-seller-pdf/?${queryParams.toString()}`,
         `Vente_Vendeur_${sellerPdfPeriod.start_date}_${sellerPdfPeriod.end_date}.pdf`
@@ -975,11 +982,12 @@ export default function PosPage() {
         <div className="space-y-4 pt-2">
           <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-foreground space-y-1">
             <p className="font-bold flex items-center gap-1.5 text-primary">
-              <Sparkles className="h-4 w-4" /> Rapport Individuel Vendeur sur 2 Pages :
+              <Sparkles className="h-4 w-4" /> Rapport complet du vendeur connecté :
             </p>
             <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground text-[11px]">
-              <li><strong>Page 1 :</strong> État officiel détaillé de vos ventes sur la période (chiffre d'affaires, panier moyen, factures et règlements).</li>
-              <li><strong>Page 2 :</strong> Analyse automatique de vos performances commerciales avec ventilation par marge et suggestions concrètes d'optimisation.</li>
+              <li><strong>Ventes :</strong> toutes les factures validées de ce vendeur sur la période choisie.</li>
+              <li><strong>Produits :</strong> détail exhaustif, sans limite aux six premiers ; la table continue automatiquement sur plusieurs pages.</li>
+              <li><strong>Indicateurs :</strong> chiffre d'affaires, encaissé, taxes, remises, unités, marge et analyse commerciale.</li>
             </ul>
           </div>
 
@@ -1055,22 +1063,13 @@ export default function PosPage() {
             >
               Annuler
             </Button>
-            <a
-              href={`/api/v1/sales/export-seller-pdf/?start_date=${sellerPdfPeriod.start_date}&end_date=${sellerPdfPeriod.end_date}${sellerPdfPeriod.seller_id ? `&seller_id=${encodeURIComponent(sellerPdfPeriod.seller_id)}` : sellerPdfPeriod.seller_email ? `&seller=${encodeURIComponent(sellerPdfPeriod.seller_email)}` : ''}&_t=${Date.now()}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center px-4 py-2 rounded-md font-semibold text-xs border border-input bg-background hover:bg-muted text-foreground transition-colors w-full sm:w-auto"
-              onClick={() => setTimeout(() => setIsSellerPdfModalOpen(false), 500)}
-            >
-              Ouvrir dans un onglet (Direct)
-            </a>
             <Button
               type="button"
               onClick={handleExportSellerPdf}
               isLoading={isExportingSellerPdf}
               className="w-full sm:w-auto"
             >
-              <Download className="h-4 w-4 mr-1.5" /> Télécharger mon Rapport PDF (2 Pages)
+              <Download className="h-4 w-4 mr-1.5" /> Télécharger mon Rapport PDF complet
             </Button>
           </div>
         </div>

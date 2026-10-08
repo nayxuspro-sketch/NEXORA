@@ -1,21 +1,56 @@
-DIFFERENCE EXACTE : apps/sales/pdf_seller_report.py
-=================================================
+DIFF — « MON BILAN VENTE PDF » COMPLET, CORRECTIF v2
+===================================================
 
-Une seule modification : la date de fin demandee n'est plus ecrasee.
-Aucune autre ligne n'est touchee (ni le calcul du vendeur, ni les montants,
-ni la mise en page).
+FICHIERS MODIFIES PAR LE CORRECTEUR
+  apps/sales/pdf_seller_report.py
+  frontend/src/app/pos/page.tsx
+  tests/test_etat_vendeur_pdf.py (test v2 ; ancienne version gardee en .ancien)
 
---- AVANT apps/sales/pdf_seller_report.py
-+++ APRES apps/sales/pdf_seller_report.py
-@@ -168,7 +168,8 @@
-         if not end_date:
-             end_date = now + timezone.timedelta(days=1)
--        else:
--            # S'assurer que les ventes de la minute présente ou avec léger décalage horaire UTC sont bien incluses
--            end_date = max(end_date, now + timezone.timedelta(hours=4))
-+        # La date de fin choisie est respectee telle quelle : elle couvre deja
-+        # toute la journee selectionnee (23:59:59). L'ancien code la remplacait
-+        # par « maintenant + 4 h » : un rapport demande sur une periode passee
-+        # contenait alors toutes les ventes enregistrees depuis.
- 
-         if not start_date:
+BACKEND — DONNEES QUI DISPARAISSAIENT
+---------------------------------------------------
+AVANT
+  for p_name, p_data in sorted_prods[:6]:
+
+  -> Au-dela des six premiers produits, aucune ligne n'etait imprimee.
+  -> L'agregation utilisait le nom comme cle : deux produits de meme nom
+     perdaient leur distinction et un SKU n'etait jamais liste.
+  -> total_paid, total_tax, total_discounts et total_items_qty etaient
+     calcules mais jamais presentes dans le document.
+  -> Les quantites etaient affichees avec « :.0f » (arrondi a l'unite) et
+     le nom du client etait coupe apres 26 caracteres.
+
+APRES
+  - Agregation par identifiant du produit ; le nom et le SKU ne fusionnent
+    plus deux references differentes.
+  - Parcours de la liste COMPLETE (pas de [:6]) ; ReportLab repete l'entete
+    et poursuit la table sur autant de pages qu'il faut.
+  - Montant encaisse, taxes, remises et nombre d'articles ajoutes aux KPI.
+  - Quantites decimales affichees sans arrondi a l'unite ; nom client complet.
+  - Echappement des noms/SKU pour que « & » et les caracteres de balisage
+    ne fassent pas echouer le rendu PDF.
+
+PERIODE ET IDENTITE DU VENDEUR
+---------------------------------------------------
+  - La fin de periode choisie est respectee ; aucune extension a « maintenant
+    + 4 h » pour les rapports sur une periode passee.
+  - Le POS envoie explicitement l'identifiant du compte connecte si aucun
+    vendeur n'a ete choisi. Le lien HTTP brut non authentifie est retire ; le
+    bouton de telechargement existant passe par le client authentifie.
+  - La vue conserve le filtre strict par entreprise, vendeur, periode et
+    statut COMPLETED. Le correctif ne change pas la regle metier.
+
+TESTS AJOUTES (6)
+---------------------------------------------------
+  1. La periode passee n'inclut pas les ventes d'aujourd'hui.
+  2. Le rapport contient les ventes du vendeur vise, jamais celles du collegue.
+  3. Sans vendeur dans l'URL, un caissier obtient son propre bilan.
+  4. Une vente annulee n'entre pas dans le chiffre d'affaires.
+  5. Le PDF liste les huit SKU et les huit factures, pas seulement six.
+  6. L'agregation garde distincts deux produits de meme nom et conserve
+     les quantites fractionnaires.
+
+Recette locale : 8 entrees -> ancien template 6 lignes (SKU 01 et 02 perdus),
+helpers du code corrige -> 8 lignes / 8 SKU. Correcteur teste sur un ZIP POS v3
+extrait ; syntaxe Python + esbuild POS OK ; rejeu identique sans ecriture.
+La suite Django doit etre executee sur la copie reelle du projet par
+« py manage.py test tests.test_etat_vendeur_pdf -v 2 ».
