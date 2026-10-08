@@ -1,0 +1,389 @@
+DIFF - CAISSE ET MAGASIN (message « Magasin introuvable dans votre entreprise »)
+================================================================================
+
+Etat AVANT (vos correctifs precedents appliques) -> etat APRES ce correcteur.
+
+################################################################################
+# apps/pos/serializers.py
+################################################################################
+@@ -16,6 +16,22 @@
+         ]
+         read_only_fields = ['id', 'company', 'status', 'current_cashier', 'current_balance', 'created_at']
+ 
++    def validate_store(self, magasin):
++        # Une caisse doit etre rattachee a un magasin de SON entreprise.
++        # Sans ce controle, une caisse pouvait viser le magasin d'une autre
++        # entreprise : chaque vente passait alors ce magasin etranger au
++        # serveur, qui la refusait (« Magasin introuvable dans votre
++        # entreprise »). La compagnie etant posee par la vue, elle n'est pas
++        # encore connue ici : on retombe sur celle de l'utilisateur.
++        utilisateur = getattr(self.context.get('request'), 'user', None)
++        compagnie = getattr(utilisateur, 'company', None)
++        if compagnie is None:
++            compagnie = getattr(self.instance, 'company', None)
++        if compagnie is not None and magasin.company_id != compagnie.id:
++            raise serializers.ValidationError(
++                'Ce magasin ne fait pas partie de votre entreprise.')
++        return magasin
++
+ 
+ class RegisterSessionSerializer(serializers.ModelSerializer):
+     cashier_name = serializers.CharField(source='cashier.email', read_only=True)
+
+################################################################################
+# apps/sales/serializers.py
+################################################################################
+@@ -68,7 +68,10 @@
+ 
+ 
+ class SaleCreateInputSerializer(serializers.Serializer):
+-    store = serializers.UUIDField()
++    # Le magasin n'est plus obligatoire : si la caisse est fournie, le
++    # serveur en deduit le magasin (une vente ne peut ainsi pas porter un
++    # autre magasin que celui de sa caisse).
++    store = serializers.UUIDField(required=False, allow_null=True)
+     register = serializers.UUIDField(required=False, allow_null=True)
+     customer = serializers.UUIDField(required=False, allow_null=True)
+     discount_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=Decimal('0.00'))
+
+################################################################################
+# apps/sales/views.py
+################################################################################
+@@ -50,8 +50,19 @@
+             # portant le magasin d'une autre entreprise.
+             return Response({'error': 'Magasin introuvable dans votre entreprise'}, status=status.HTTP_400_BAD_REQUEST)
+         if not store:
+-            # Aucun magasin precise : comportement d'origine (premier magasin).
+-            store = Store.objects.filter(company=company).first()
++            # Aucun magasin precise : celui de la caisse fait foi, sinon
++            # comportement d'origine (premier magasin). Sans cela, une vente
++            # pouvait etre rattachee a un autre magasin que celui de sa caisse.
++            caisse_du_payload = None
++            caisse_val = data.get('register')
++            caisse_uuid = parse_safe_uuid(caisse_val)
++            if caisse_uuid:
++                caisse_du_payload = CashRegister.objects.filter(
++                    id=caisse_uuid, company=company).select_related('store').first()
++            elif caisse_val:
++                caisse_du_payload = CashRegister.objects.filter(
++                    company=company, code__iexact=str(caisse_val).strip()).select_related('store').first()
++            store = (caisse_du_payload.store if caisse_du_payload else None) or Store.objects.filter(company=company).first()
+         if not store:
+             return Response({'error': 'Aucun magasin configuré dans votre entreprise'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+@@ -72,6 +83,13 @@
+         if not register:
+             # Aucune caisse precise : comportement d'origine (premiere caisse).
+             register = CashRegister.objects.filter(company=company).first()
++        if store and register and register.store_id != store.id:
++            # Le magasin et la caisse ne vont pas ensemble : on le dit, au lieu
++            # de laisser partir une vente incoherente (rapport Z et cloture
++            # d'une caisse, magasin d'une autre).
++            return Response(
++                {'error': "La caisse choisie n'appartient pas a ce magasin"},
++                status=status.HTTP_400_BAD_REQUEST)
+ 
+         # Validate customer if provided
+         customer = None
+
+################################################################################
+# frontend/src/app/pos/page.tsx
+################################################################################
+@@ -14,7 +14,7 @@
+ import { formatCurrency } from '@/lib/utils';
+ import { downloadPdfFile } from '@/lib/pdf-export';
+ import { apiRequest } from '@/lib/api';
+-import { Product, CashRegister, Partner, PaginatedResponse } from '@/types';
++import { Product, CashRegister, Partner, Store, PaginatedResponse } from '@/types';
+ import {
+   Search,
+   ShoppingCart,
+@@ -273,14 +273,97 @@
+     staleTime: 1000 * 60,
+       });
+ 
+-  const activeRegister = registersData?.results?.[0] || {
+-    id: 'reg-01',
+-    name: 'Caisse Comptoir Principal',
+-    code: 'REG-01',
+-    status: 'OPEN',
+-    current_balance: '125000.00',
+-    store_name: 'Magasin & Dépôt Ouaga Central',
+-    store: 'store-01',
++  // Plus de caisse inventee : une caisse doit exister reellement pour vendre.
++  // (Avant, une caisse fictive « reg-01 » pointait vers un magasin fictif
++  // « store-01 » : le serveur refusait alors chaque vente avec le message
++  // « Magasin introuvable dans votre entreprise ».)
++  const activeRegister = registersData?.results?.[0] || null;
++  const caisseOuverte = !!activeRegister && activeRegister.status === 'OPEN';
++
++  // Magasins de l'entreprise : necessaires pour creer la premiere caisse.
++  const { data: storesData } = useQuery<PaginatedResponse<Store>>({
++    queryKey: ['stores'],
++    queryFn: () => apiRequest<PaginatedResponse<Store>>('/stores/'),
++    staleTime: 1000 * 60,
++  });
++
++  const [isRegisterSetupOpen, setIsRegisterSetupOpen] = React.useState(false);
++  const [registerSetupForm, setRegisterSetupForm] = React.useState({ name: '', code: '', store: '' });
++  const [isCreatingStore, setIsCreatingStore] = React.useState(false);
++  const [isCreatingRegister, setIsCreatingRegister] = React.useState(false);
++
++  const handleCreateStore = async () => {
++    setIsCreatingStore(true);
++    try {
++      const nom = window.prompt('Nom du magasin', 'Magasin principal');
++      if (!nom) return;
++      const code = window.prompt('Code du magasin', 'MAG-01');
++      if (!code) return;
++      const nouveauMagasin: any = await apiRequest('/stores/', {
++        method: 'POST',
++        body: JSON.stringify({ name: nom, code: code }),
++      });
++      queryClient.invalidateQueries({ queryKey: ['stores'] });
++      setRegisterSetupForm((precedent) => ({ ...precedent, store: nouveauMagasin?.id || '' }));
++      toast({ type: 'success', title: 'Magasin cree', message: nom + ' (' + code + ')' });
++    } catch (erreur: any) {
++      toast({
++        type: 'error',
++        title: 'Creation du magasin impossible',
++        message: erreur?.message || 'Le magasin n\'a pas ete enregistre.',
++      });
++    } finally {
++      setIsCreatingStore(false);
++    }
++  };
++
++  const handleCreateRegister = async () => {
++    if (!registerSetupForm.store) {
++      toast({ type: 'error', title: 'Magasin requis',
++              message: 'Choisissez le magasin qui abritera cette caisse.' });
++      return;
++    }
++    setIsCreatingRegister(true);
++    try {
++      const caisse: any = await apiRequest('/registers/', {
++        method: 'POST',
++        body: JSON.stringify({
++          store: registerSetupForm.store,
++          name: registerSetupForm.name || 'Caisse Comptoir Principal',
++          code: registerSetupForm.code || 'REG-01',
++        }),
++      });
++      const caisseCreee = { ...caisse, status: 'OPEN' };
++      // La caisse ouvre sa session : le fond de caisse est documente.
++      try {
++        await apiRequest(`/registers/${caisse.id}/open_session/`, {
++          method: 'POST',
++          body: JSON.stringify({ opening_balance: 0 }),
++        });
++      } catch (erreurSession: any) {
++        toast({
++          type: 'error',
++          title: 'Caisse creee, ouverture de session a refaire',
++          message: erreurSession?.message || 'Ouvrez la session de cette caisse.',
++        });
++      }
++      queryClient.setQueryData(['registers'], { results: [caisseCreee], pagination: {} });
++      await queryClient.invalidateQueries({ queryKey: ['registers'] });
++      setIsRegisterSetupOpen(false);
++      toast({
++        type: 'success',
++        title: 'Caisse prete',
++        message: caisseCreee.name + ' (' + caisseCreee.code + ') est ouverte : vous pouvez vendre.',
++      });
++    } catch (erreur: any) {
++      toast({
++        type: 'error',
++        title: 'Creation de la caisse impossible',
++        message: erreur?.message || 'La caisse n\'a pas ete enregistree.',
++      });
++    } finally {
++      setIsCreatingRegister(false);
++    }
+   };
+ 
+   // Fetch products
+@@ -513,7 +596,6 @@
+   const saleMutation = useMutation({
+     mutationFn: async () => {
+       const payload = {
+-        store: activeRegister.store,
+         register: activeRegister.id,
+         customer: selectedCustomer?.id || null,
+         discount_amount: totalDiscountVal.toFixed(2),
+@@ -550,7 +632,6 @@
+     },
+     onSuccess: (data: any) => {
+       const saleDetails = {
+-        ...data,
+         items: [...cart],
+         customer_name: selectedCustomer?.name || 'Client Comptoir',
+         subtotal_amount: discountedSubtotal.toFixed(2),
+@@ -559,7 +640,7 @@
+         payment_method: paymentMethod,
+         date: new Date().toLocaleString('fr-FR'),
+       };
+-      setCompletedSale(saleDetails);
++      setCompletedSale({ ...saleDetails, saveError: true });
+       setPaymentModalOpen(false);
+       setIsReceiptModalOpen(true);
+       clearCart();
+@@ -581,6 +662,150 @@
+     },
+   });
+ 
++  // Sans caisse reelle (ou caisse fermee), la vente est impossible : on le dit
++  // clairement, avec les deux raccourcis qui manquaient (magasin puis caisse).
++  if (!caisseOuverte) {
++    return (
++      <DashboardLayout>
++        <div className="max-w-2xl mx-auto space-y-4">
++          <div className="bg-card border rounded-2xl p-6 shadow-xs space-y-4">
++            <div className="flex items-start gap-3">
++              <div className="p-2.5 rounded-xl bg-amber-500/15 text-amber-500">
++                <StoreIcon className="h-6 w-6" />
++              </div>
++              <div>
++                <h2 className="text-lg font-bold text-foreground">
++                  {activeRegister ? 'Caisse fermee' : 'Aucune caisse enregistree'}
++                </h2>
++                <p className="text-sm text-muted-foreground">
++                  {activeRegister
++                    ? 'La caisse « ' + activeRegister.name + ' » est fermee. Ouvrez sa session depuis le bouton ci-dessous pour encaisser.'
++                    : 'Les ventes ne peuvent pas etre enregistrees sans caisse : le serveur refuse une vente dont le magasin n\'existe pas. Creez le magasin, puis la caisse.'}
++                </p>
++              </div>
++            </div>
++
++            <div className="text-sm space-y-1">
++              <p>
++                Magasins de votre entreprise :{' '}
++                <span className="font-semibold">{storesData?.results?.length || 0}</span>
++              </p>
++              <p>
++                Caisses de votre entreprise :{' '}
++                <span className="font-semibold">{registersData?.results?.length || 0}</span>
++                {activeRegister ? ' (fermee : fond ' + formatCurrency(activeRegister.current_balance) + ')' : ''}
++              </p>
++            </div>
++
++            <div className="flex flex-wrap gap-2">
++              <Button
++                type="button"
++                variant="outline"
++                onClick={handleCreateStore}
++                isLoading={isCreatingStore}
++              >
++                Creer un magasin
++              </Button>
++              {activeRegister ? (
++                <Button
++                  type="button"
++                  onClick={() => {
++                    setClosingCashAmount(activeRegister.current_balance);
++                    setIsCloseRegisterModalOpen(true);
++                  }}
++                >
++                  Ouvrir la session de cette caisse
++                </Button>
++              ) : (
++                <Button
++                  type="button"
++                  onClick={() => {
++                    const premierMagasin: any = storesData?.results?.[0];
++                    setRegisterSetupForm((precedent) => ({
++                      ...precedent,
++                      store: precedent.store || premierMagasin?.id || '',
++                    }));
++                    setIsRegisterSetupOpen(true);
++                  }}
++                >
++                  Creer une caisse
++                </Button>
++              )}
++              <Button
++                type="button"
++                variant="outline"
++                onClick={() => queryClient.invalidateQueries({ queryKey: ['registers'] })}
++              >
++                Recharger la liste
++              </Button>
++            </div>
++          </div>
++        </div>
++
++        <Modal
++          isOpen={isRegisterSetupOpen}
++          onClose={() => setIsRegisterSetupOpen(false)}
++          title="Nouvelle caisse"
++        >
++          <div className="space-y-3">
++            <label className="block text-sm">
++              Magasin d'affectation
++              <select
++                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
++                value={registerSetupForm.store}
++                onChange={(evenement) =>
++                  setRegisterSetupForm((precedent) => ({ ...precedent, store: evenement.target.value }))
++                }
++              >
++                <option value="">— choisir un magasin —</option>
++                {(storesData?.results || []).map((magasin) => (
++                  <option key={magasin.id} value={magasin.id}>
++                    {magasin.name} ({magasin.code})
++                  </option>
++                ))}
++              </select>
++            </label>
++            <label className="block text-sm">
++              Nom de la caisse
++              <Input
++                className="mt-1"
++                value={registerSetupForm.name}
++                onChange={(evenement) =>
++                  setRegisterSetupForm((precedent) => ({ ...precedent, name: evenement.target.value }))
++                }
++                placeholder="Caisse Comptoir Principal"
++              />
++            </label>
++            <label className="block text-sm">
++              Code de la caisse
++              <Input
++                className="mt-1"
++                value={registerSetupForm.code}
++                onChange={(evenement) =>
++                  setRegisterSetupForm((precedent) => ({ ...precedent, code: evenement.target.value }))
++                }
++                placeholder="REG-01"
++              />
++            </label>
++            {!storesData?.results?.length && (
++              <p className="text-xs text-amber-500">
++                Aucun magasin pour l'instant : cliquez d'abord sur « Creer un magasin ».
++              </p>
++            )}
++            <div className="flex justify-end gap-2">
++              <Button type="button" variant="outline" onClick={() => setIsRegisterSetupOpen(false)}>
++                Annuler
++              </Button>
++              <Button type="button" onClick={handleCreateRegister} isLoading={isCreatingRegister}>
++                Creer et ouvrir la caisse
++              </Button>
++            </div>
++          </div>
++        </Modal>
++      </DashboardLayout>
++    );
++  }
++
+   return (
+     <DashboardLayout>
+       <div className="space-y-4">
+
+################################################################################
+# FICHIERS NEUFS (rien n'est ecrase)
+################################################################################
+
+  apps/pos/management/commands/diagnostiquer_caisses.py  (84 lignes)
+  tests/test_caisse_pos_magasin.py                       (130 lignes)

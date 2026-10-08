@@ -1,0 +1,113 @@
+LISEZMOI - « MAGASIN INTROUVABLE DANS VOTRE ENTREPRISE » EN CAISSE
+===============================================================
+
+LE MESSAGE QUE VOUS AVEZ RECU
+    Echec de la transaction
+    Magasin introuvable dans votre entreprise
+
+CE QUI SE PASSE VRAIMENT (verifie sur le code, puis reproduit en test)
+  1. Le POS lit la liste des caisses et prend LA PREMIERE. Si cette liste est
+     VIDE, il utilise une caisse INVENTEE : « Caisse Comptoir Principal »,
+     code REG-01, identifiant « reg-01 », magasin « store-01 », solde
+     125 000 F. Elle ressemble a une vraie caisse, mais n'existe pas en base :
+     le serveur refuse alors CHAQUE vente. Le message en caisse devrait etre
+     « aucune caisse », pas « magasin inconnu » : le vrai probleme etait
+     masque.
+  2. Le serveur, lui, est coherent : une vente doit porter un magasin reel de
+     VOTRE entreprise (garde de securite livree precedemment). Le message
+     exact « Magasin introuvable dans votre entreprise » apparait quand le
+     magasin envoye appartient a une AUTRE entreprise — reproduit en test.
+  3. Une deuxieme cause, plus grave, a ete trouvee et corrigee : le serveur
+     laissait creer une caisse rattachee au magasin d'une AUTRE entreprise
+     (reproduit : creation acceptee en 201 au lieu d'un refus). Une telle
+     caisse envoie ensuite ce magasin etranger a chaque vente, d'ou votre
+     message. C'est desormais refuse (400, message explicite).
+  4. Enfin, si la vente n'indiquait pas de magasin, le serveur prenait le
+     PREMIER magasin de l'entreprise : la vente pouvait donc etre rattachee a
+     un autre magasin que celui de sa caisse (rapport Z et cloture fausses).
+     C'est corrige : le magasin de la CAISSE fait foi.
+
+CE QUE FAIT LE CORRECTEUR (5 modifications + 2 fichiers neufs, sauvegardes)
+  apps/pos/serializers.py     une caisse ne peut viser que le magasin de son
+                              entreprise (refus 400 explicite)
+  apps/sales/serializers.py   le magasin devient facultatif a l'envoi
+  apps/sales/views.py         le magasin est deduit de la caisse ; si magasin
+                              et caisse ne vont pas ensemble, refus clair
+                              « La caisse choisie n'appartient pas a ce magasin »
+  frontend/src/app/pos/page.tsx
+                              plus de caisse inventee : si aucune caisse
+                              n'existe (ou caisse fermee), le POS affiche un
+                              ecran d'installation clair avec les deux
+                              raccourcis qui manquaient — « Creer un magasin »
+                              puis « Creer une caisse » (deja rattachee au bon
+                              magasin) — et la vente n'envoie plus que la
+                              caisse (plus de magasin en double)
+  NOUVEAU  apps/pos/management/commands/diagnostiquer_caisses.py
+                              rapport en lecture seule : entreprises,
+                              magasins, caisses, comptes, et les anomalies
+  NOUVEAU  tests/test_caisse_pos_magasin.py
+                              6 tests (le message signale, le magasin d'une
+                              autre entreprise, la caisse hors magasin, le
+                              parcours normal de bout en bout)
+
+COMMANDES (dans le dossier du projet, celui qui contient manage.py)
+    py corriger_caisses_pos.py --verifier
+    py corriger_caisses_pos.py
+    (autre dossier) py corriger_caisses_pos.py --racine D:\NEXORA
+
+PUIS, POUR COMPRENDRE VOTRE SITUATION PRECISE (lecture seule, ne modifie rien)
+    py manage.py diagnostiquer_caisses
+  Le rapport dit, entreprise par entreprise, quels magasins, caisses et
+  comptes existent, et signale :
+    - une caisse rattachee au magasin d'une autre entreprise (votre cause) ;
+    - un compte sans aucun magasin (rien ne peut etre vendu) ;
+    - un compte sans aucune caisse (le POS proposera d'en creer une).
+
+VERIFICATION
+    py manage.py test tests.test_caisse_pos_magasin -v 2   -> attendu : 6 OK
+
+ENSUITE, DANS L'APPLICATION
+  1. Redemarrez le backend (le controle serveur doit prendre effet), puis
+     relancez le frontend et faites Ctrl+F5.
+  2. Ouvrez la caisse : si elle est vide, l'ecran vous propose de creer le
+     magasin puis la caisse. La nouvelle caisse ouvre sa session
+     automatiquement (fond de caisse 0, modifiable).
+  3. Enregistrez une vente : elle part avec SA caisse ; le magasin est deduit
+     de la caisse, donc plus aucun message « Magasin introuvable ».
+  4. Si votre base contient deja des caisses mais rattachees a une autre
+     entreprise (le diagnostic le dit), creez une caisse dans la bonne
+     entreprise depuis l'ecran du POS : plus besoin de toucher a la base.
+
+PREUVES DE CETTE RECETTE (rejouee ici, pas supposee)
+  - 6 tests ecrits AVANT le correctif : 3 en echec (dont la creation d'une
+    caisse sur le magasin d'une autre entreprise : 201 au lieu de 400), puis
+    <6/6 OK> apres.
+  - Suite backend complete sur l'arbre reproduisant le votre : 118 tests OK
+    (skipped=1), dont les 112 precedents (aucune regression).
+  - Enchainement reel des correctifs (ventes fantomes puis caisses) :
+    11 + 5 corrections, 0 alerte, les deux fichiers frontend compilent
+    (analyseur esbuild), rejeu sans modifier un octet (idempotent).
+  - Le correcteur a ete relance DEPUIS le ZIP extrait : 6 OK, 118 OK.
+
+FICHIERS FOURNIS
+  - corriger_caisses_pos.py        le correcteur (rien n'est modifie sans vous)
+  - LISEZMOI-CAISSES-POS.txt       cette notice
+  - DIFF-CAISSES-POS.txt           exactement ce qui change, hunk par hunk
+  - fichiers/...                   versions corrigees des 4 fichiers, la
+                                   commande de diagnostic et le test
+                                   (secours : a copier uniquement si le
+                                   correcteur signale un fichier different)
+
+RETOUR ARRIERE
+  - Originaux conserves dans sauvegardes-caisses-pos/ (meme arborescence) :
+    copier ce dossier par-dessus apps/ et frontend/src/ restaure l'etat
+    d'avant. La commande de diagnostic et le test sont des fichiers NEUFS :
+    il suffit de les supprimer.
+
+NOTES PRECISES
+  - Aucune migration, aucune donnee modifiee, aucune suppression.
+  - Le bilan vendeur du POS (v3.1) est verifie automatiquement : il reste
+    intact ([OK] dans le rapport).
+  - Le controle cote serveur (magasin de la caisse) s'applique aux comptes
+    rattaches a une entreprise ; un super-administrateur sans entreprise
+    n'est pas bloque, pour ne pas gener l'administration.
