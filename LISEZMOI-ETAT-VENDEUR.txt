@@ -1,0 +1,95 @@
+================================================================================
+NEXORA - ETAT DE VENTE INDIVIDUEL DU VENDEUR : la periode demandee est respectee
+================================================================================
+Livre : 1 correcteur + 1 fichier de tests (4 tests) + le fichier corrige en
+reference. Aucune migration. Aucune donnee touchee.
+Aucun script a comprendre : 2 commandes, et le correcteur patche VOS fichiers.
+
+--------------------------------------------------------------------------------
+LE PROBLEME (reproduit, puis corrige)
+--------------------------------------------------------------------------------
+Le rapport « ETAT DE VENTE INDIVIDUEL DU VENDEUR » (bouton du POS, PDF de
+2 pages) affichait des chiffres faux des qu'on choisissait une periode passee.
+
+Exemple reproduit par les tests, dans un projet de recette :
+  - vente d'Awa le 15/01/2026 ............ 960 F
+  - vente de Bouba le 16/01/2026 .......... 2 880 F
+  - vente d'Awa le jour meme .............. 1 920 F
+  - rapport demande du 01/01 au 31/01/2026 :
+        AVANT : il contenait la vente du jour (1 920 F) -> totaux faux
+        APRES : 960 F exactement, seules les ventes de janvier
+
+--------------------------------------------------------------------------------
+LA CAUSE : UNE SEULE LIGNE
+--------------------------------------------------------------------------------
+Dans apps/sales/pdf_seller_report.py, apres le calcul de la date de fin :
+
+        if not end_date:
+            end_date = now + timezone.timedelta(days=1)
+        else:
+            # S'assurer que les ventes de la minute presente ...
+            end_date = max(end_date, now + timezone.timedelta(hours=4))
+
+La date de fin choisie (31/01/2026 a 23:59:59) etait remplacee par
+« maintenant + 4 h » (08/10/2026). Le rapport debordait donc sur TOUTES les
+ventes enregistrees depuis la date demandee : c'est ce que vous voyiez.
+
+Cette ligne avait ete ajoutee pour ne pas rater les ventes de la minute en
+cours. Elle est inutile : le code place deja la fin de periode a 23:59:59 de
+la journee selectionnee, ce qui couvre toute la journee.
+
+--------------------------------------------------------------------------------
+CE QUE FAIT LE CORRECTEUR
+--------------------------------------------------------------------------------
+  - il retire ce bloc fautif et laisse la date de fin demandee telle quelle ;
+  - il installe tests/test_etat_vendeur_pdf.py (4 tests) ;
+  - il sauvegarde votre fichier dans sauvegardes-etat-vendeur/ ;
+  - il verifie que le fichier corrige compile AVANT d'ecrire ;
+  - il ne touche a rien d'autre, et ne fait rien si le fichier est deja juste.
+
+--------------------------------------------------------------------------------
+A FAIRE (2 commandes)
+--------------------------------------------------------------------------------
+1) Dezipper ce dossier a la racine du projet (la ou se trouve manage.py), en
+   remplacant si Windows le demande, puis :
+
+       py corriger_etat_vendeur_pdf.py
+
+   Resultat attendu :
+       fichier : apps/sales/pdf_seller_report.py
+       [CORRIGE] la date de fin choisie est desormais respectee
+
+   (Pour seulement faire le point, sans rien modifier :
+       py corriger_etat_vendeur_pdf.py --verifier )
+
+2) Verifier :
+
+       py manage.py test tests.test_etat_vendeur_pdf -v 2   (attendu : 4 OK)
+       py manage.py test                                   (attendu : OK)
+
+Puis, dans l'application : bouton « Rapport Individuel Vendeur » du POS,
+periode du 01/01 au 31/01 : le PDF ne doit plus contenir que les ventes de
+cette periode, et les totaux doivent y correspondre.
+
+--------------------------------------------------------------------------------
+CE QUE LES 4 TESTS VERROUILLENT (jeu de donnees controle, 2 vendeurs)
+--------------------------------------------------------------------------------
+1. la periode demandee est respectee : le rapport de janvier ne contient ni la
+   vente du jour (1 920 F), ni celle de Bouba (2 880 F) — et affiche 960 F ;
+2. seules les ventes du vendeur demande apparaissent ;
+3. sans vendeur precise, un caissier ne voit que son propre bilan ;
+4. une vente annulee ne compte plus dans le chiffre d'affaires.
+
+--------------------------------------------------------------------------------
+ETAT DE VOS CORRECTIFS (rien n'a ete perdu)
+--------------------------------------------------------------------------------
+Le correctif « bilan de vente par vendeur » (POS v3.1) reste en place : le
+correcteur ne touche PAS au calcul du vendeur ni a ses marqueurs _nexora_*.
+Verifie dans l'arbre de recette : 101 tests OK apres correction
+(96 deja chez vous + 5 montants decimaux + 4 de ce correctif), 0 echec.
+
+--------------------------------------------------------------------------------
+RETOUR ARRIERE
+--------------------------------------------------------------------------------
+Copiez le contenu de sauvegardes-etat-vendeur/ par-dessus le fichier modifie.
+Aucune migration n'ayant ete creee, il n'y a rien d'autre a defaire.

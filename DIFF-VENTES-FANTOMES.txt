@@ -1,0 +1,700 @@
+DIFF DES VENTES FANTOMES - NEXORA
+================================================================
+
+Ce qui change, fichier par fichier : etat AVANT (vos correctifs
+precedents appliques, P0 compris) -> etat APRES ce correcteur.
+
+################################################################
+# lib/api.ts
+################################################################
+@@ -39,7 +39,8 @@
+   // Essayer successivement le proxy relatif Next.js puis le direct localhost:8008
+   const targets = [
+     `/api/v1${cleanEndpoint}`,
+-    `http://127.0.0.1:8008/api/v1${cleanEndpoint}`
++    `http://127.0.0.1:8008/api/v1${cleanEndpoint}`,
++    `http://127.0.0.1:8000/api/v1${cleanEndpoint}`
+   ];
+ 
+   let lastError: any = null;
+@@ -59,6 +60,16 @@
+         continue;
+       }
+ 
++      if (response.status === 401 || response.status === 403) {
++        throw new ApiError(
++          'Acces refuse par le serveur : session expiree ou droits insuffisants.'
++          + ' Reconnectez-vous, puis reessayez. Rien n\'a ete simule.',
++          'session_refusee',
++          data,
++          response.status
++        );
++      }
++
+       if (!response.ok) {
+         throw new ApiError(
+           data.message || data.error || data.detail || 'Erreur lors de l\'opération.',
+@@ -80,7 +91,8 @@
+   // une vente enregistree alors qu'elle n'existait nulle part. Une panne doit
+   // se voir, pas etre masquee.
+   throw new ApiError(
+-    'Le serveur backend (port 8008) n\'est pas joignable. Veuillez démarrer le backend avec start-local.bat',
++    'Le serveur backend n\'est pas joignable (essaye : proxy /api/v1, puis 127.0.0.1:8008, puis 127.0.0.1:8000). '
++    + 'RIEN n\'a ete enregistre : demarrez le backend avec start-local.bat, puis reessayez.',
+     'backend_offline',
+     null,
+     503
+
+################################################################
+# app/pos/page.tsx
+################################################################
+@@ -288,87 +288,12 @@
+     queryKey: ['products', search],
+     queryFn: () => apiRequest<PaginatedResponse<Product>>(`/products/?search=${encodeURIComponent(search)}`),
+     staleTime: 1000 * 60,
+-        placeholderData: {
+-      status: 'success',
+-      pagination: { count: 3, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
+-      results: [
+-        {
+-          id: 'p1',
+-          name: 'Ordinateur Portable HP ProBook 15',
+-          sku: 'LAPTOP-HP-01',
+-          barcode: '3700123456789',
+-          description: 'Intel i5, 16Go RAM, 512Go SSD',
+-          cost_price: '325000.00',
+-          selling_price: '450000.00',
+-          tax_rate: '18.00',
+-          alert_threshold: '5.00',
+-          is_active: true,
+-          unit_symbol: 'pcs',
+-        },
+-        {
+-          id: 'p2',
+-          name: 'Souris Sans Fil Ergonomique Rechargeable',
+-          sku: 'MOUSE-WL-01',
+-          barcode: '3700123456790',
+-          description: 'Capteur laser haute précision 2.4GHz',
+-          cost_price: '8000.00',
+-          selling_price: '15000.00',
+-          tax_rate: '18.00',
+-          alert_threshold: '10.00',
+-          is_active: true,
+-          unit_symbol: 'pcs',
+-        },
+-        {
+-          id: 'p3',
+-          name: 'Clavier USB Bureautique AZERTY',
+-          sku: 'KEYB-USB-01',
+-          barcode: '3700123456791',
+-          description: 'Clavier standard résistant aux éclaboussures',
+-          cost_price: '6500.00',
+-          selling_price: '12500.00',
+-          tax_rate: '18.00',
+-          alert_threshold: '8.00',
+-          is_active: true,
+-          unit_symbol: 'pcs',
+-        },
+-      ],
+-    },
+   });
+ 
+   // Fetch customers
+   const { data: customersData } = useQuery<PaginatedResponse<Partner>>({
+     queryKey: ['customers-list'],
+     queryFn: () => apiRequest<PaginatedResponse<Partner>>('/partners/?partner_type=CUSTOMER'),
+-    placeholderData: {
+-      status: 'success',
+-      pagination: { count: 2, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
+-      results: [
+-        {
+-          id: 'c1',
+-          name: 'Société Digitale Grand Ouest',
+-          partner_type: 'CUSTOMER',
+-          email: 'contact@digitale-ouest.com',
+-          phone: '+33 2 99 00 11 22',
+-          address: 'Rennes',
+-          tax_number: 'FR1122334455',
+-          credit_limit: '5000.00',
+-          current_balance: '0.00',
+-          is_active: true,
+-        },
+-        {
+-          id: 'c2',
+-          name: 'Atelier Graphique & Design',
+-          partner_type: 'CUSTOMER',
+-          email: 'facturation@ateliergraphique.fr',
+-          phone: '+33 1 45 78 96 32',
+-          address: 'Paris',
+-          tax_number: 'FR9988776655',
+-          credit_limit: '3000.00',
+-          current_balance: '250.00',
+-          is_active: true,
+-        },
+-      ],
+-    },
+   });
+ 
+   // Smart suggestions query
+@@ -381,32 +306,6 @@
+     queryKey: ['pos-suggestions', firstProductId],
+     queryFn: () =>
+       apiRequest(`/pos/suggestions/${firstProductId ? `?product_id=${firstProductId}` : ''}`),
+-    placeholderData: {
+-      frequently_bought_together: [
+-        {
+-          id: 'p2',
+-          name: 'Souris Sans Fil Ergonomique',
+-          sku: 'MOUSE-01',
+-          barcode: '3700123456790',
+-          description: 'Complément parfait pour PC portable',
+-          cost_price: '15.00',
+-          selling_price: '35.00',
+-          tax_rate: '20.00',
+-          alert_threshold: '10.00',
+-          is_active: true,
+-          unit_symbol: 'pcs',
+-        },
+-      ],
+-      trending_products: [],
+-      active_promotions: [
+-        {
+-          id: 'promo-1',
+-          title: 'Offre Pack Bureautique',
+-          description: 'Remise immédiate pour achat simultané PC + Accessoire',
+-          discount_rate: '5.00',
+-        },
+-      ],
+-    },
+   });
+ 
+   // Cart operations
+@@ -531,22 +430,12 @@
+         },
+       };
+ 
+-      try {
+-        return await apiRequest('/sales/', {
+-          method: 'POST',
+-          body: JSON.stringify(payload),
+-        });
+-      } catch {
+-        return {
+-          reference: `VNT-${Date.now().toString().slice(-6)}`,
+-          total_amount: totalTTC.toString(),
+-          subtotal_amount: discountedSubtotal.toString(),
+-          tax_amount: totalTVA.toString(),
+-          paid_amount: totalTTC.toString(),
+-          customer_name: selectedCustomer?.name || 'Client Comptoir',
+-          created_at: new Date().toISOString(),
+-        };
+-      }
++      // Une panne du serveur ne doit jamais fabriquer un faux ticket : le recu
++      // ne s'affiche que pour une vente reellement enregistree en base.
++      return await apiRequest('/sales/', {
++        method: 'POST',
++        body: JSON.stringify(payload),
++      });
+     },
+     onSuccess: (data: any) => {
+       const saleDetails = {
+
+################################################################
+# app/sales/page.tsx
+################################################################
+@@ -121,130 +121,10 @@
+     },
+   });
+ 
+-  const { data: salesData, isLoading } = useQuery<PaginatedResponse<Sale>>({
++  const { data: salesData, isLoading, isError, error, refetch } = useQuery<PaginatedResponse<Sale>>({
+     queryKey: ['sales-list', search, currentPage],
+     queryFn: () => apiRequest<PaginatedResponse<Sale>>(`/sales/?page=${currentPage}&search=${encodeURIComponent(search)}`),
+     staleTime: 1000 * 60,
+-        placeholderData: {
+-      status: 'success',
+-      pagination: { count: 3, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
+-      results: [
+-        {
+-          id: 's-demo-1',
+-          reference: 'VNT-20260929-001',
+-          store: 'store-01',
+-          customer_name: 'Société Digitale Grand Ouest',
+-          store_name: 'Magasin & Dépôt Ouaga Central',
+-          seller_name: 'vendeur.ouaga@nexora-bf.com',
+-          status: 'COMPLETED',
+-          payment_status: 'PAID',
+-          subtotal_amount: '450000.00',
+-          tax_amount: '81000.00',
+-          discount_amount: '0.00',
+-          total_amount: '531000.00',
+-          paid_amount: '531000.00',
+-          created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+-          items: [
+-            {
+-              id: 'it-1',
+-              product: 'p1',
+-              product_name: 'Ordinateur Portable HP ProBook 15',
+-              product_sku: 'LAPTOP-HP-01',
+-              quantity: '1.00',
+-              unit_price: '450000.00',
+-              tax_rate: '18.00',
+-              discount_rate: '0.00',
+-              total: '531000.00',
+-            },
+-          ],
+-          payments: [
+-            {
+-              id: 'pay-1',
+-              amount: '531000.00',
+-              payment_method: 'CASH',
+-              reference: 'POS-PAY-001',
+-              created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+-            },
+-          ],
+-        },
+-        {
+-          id: 's-demo-2',
+-          reference: 'VNT-20260929-002',
+-          store: 'store-01',
+-          customer_name: 'Atelier Graphique & Design',
+-          store_name: 'Magasin & Dépôt Ouaga Central',
+-          seller_name: 'vendeur.ouaga@nexora-bf.com',
+-          status: 'COMPLETED',
+-          payment_status: 'PARTIAL',
+-          subtotal_amount: '380000.00',
+-          tax_amount: '68400.00',
+-          discount_amount: '0.00',
+-          total_amount: '448400.00',
+-          paid_amount: '200000.00',
+-          created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+-          items: [
+-            {
+-              id: 'it-2',
+-              product: 'p3',
+-              product_name: 'Écran Dell 24 Pouces UltraSharp Full HD',
+-              product_sku: 'DISP-DELL-24',
+-              quantity: '4.00',
+-              unit_price: '95000.00',
+-              tax_rate: '18.00',
+-              discount_rate: '0.00',
+-              total: '448400.00',
+-            },
+-          ],
+-          payments: [
+-            {
+-              id: 'pay-2',
+-              amount: '200000.00',
+-              payment_method: 'BANK_TRANSFER',
+-              reference: 'VIR-BF-009',
+-              created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+-            },
+-          ],
+-        },
+-        {
+-          id: 's-demo-3',
+-          reference: 'VNT-20260929-003',
+-          store: 'store-01',
+-          customer_name: 'Client Comptoir',
+-          store_name: 'Magasin & Dépôt Ouaga Central',
+-          seller_name: 'vendeur.ouaga@nexora-bf.com',
+-          status: 'COMPLETED',
+-          payment_status: 'PAID',
+-          subtotal_amount: '52500.00',
+-          tax_amount: '9450.00',
+-          discount_amount: '0.00',
+-          total_amount: '61950.00',
+-          paid_amount: '61950.00',
+-          created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
+-          items: [
+-            {
+-              id: 'it-3',
+-              product: 'p2',
+-              product_name: 'Souris Sans Fil Ergonomique Rechargeable',
+-              product_sku: 'MOUSE-WL-01',
+-              quantity: '3.00',
+-              unit_price: '15000.00',
+-              tax_rate: '18.00',
+-              discount_rate: '0.00',
+-              total: '53100.00',
+-            },
+-          ],
+-          payments: [
+-            {
+-              id: 'pay-3',
+-              amount: '61950.00',
+-              payment_method: 'MOBILE_MONEY',
+-              reference: 'OM-BURKINA-782',
+-              created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
+-            },
+-          ],
+-        },
+-      ],
+-    },
+   });
+ 
+   const columns = [
+@@ -401,6 +281,23 @@
+           className="max-w-md bg-card"
+         />
+ 
++        {isError && (
++          <div className="flex flex-col gap-2 rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200 sm:flex-row sm:items-center sm:justify-between">
++            <span>
++              Aucune donnee n'a ete chargee depuis le serveur :{' '}
++              {(error as any)?.message || 'erreur inconnue'}. Les ventes ci-dessous ne
++              sont PAS la liste officielle.
++            </span>
++            <button
++              type="button"
++              onClick={() => refetch()}
++              className="rounded-md border border-red-400/60 px-3 py-1.5 text-xs font-semibold text-red-100 hover:bg-red-500/20"
++            >
++              Reessayer
++            </button>
++          </div>
++        )}
++
+         <DataTable
+           columns={columns}
+           data={salesData?.results || []}
+
+################################################################
+# lib/auth.tsx
+################################################################
+@@ -14,25 +14,16 @@
+ 
+ const AuthContext = createContext<AuthContextType | undefined>(undefined);
+ 
+-// Utilisateur administrateur par défaut sécurisé pré-connecté pour garantir l'immédiateté d'usage
+-const DEFAULT_DEMO_USER: User = {
+-  id: 'd80b0a58-f3ee-440b-b75d-916f5174e36a',
+-  email: 'admin@nexora-enterprise.com',
+-  first_name: 'Directeur',
+-  last_name: 'Général',
+-  role: 'ADMIN',
+-  is_active: true,
+-  company_id: '6be8c288-f9e1-4d16-8a51-21d804041da9',
+-  company_name: 'NEXORA BURKINA COMMERCIAL GROUP',
+-};
++// NOTE : aucune session de demonstration. L'acces aux donnees exige un vrai
++// jeton emis par le serveur (voir ci-dessous).
+ 
+ export function AuthProvider({ children }: { children: React.ReactNode }) {
+   const pathname = usePathname();
+   const router = useRouter();
+ 
+-  const [user, setUser] = useState<User | null>(DEFAULT_DEMO_USER);
+-  const [token, setToken] = useState<string | null>('demo_active_token_nexora');
+-  const [isLoading, setIsLoading] = useState(false);
++  const [user, setUser] = useState<User | null>(null);
++  const [token, setToken] = useState<string | null>(null);
++  const [isLoading, setIsLoading] = useState(true);
+ 
+   useEffect(() => {
+     if (typeof window === 'undefined') return;
+@@ -50,7 +41,10 @@
+       localStorage.getItem('nexora_session_user') ||
+       localStorage.getItem('nexora_user');
+ 
+-    if (activeToken && activeUser) {
++    // Un jeton de demonstration ne vaut rien : le serveur le refuse.
++    const jetonUtilisable = !!activeToken && activeToken.startsWith('eyJ');
++
++    if (jetonUtilisable && activeUser) {
+       try {
+         const parsedUser = JSON.parse(activeUser);
+         setToken(activeToken);
+@@ -62,13 +56,16 @@
+       }
+     }
+ 
+-    // Par défaut : initialiser la session prête à l'emploi avec l'utilisateur administrateur principal
+-    sessionStorage.setItem('nexora_session_token', 'demo_active_token_nexora');
+-    sessionStorage.setItem('nexora_session_user', JSON.stringify(DEFAULT_DEMO_USER));
+-    localStorage.setItem('nexora_session_token', 'demo_active_token_nexora');
+-    localStorage.setItem('nexora_session_user', JSON.stringify(DEFAULT_DEMO_USER));
+-    setToken('demo_active_token_nexora');
+-    setUser(DEFAULT_DEMO_USER);
++    // Aucune session utilisable : on ne simule rien. La garde des routes
++    // conduit a la page de connexion, ou l'utilisateur s'authentifie vraiment.
++    if (activeToken && !jetonUtilisable) {
++      sessionStorage.removeItem('nexora_session_token');
++      sessionStorage.removeItem('nexora_session_user');
++      localStorage.removeItem('nexora_session_token');
++      localStorage.removeItem('nexora_session_user');
++    }
++    setToken(null);
++    setUser(null);
+     setIsLoading(false);
+   }, []);
+ 
+
+################################################################
+# app/login/page.tsx
+################################################################
+@@ -6,7 +6,7 @@
+ import { Button } from '@/components/ui/button';
+ import { Input } from '@/components/ui/input';
+ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+-import { Lock, Mail, Store, ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
++import { Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
+ 
+ export default function LoginPage() {
+   const router = useRouter();
+@@ -58,52 +58,7 @@
+         }
+       }
+ 
+-      // 2. Mode Démo / Autonome Local garanti sans échec :
+-      // Utiliser de véritables jetons signés par le backend
+-      if (
+-        (enteredEmail === 'admin@nexora-enterprise.com' || enteredEmail === 'admin') &&
+-        (enteredPass === 'Admin123456!' || enteredPass === 'Password123!')
+-      ) {
+-        const localAdminUser = {
+-          id: 'e642b333-5da9-4006-8f0c-0c3743c044e9',
+-          email: 'admin@nexora-enterprise.com',
+-          first_name: 'Directeur',
+-          last_name: 'Général',
+-          role: 'ADMIN' as const,
+-          company_id: '235856b2-8892-4e54-869e-c768656f6abf',
+-          company_name: 'NEXORA BURKINA COMMERCIAL GROUP',
+-          is_active: true,
+-        };
+-        // Vrai token JWT valide signé avec la clé secrète du backend
+-        const validJwtAdmin =
+-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDgwMDAwMDAwLCJ1c2VyX2lkIjoiZTY0MmIzMzMtNWRhOS00MDA2LThmMGMtMGMzNzQzYzA0NGU5In0.k0X9N1wV5wN6PzQyRw';
+-        login(validJwtAdmin, localAdminUser);
+-        router.push('/');
+-        return;
+-      }
+-
+-      if (
+-        (enteredEmail === 'caissier@nexora-bf.com' || enteredEmail === 'cashier') &&
+-        (enteredPass === 'Cashier123!' || enteredPass === 'Password123!')
+-      ) {
+-        const localCashierUser = {
+-          id: 'cashier-local-id',
+-          email: 'caissier@nexora-bf.com',
+-          first_name: 'Ibrahim',
+-          last_name: 'Ouedraogo',
+-          role: 'CASHIER' as const,
+-          company_id: '235856b2-8892-4e54-869e-c768656f6abf',
+-          company_name: 'NEXORA BURKINA COMMERCIAL GROUP',
+-          is_active: true,
+-        };
+-        const validJwtCashier =
+-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoyMDgwMDAwMDAwLCJ1c2VyX2lkIjoiY2Fpc3NpZXItYWYxMS00MDBjLThmYWMtMGFiYzQzYzA0NGU5In0.s9X8N2wV4wM7PzQySw';
+-        login(validJwtCashier, localCashierUser);
+-        router.push('/pos');
+-        return;
+-      }
+-
+-      throw new Error('Identifiants incorrects. Cliquez sur le bouton "Directeur" ci-dessous pour vous connecter immédiatement.');
++      throw new Error('Connexion impossible : identifiants refuses par le serveur, ou serveur de donnees injoignable. Aucune connexion n\'a ete simulee. Verifiez que le backend est demarre (start-local.bat), puis reessayez.');
+     } catch (err: any) {
+       setErrorMsg(err.message || 'Échec de connexion au serveur.');
+     } finally {
+@@ -111,11 +66,6 @@
+     }
+   };
+ 
+-  const handleQuickFill = (roleEmail: string, rolePass: string) => {
+-    setEmail(roleEmail);
+-    setPassword(rolePass);
+-  };
+-
+   return (
+     <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4 relative overflow-hidden">
+       {/* Decorative background glow */}
+@@ -186,35 +136,6 @@
+             </Button>
+           </form>
+ 
+-          {/* Quick Login Presets for easy demonstration */}
+-          <div className="mt-6 pt-5 border-t border-slate-700/80">
+-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5 text-center">
+-              Comptes Démo Préconfigurés (1 Clic)
+-            </p>
+-            <div className="grid grid-cols-2 gap-2">
+-              <button
+-                type="button"
+-                onClick={() => handleQuickFill('admin@nexora-enterprise.com', 'Admin123456!')}
+-                className="p-2 rounded-lg border border-slate-700 bg-slate-900/60 hover:bg-slate-900 text-left transition-all"
+-              >
+-                <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400">
+-                  <ShieldCheck className="h-3.5 w-3.5" /> Directeur
+-                </div>
+-                <span className="text-[10px] text-slate-400 block truncate">admin@nexora...</span>
+-              </button>
+-
+-              <button
+-                type="button"
+-                onClick={() => handleQuickFill('caissier@nexora-bf.com', 'Cashier123!')}
+-                className="p-2 rounded-lg border border-slate-700 bg-slate-900/60 hover:bg-slate-900 text-left transition-all"
+-              >
+-                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+-                  <Store className="h-3.5 w-3.5" /> Caissier
+-                </div>
+-                <span className="text-[10px] text-slate-400 block truncate">caissier@nexora...</span>
+-              </button>
+-            </div>
+-          </div>
+         </CardContent>
+ 
+         <CardFooter className="justify-center border-t border-slate-700/60 py-3 text-center">
+
+################################################################
+# app/reports/page.tsx
+################################################################
+@@ -127,59 +127,6 @@
+       ),
+     staleTime: 1000 * 60,
+         refetchOnWindowFocus: true,
+-    placeholderData: {
+-      requested_view: 'executive',
+-      period_days: 30,
+-      insights_explanation: [
+-        "Le chiffre d'affaires progresse de 14.2%, principalement porté par une hausse du panier moyen passé de 185 000 FCFA à 245 000 FCFA.",
+-        "La performance commerciale est fortement consolidée par 'Ordinateur Portable HP ProBook 15', qui génère à lui seul 48% des recettes analysées.",
+-        "Attention : 2 référence(s) sont sous le seuil d'alerte, présentant un risque direct de rupture."
+-      ],
+-      sales_overview: {
+-        current_revenue: '24850000.00',
+-        previous_revenue: '21760000.00',
+-        growth_pct: '14.2',
+-        sales_count: 142,
+-        avg_basket: '175000.00',
+-        tax_collected: '4473000.00',
+-        discounts_granted: '350000.00',
+-      },
+-      profitability: {
+-        gross_revenue: '24850000.00',
+-        total_cost_of_goods: '16200000.00',
+-        estimated_profit: '8650000.00',
+-        margin_rate_pct: '34.8',
+-      },
+-      stock_health: {
+-        total_cost_valuation: '28500000.00',
+-        total_retail_valuation: '42800000.00',
+-        total_units: '1840.00',
+-        critical_items_count: 2,
+-      },
+-      customer_insights: {
+-        total_customer_accounts: 38,
+-        active_buying_customers: 24,
+-        customer_retention_rate: '63.2%',
+-      },
+-      top_products: [
+-        { name: 'Ordinateur Portable HP ProBook 15', sku: 'LAPTOP-HP-01', qty: '28', revenue: '12600000.00' },
+-        { name: 'Écran Dell 24 Pouces Full HD', sku: 'DISP-DELL-24', qty: '35', revenue: '3850000.00' },
+-        { name: 'Clavier USB Bureautique AZERTY', sku: 'KEYB-USB-01', qty: '80', revenue: '1000000.00' },
+-      ],
+-      categories: [
+-        { category: 'Informatique & PC', revenue: '15500000.00', qty: '46' },
+-        { category: 'Périphériques', revenue: '6250000.00', qty: '92' },
+-        { category: 'Accessoires', revenue: '3100000.00', qty: '120' },
+-      ],
+-      sellers_performance: [
+-        { seller: 'vendeur.ouaga@nexora-bf.com', revenue: '14800000.00', transactions: 84 },
+-        { seller: 'vendeur.bobo@nexora-bf.com', revenue: '10050000.00', transactions: 58 },
+-      ],
+-      stores_performance: [
+-        { store: 'Magasin Ouaga Central', revenue: '16800000.00' },
+-        { store: 'Dépôt Bobo-Dioulasso', revenue: '8050000.00' },
+-      ],
+-    },
+   });
+ 
+   const selectedSellerLabel =
+
+################################################################
+# app/inventory/page.tsx
+################################################################
+@@ -266,20 +266,6 @@
+   const { data: storesData } = useQuery<PaginatedResponse<Store>>({
+     queryKey: ['stores-list'],
+     queryFn: () => apiRequest<PaginatedResponse<Store>>('/stores/'),
+-    placeholderData: {
+-      status: 'success',
+-      pagination: { count: 1, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
+-      results: [
+-        {
+-          id: 'store-01',
+-          name: 'Magasin & Dépôt Ouaga Central',
+-          code: 'MAG-OUAGA-01',
+-          address: 'Avenue Kwamé N\'Krumah, Ouagadougou',
+-          phone: '+226 25 31 10 20',
+-          is_active: true,
+-        },
+-      ],
+-    },
+   });
+ 
+   // Fetch products
+@@ -393,24 +379,6 @@
+   const { data: inventoriesData, isLoading: isInvLoading } = useQuery<PaginatedResponse<any>>({
+     queryKey: ['inventories-list'],
+     queryFn: () => apiRequest<PaginatedResponse<any>>('/inventories/'),
+-    placeholderData: {
+-      status: 'success',
+-      pagination: { count: 1, total_pages: 1, current_page: 1, page_size: 20, next: null, previous: null },
+-      results: [
+-        {
+-          id: 'inv-1',
+-          reference: 'INV-T1-2026',
+-          inventory_type: 'FULL',
+-          status: 'VALIDATED',
+-          notes: 'Inventaire général de clôture premier trimestre',
+-          validated_at: new Date().toISOString(),
+-          created_at: new Date().toISOString(),
+-          lines: [
+-            { id: 'l1', product_name: 'Ordinateur Portable Pro 15', expected_quantity: '50.00', counted_quantity: '48.00', difference: '-2.00' },
+-          ],
+-        },
+-      ],
+-    },
+   });
+ 
+   // Direct Stock Entry Mutation
+
+################################################################
+# app/automation/page.tsx
+################################################################
+@@ -58,34 +58,6 @@
+     queryKey: ['automation-rules'],
+     queryFn: () => apiRequest('/automation-rules/'),
+     staleTime: 1000 * 60,
+-        placeholderData: {
+-      results: [
+-        {
+-          id: 'rule-1',
+-          name: 'Alerte Rupture de Stock Préventive',
+-          description: 'Alerte les responsables dès qu\'un produit passe sous le seuil critique.',
+-          trigger_type: 'STOCK_BELOW_THRESHOLD',
+-          action_type: 'CREATE_NOTIFICATION',
+-          parameters: { threshold: 5 },
+-          is_active: true,
+-          last_triggered_at: new Date().toISOString(),
+-          execution_count: 14,
+-          created_at: new Date().toISOString(),
+-        },
+-        {
+-          id: 'rule-2',
+-          name: 'Relance Factures Clients Impayées',
+-          description: 'Notifie la comptabilité pour toute facture non réglée après 15 jours.',
+-          trigger_type: 'OVERDUE_INVOICE',
+-          action_type: 'CREATE_NOTIFICATION',
+-          parameters: { days_overdue: 15 },
+-          is_active: true,
+-          last_triggered_at: new Date(Date.now() - 86400000).toISOString(),
+-          execution_count: 6,
+-          created_at: new Date().toISOString(),
+-        },
+-      ],
+-    },
+   });
+ 
+   // Dictionnaires de traduction en français des déclencheurs et actions
+

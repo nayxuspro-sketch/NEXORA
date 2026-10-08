@@ -1,0 +1,102 @@
+NEXORA — DIAGNOSTIC du bilan par vendeur au POS
+Généré le 07/10/2026 à 15:39:15
+Racine analysée : D:\NEXORA
+
+--- Recherche des fichiers ---
+D:\NEXORA : pdf_seller_report.py -> 0 trouvé(s)
+C:\NEXORA : pdf_seller_report.py -> 1 trouvé(s)
+  C:\NEXORA\apps\sales\pdf_seller_report.py
+D:\NEXORA : pos/page.tsx -> 1 trouvé(s)
+C:\NEXORA : pos/page.tsx -> 1 trouvé(s)
+  D:\NEXORA\frontend\src\app\pos\page.tsx
+  C:\NEXORA\frontend\src\app\pos\page.tsx
+
+Choix retenu : backend=C:\NEXORA\apps\sales\pdf_seller_report.py | ecran POS=C:\NEXORA\frontend\src\app\pos\page.tsx
+  - même dossier de projet
+  - backend : vue du bilan vendeur présente
+  - chemin conforme (apps/sales/pdf_seller_report.py)
+  - écran POS : bouton/bilan vendeur présent
+  - chemin conforme (app/pos/page.tsx)
+  - indice de projet actif : frontend/node_modules
+  - indice de projet actif : frontend/.next
+  - indice de projet actif : frontend/package.json
+  - indice de projet actif : manage.py
+  - indice de projet actif : db.sqlite3
+Autres couples examines :
+     99 | C:\NEXORA\apps\sales\pdf_seller_report.py | D:\NEXORA\frontend\src\app\pos\page.tsx
+
+--- BACKEND (vue PDF vendeur) ---
+  chemin : C:\NEXORA\apps\sales\pdf_seller_report.py
+  taille : 37098 octets
+  sha256 : dfc6a7d44cd3b842359a78f90b3491e2052ef2eafe4acaa298b6c82bdf7448bd
+  extraits :
+        31 | def resolve_seller(company, seller_param):
+        43 |     if not seller_param:
+        46 |     parametre = str(seller_param).strip()
+       132 | def _nexora_resolve_seller(company, seller_param):
+       144 |     if not seller_param:
+       147 |     parametre = str(seller_param).strip()
+       224 | class SellerSalesReportPdfView(APIView):
+       245 |         seller_param = request.query_params.get('seller_id') or request.query_params.get('seller')
+       280 |         if seller_param:
+       281 |             seller_str = str(seller_param).strip()
+       307 |         sales_qs = Sale.objects.all()
+       309 |             company_sales = sales_qs.filter(company=company)
+       311 |                 sales_qs = company_sales
+       315 |             date_filtered = sales_qs.filter(created_at__gte=start_date, created_at__lte=end_date)
+       317 |                 sales_qs = date_filtered
+       321 |             seller_filtered_qs = sales_qs.filter(seller=seller_user)
+       323 |                 sales_qs = seller_filtered_qs
+       331 |         seller_param = (
+       337 |         seller_user, erreur_vendeur = resolve_seller(company, seller_param)
+       362 |         sales_qs = sales_queryset_for_seller(company, seller_user, start_date, end_date)
+       370 |         seller_param = (
+       376 |         seller_user, erreur_vendeur = _nexora_resolve_seller(company, seller_param)
+       401 |         sales_qs = _nexora_ventes_du_vendeur(company, seller_user, start_date, end_date)
+       403 |         sales = list(sales_qs.prefetch_related('items__product', 'payments').order_by('-created_at')[:50])
+
+--- FRONTEND (écran POS) ---
+  chemin : C:\NEXORA\frontend\src\app\pos\page.tsx
+  taille : 61518 octets
+  sha256 : cf4966133809dc21e2b746e84898da9bf1f4b1a6e070ba4a152d53a6b0d7886e
+  extraits :
+        98 |   // --- CORRECTIF v2 : liste des vendeurs du bilan (insertion automatique) ---
+       100 |     queryKey: ['pos-vendeurs-bilan'],
+       105 |   const vendeurs = React.useMemo(() => {
+       122 |   // Par défaut : le vendeur connecté (identifiant technique = filtre fiable)
+       127 |         seller_id: prev.seller_id || (authUser as any).id || '',
+       128 |         seller_email: prev.seller_email || (authUser as any).email || '',
+       187 |   const [sellerPdfPeriod, setSellerPdfPeriod] = React.useState({
+       188 |     seller_id: '',
+       192 |     seller_email: '',
+       196 |   // Set default seller email from current user
+       199 |       setSellerPdfPeriod((prev) => ({ ...prev, seller_email: authUser.email }));
+       207 |         start_date: sellerPdfPeriod.start_date,
+       208 |         end_date: sellerPdfPeriod.end_date,
+       209 |         ...(sellerPdfPeriod.seller_id
+       210 |           ? { seller_id: sellerPdfPeriod.seller_id }
+       211 |           : sellerPdfPeriod.seller_email
+       212 |             ? { seller: sellerPdfPeriod.seller_email }
+       216 |         `/api/v1/sales/export-seller-pdf/?${queryParams.toString()}`,
+       217 |         `Vente_Vendeur_${sellerPdfPeriod.start_date}_${sellerPdfPeriod.end_date}.pdf`
+       222 |         title: 'Bilan Vendeur Téléchargé',
+      1019 |               <Sparkles className="h-4 w-4" /> Rapport Individuel Vendeur sur 2 Pages :
+      1035 |                 value={sellerPdfPeriod.start_date}
+      1036 |                 onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, start_date: e.target.value })}
+      1046 |                 value={sellerPdfPeriod.end_date}
+      1047 |                 onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, end_date: e.target.value })}
+      1054 |               Compte Vendeur / Caissier
+      1056 |             {vendeurs.length > 0 ? (
+      1058 |                 aria-label="Choisir le vendeur du bilan"
+      1059 |                 value={sellerPdfPeriod.seller_id}
+      1061 |                   const choisi = vendeurs.find((v) => v.id === e.target.value);
+      1063 |                     ...sellerPdfPeriod,
+      1064 |                     seller_id: e.target.value,
+      1065 |                     seller_email: choisi?.email || '',
+      1070 |                 <option value="">— Choisir un vendeur —</option>
+      1071 |                 {vendeurs.map((v) => (
+      1080 |                 value={sellerPdfPeriod.seller_email}
+      1081 |                 onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, seller_email: e.target.value })}
+      1086 |               Le bilan est strictement limité aux ventes validées encaissées par ce vendeur sur la période choisie.
+      1100 |               href={`/api/v1/sales/export-seller-pdf/?start_date=${sellerPdfPeriod.start_date}&end_date=${sellerPdfPeriod.end_date}${sellerPdfPeriod.seller_id ? `&seller_id=${encod
+

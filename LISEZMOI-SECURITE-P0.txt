@@ -1,0 +1,149 @@
+================================================================================
+NEXORA - CORRECTIF DE SECURITE P0 : LES ACCES VENUS DU RESEAU
+================================================================================
+Prepare le 08/10/2026. Verifie avant livraison : 70 tests sur 70, OK.
+Aucun script a lancer pour installer. Trois gestes, decrits plus bas.
+
+--------------------------------------------------------------------------------
+CE QUI ETAIT OUVERT (constate dans votre code, pas suppose)
+--------------------------------------------------------------------------------
+1. /api/v1/users/ et /api/v1/groups/ repondaient SANS AUCUN jeton : depuis
+   n'importe quelle machine du reseau, il etait possible de LIRE la liste des
+   comptes, d'EN CREER un (meme administrateur) et de modifier les mots de passe.
+2. Toute vue qui ne precisait pas de permission acceptait les appels anonymes
+   et servait alors les donnees de la PREMIERE entreprise : ventes, clients,
+   produits, exports PDF, licences.
+3. Un jeton invalide ou expire etait ignore en silence : l'appelant devenait
+   anonyme et, de ce fait, recevait les donnees de la premiere entreprise.
+4. Le module d'autorisation par role (RolePermission) renvoyait TOUJOURS vrai :
+   roles annonces (ADMIN/MANAGER/AUDITOR sur le journal d'audit) non verifies.
+5. Le CORS acceptait TOUTES les origines : une page web quelconque ouverte dans
+   le navigateur du poste pouvait lire l'API en 127.0.0.1.
+6. En mode DEBUG, une page 404/500 de Django (avec extraits de configuration)
+   etait renvoyee a n'importe quel appelant.
+7. La connexion pouvait etre essayee sans aucune limite (mots de passe au hasard).
+8. Cote interface, si le serveur ne repondait pas, un enregistrement etait
+   SIMULE et l'ecran affichait un succes : une vente pouvait sembler enregistree
+   sans exister.
+
+--------------------------------------------------------------------------------
+CE QUI NE CHANGE PAS (c'est le point cle : rien ne casse sur le poste)
+--------------------------------------------------------------------------------
+Une seule regle, appliquee en un seul endroit :
+
+  appel avec un utilisateur connecte (jeton ou session)  -> inchange
+  appel anonyme VENANT DU POSTE de caisse lui-meme        -> inchange
+      (boutons PDF, ouverture d'onglet, caisse hors-ligne)
+  appel anonyme VENANT D'AILLEURS                         -> refuse (401)
+
+Concretement : vos ecrans, vos PDF, votre caisse hors-ligne et votre connexion
+continuent de fonctionner exactement comme avant. Seule difference : un autre
+poste du reseau, un telephone ou un site web ne peut plus lire votre gestion
+sans se connecter.
+
+--------------------------------------------------------------------------------
+INSTALLATION - AUCUN SCRIPT A LANCER (30 secondes)
+--------------------------------------------------------------------------------
+AVANT DE COMMENCER, un controle de 15 secondes :
+  ouvrez C:\NEXORA\config\settings.py avec le Bloc-notes et cherchez
+  "NEXORA_PRODUCTION_PROFILE_V1" (Ctrl+F).
+  - absent  -> continuez normalement ;
+  - present -> NE remplacez PAS settings.py : envoyez-moi un message, je vous
+    fournis le meme correctif adapte a VOTRE fichier.
+
+PRECAUTION UTILE : arretez d'abord les deux serveurs ouverts (fenetres du
+backend et du frontend), pour qu'ils rechargent les fichiers corriges.
+
+PRINCIPE : le zip contient DEJA l'arborescence exacte
+(apps\..., config\..., frontend\..., tests\...). Il suffit de deposer ces
+fichiers DANS C:\NEXORA, en remplacant ceux qui portent le meme nom.
+
+Methode 1 (recommandee, evite toute erreur de dossier) :
+  1. double-cliquez sur SECURITE-P0-NEXORA.zip pour l'OUVRIR (ne l'extrayez pas) ;
+  2. selectionnez tout dans la fenetre (Ctrl+A) ;
+  3. faites glisser le tout dans le dossier C:\NEXORA ;
+  4. confirmez "Remplacer les fichiers dans la destination".
+     (Windows fusionne les dossiers apps, config, frontend, tests tout seul.)
+
+Methode 2 (equivalent) :
+  clic droit sur le zip > Extraire tout... > destination : C:\NEXORA
+  (effacez le sous-dossier que Windows propose apres "C:\NEXORA\", sinon les
+  fichiers iraient dans un sous-dossier et rien ne serait remplace) ;
+  puis cochez "Remplacer les fichiers".
+
+PUIS : relancez le backend (py manage.py runserver) et le frontend
+(npm run dev dans le dossier frontend), et faites Ctrl+F5 dans le navigateur.
+
+--------------------------------------------------------------------------------
+VERIFICATION (2 minutes)
+--------------------------------------------------------------------------------
+Dans une invite de commandes :
+
+    cd /d C:\NEXORA
+    py manage.py test tests.test_securite_p0 -v 2
+
+Resultat attendu : Ran 21 tests ... OK
+
+Et pour verifier que RIEN d'autre n'est casse (vous devez avoir 70 tests, dont
+les 14 du bilan vendeur et les 4 du filtre BI) :
+
+    py manage.py test
+
+Resultat attendu : Ran 70 tests ... OK (1 test du filtre BI peut etre "skipped",
+c'est une condition interne de ce test, pas un echec).
+
+Le detail de ces executions, telles que je les ai obtenues avant livraison, est
+dans PREUVE-TESTS-NEXORA.txt. Le contenu exact de chaque modification est dans
+DIFF-SECURITE-P0.txt.
+
+--------------------------------------------------------------------------------
+EN CAS DE PROBLEME
+--------------------------------------------------------------------------------
+Envoyez-moi :
+  1. la sortie complete de la commande de test (meme si elle parait longue) ;
+  2. ou le message d'erreur affiche par le serveur au demarrage.
+Aucun mot de passe, aucune cle secretaire n'est necessaire : ne les collez jamais
+dans le chat.
+
+RETOUR ARRIERE : les versions d'origine sont dans le depot GitHub (etiquette
+v1.3.9, fichier correspondant au meme chemin). Si vous preferez que je m'en
+occupe, demandez-le : je fournis le pack de retour arriere.
+
+--------------------------------------------------------------------------------
+CE QUI RESTE A FAIRE POUR UNE VRAIE MISE EN LIGNE (hors P0)
+--------------------------------------------------------------------------------
+Ces points ne concernent pas l'usage local actuel et demandent HTTPS :
+  - SECURE_HSTS_SECONDS, SESSION_COOKIE_SECURE, CSRF_COOKIE_SECURE,
+    SECURE_SSL_REDIRECT ;
+  - cle secrete propre a votre installation (DJANGO_SECRET_KEY) : des que vous
+    passez DJANGO_DEBUG=False, le programme REFUSE de demarrer tant qu'elle
+    n'est pas definie, avec un message explicite ;
+  - noms de domaine autorises (NEXORA_ALLOWED_HOSTS).
+Le fichier .env.example fourni documente ces reglages. Si vous voulez que
+l'application soit joignable depuis Internet, dites-le : c'est un autre chantier
+(HTTPS, sauvegardes, sauvegarde externalisee).
+
+--------------------------------------------------------------------------------
+FICHIERS LIVRES ET EMPREINTES SHA-256 (premiers caracteres)
+--------------------------------------------------------------------------------
+  .env.example                              1393 o  f5d5e8c86feac387a8d3...
+  apps/accounts/settings_views.py           5850 o  8781c50f563c99a16f1c...
+  apps/accounts/views.py                    2810 o  5b82615464d0f9cb89f0...
+  apps/common/acces.py                      3241 o  1a58a4b9633c268528e9...
+  apps/common/authentication.py             1782 o  a90eeb1bc4504539a65e...
+  apps/common/middleware.py                 5599 o  7557ae8627c8f7e78a5b...
+  apps/common/permissions.py                3017 o  344cf281aec9dc69e3df...
+  apps/common/viewsets.py                   2628 o  af5d4986041fb16fc327...
+  config/settings.py                        8652 o  e4bc2980bf673b9b7d11...
+  frontend/src/lib/api.ts                   2691 o  17361d4d42ea625e07f2...
+  tests/test_securite_p0.py                12032 o  3cd07a1c3c4970f1a928...
+
+Fichiers de documentation inclus :
+  LISEZMOI-SECURITE-P0.txt     cette notice
+  PREUVE-TESTS-NEXORA.txt      sorties reelles des tests (avant / apres)
+  DIFF-SECURITE-P0.txt         difference exacte avec le code d'origine
+
+Un seul fichier NOUVEAU est ajoute au projet : apps/common/acces.py
+(les autres sont des remplacements). Aucun fichier de vos correctifs precedents
+(bilan vendeur au POS, filtre par vendeur dans la BI) n'est touche.
+================================================================================

@@ -1,0 +1,98 @@
+PREUVES D'EXECUTION DES TESTS - CORRECTIF DE SECURITE P0
+=======================================================
+Environnement de verification : Python 3.11, Django 5.2.18, DRF 3.18.3
+(les dependances du projet, telles que listees dans requirements.txt).
+Le code testé est exactement celui livre dans ce paquet.
+
+Deux arbres sont utilises :
+  AVANT : version 1.3.9 du depot, sans aucune modification ;
+  APRES : version 1.3.9 + les deux correctifs deja installes chez vous
+          (filtre BI par vendeur, bilan de vente par vendeur au POS)
+          + le correctif de securite de ce paquet.
+
+------------------------------------------------------------------------------
+1) AVANT CORRECTIF : suite de tests d'origine (code 1.3.9)
+------------------------------------------------------------------------------
+  commande : py manage.py test
+
+Found 31 test(s).
+System check identified no issues (0 silenced).
+Creating test database for alias 'default'...
+Ran 31 tests in 24.039s
+OK
+Destroying test database for alias 'default'...
+------------------------------------------------------------------------------
+2) APRES CORRECTIF : les 21 tests de securite (detail)
+------------------------------------------------------------------------------
+  commande : py manage.py test tests.test_securite_p0 -v 2
+
+Found 21 test(s).
+System check identified no issues (0 silenced).
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+test_appel_anonyme_distant_refuse (tests.test_securite_p0.SecuriteP0Tests.test_appel_anonyme_distant_refuse)
+test_appel_anonyme_distant_refuse_sur_les_ventes (tests.test_securite_p0.SecuriteP0Tests.test_appel_anonyme_distant_refuse_sur_les_ventes)
+test_appel_relaye_par_le_proxy_avec_adresse_distante_refuse (tests.test_securite_p0.SecuriteP0Tests.test_appel_relaye_par_le_proxy_avec_adresse_distante_refuse)
+test_cloisonnement_entre_entreprises_maintenu (tests.test_securite_p0.SecuriteP0Tests.test_cloisonnement_entre_entreprises_maintenu)
+  L'utilisateur de l'entreprise B ne voit que les produits de B. ... ok
+test_connexion_limitee_en_frequence (tests.test_securite_p0.SecuriteP0Tests.test_connexion_limitee_en_frequence)
+test_creation_de_compte_a_distance_impossible (tests.test_securite_p0.SecuriteP0Tests.test_creation_de_compte_a_distance_impossible)
+test_export_pdf_depuis_le_poste_fonctionne_toujours (tests.test_securite_p0.SecuriteP0Tests.test_export_pdf_depuis_le_poste_fonctionne_toujours)
+  Le bouton PDF ouvre un onglet sans jeton : depuis le poste, il marche. ... ok
+test_export_pdf_refuse_a_distance (tests.test_securite_p0.SecuriteP0Tests.test_export_pdf_refuse_a_distance)
+test_garde_couvre_les_vues_declarees_allowany (tests.test_securite_p0.SecuriteP0Tests.test_garde_couvre_les_vues_declarees_allowany)
+test_jeton_invalide_a_distance_refuse (tests.test_securite_p0.SecuriteP0Tests.test_jeton_invalide_a_distance_refuse)
+test_jeton_invalide_depuis_le_poste_reste_ignore (tests.test_securite_p0.SecuriteP0Tests.test_jeton_invalide_depuis_le_poste_reste_ignore)
+  Inchange : sur le poste, un jeton perime ne bloque pas la caisse. ... ok
+test_journal_audit_reserve_aux_roles_declares (tests.test_securite_p0.SecuriteP0Tests.test_journal_audit_reserve_aux_roles_declares)
+  `required_roles` (ADMIN/MANAGER/AUDITOR) est enfin applique. ... ok
+test_liste_des_comptes_inaccessible_a_distance (tests.test_securite_p0.SecuriteP0Tests.test_liste_des_comptes_inaccessible_a_distance)
+test_mode_caisse_locale_desactivable (tests.test_securite_p0.SecuriteP0Tests.test_mode_caisse_locale_desactivable)
+  NEXORA_CAISSE_LOCALE=False : meme le poste doit presenter un jeton. ... ok
+test_origine_locale_acceptee_par_le_cors (tests.test_securite_p0.SecuriteP0Tests.test_origine_locale_acceptee_par_le_cors)
+  Le frontend local (npm run dev) continue d'etre autorise. ... ok
+test_origine_publique_refusee_par_le_cors (tests.test_securite_p0.SecuriteP0Tests.test_origine_publique_refusee_par_le_cors)
+  Une page web quelconque ne peut plus lire l'API via le navigateur. ... ok
+test_page_de_diagnostic_conservee_sur_le_poste (tests.test_securite_p0.SecuriteP0Tests.test_page_de_diagnostic_conservee_sur_le_poste)
+test_page_de_diagnostic_masquee_pour_un_appel_distant (tests.test_securite_p0.SecuriteP0Tests.test_page_de_diagnostic_masquee_pour_un_appel_distant)
+test_poste_de_caisse_anonyme_continue_de_fonctionner (tests.test_securite_p0.SecuriteP0Tests.test_poste_de_caisse_anonyme_continue_de_fonctionner)
+  Parcours de caisse hors-ligne : les ecrans doivent repondre comme avant. ... ok
+test_url_api_inconnue_refusee_a_distance (tests.test_securite_p0.SecuriteP0Tests.test_url_api_inconnue_refusee_a_distance)
+test_utilisateur_authentifie_conserve_ses_acces (tests.test_securite_p0.SecuriteP0Tests.test_utilisateur_authentifie_conserve_ses_acces)
+  Aucun changement pour un utilisateur connecte : ses donnees restent la. ... ok
+Ran 21 tests in 25.599s
+OK
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+------------------------------------------------------------------------------
+3) APRES CORRECTIF : le bilan de vente par vendeur (14 tests)
+------------------------------------------------------------------------------
+  commande : py manage.py test tests.test_bilan_vendeur_pos -v 1
+
+Found 14 test(s).
+System check identified no issues (0 silenced).
+Creating test database for alias 'default'...
+Ran 14 tests in 21.287s
+OK
+Destroying test database for alias 'default'...
+------------------------------------------------------------------------------
+4) APRES CORRECTIF : TOUTE la suite (etat reel de votre projet)
+------------------------------------------------------------------------------
+  commande : py manage.py test
+
+Found 70 test(s).
+System check identified no issues (0 silenced).
+Creating test database for alias 'default'...
+Ran 70 tests in 74.258s
+OK (skipped=1)
+Destroying test database for alias 'default'...
+
+LECTURE DES RESULTATS
+------------------------------------------------------------------------------
+* Les 31 tests d'origine passent avant ET apres : aucune regression.
+* 21 nouveaux tests de securite passent : chaque attaque possible avant
+  correction est desormais refusee, et le poste de caisse continue de
+  fonctionner normalement.
+* Les 14 tests du bilan de vente par vendeur passent dans l'arbre corrige :
+  le correctif de securite ne touche pas au fonctionnement du POS.
+* Total dans l'etat reel de votre projet : 70 tests, OK (1 test du filtre BI
+  est ignore par sa propre condition interne : aucun vendeur rattache a une
+  vente dans sa base de test - ce n'est pas un echec).

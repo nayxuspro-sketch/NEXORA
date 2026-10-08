@@ -1,0 +1,105 @@
+LISEZMOI - VENTES FANTOMES (ecran /sales/ et caisse)
+====================================================
+
+CE QUE VOUS AVEZ SIGNALE
+  - /sales/ n'affichait pas les ventes du jour ;
+  - une vente encaissee au POS ne se retrouvait pas en base.
+
+CE QUE J'AI TROUVE : LA CAUSE EST DANS LE FRONTEND, PAS DANS LA BASE
+  1. lib/auth.tsx : s'il n'y avait pas de session enregistree, l'application
+     se CONNECTAIT ELLE-MEME en « mode demonstration » avec le jeton
+     demo_active_token_nexora. Ce jeton n'est pas un JWT : l'en-tete
+     Authorization n'etait jamais envoye. Toutes les requetes partaient
+     donc ANONYMES.
+  2. app/login/page.tsx : si le backend ne repondait pas, le formulaire
+     fabriquait un FAUX jeton JWT et un faux utilisateur, puis annoncait une
+     connexion reussie. Ce faux jeton est refuse par le serveur : chaque
+     ecran recevait une erreur.
+  3. Depuis le correctif de securite P0, ces requetes anonymes ou a faux
+     jeton sont REFUSEES (avant, elles passaient : c'etait la faille
+     corrigee). Consequence : plus aucune donnee reelle n'arrivait dans les
+     ecrans.
+  4. Le frontend MASQUAIT ces erreurs :
+       - 5 ecrans affichaient des donnees INVENTEES (placeholderData),
+         dont 3 ventes fictives sur /sales/ (reference VNT-20260929-001,
+         dates a 2/4/6 heures) : d'ou l'impression de « donnees pas a jour » ;
+       - la caisse fabriquait un FAUX TICKET quand l'enregistrement echouait
+         (le recu s'affichait, le panier se vidait, rien n'arrivait en base) ;
+       - lib/api.ts simulait meme un enregistrement reussi sans backend.
+  5. Le serveur, lui, est juste : la liste renvoie bien la vente du jour des
+     qu'elle est enregistree (test a l'appui, voir PREUVES).
+
+CE QUE FAIT LE CORRECTEUR : 11 modifications dans 8 fichiers, avec sauvegardes
+  app/sales/page.tsx        plus de ventes fictives + bandeau d'erreur
+                            honnete avec bouton « Reessayer »
+  app/pos/page.tsx          plus de ticket de secours : un echec est un echec
+  app/reports/page.tsx      donnees inventees retirees (idem inventory,
+  app/inventory/page.tsx    automation)
+  app/automation/page.tsx
+  lib/auth.tsx              plus de session de demonstration : un jeton
+                            valide (JWT) est exige, sinon connexion
+  app/login/page.tsx        plus de fausse connexion ; message honnete
+  lib/api.ts                plus d'enregistrement simule ; refus 401/403
+                            explique clairement ; backend cherche sur le
+                            proxy, puis 8008, puis 8000 ; message precisant
+                            que RIEN n'a ete enregistre
+
+COMMANDES (dans le dossier du projet, celui qui contient manage.py)
+    py corriger_ventes_fantomes.py --verifier
+    py corriger_ventes_fantomes.py
+    (autre dossier) py corriger_ventes_fantomes.py --racine D:\NEXORA
+
+AVANT DE RELANCER : UN COMPTE REEL (a verifier une fois)
+  - La connexion redevient obligatoire. Si vous n'avez pas d'identifiants
+    valides enregistres en base, creez-en un (invite Email / Prenom / Nom /
+    mot de passe) :
+        py manage.py createsuperuser
+    ou changez le mot de passe d'un compte existant :
+        py manage.py changepassword
+  - L'ancien acces « demonstration » (admin@nexora-enterprise.com /
+    Admin123456!) n'existait que dans le CODE du formulaire : il ne
+    correspond a aucun compte de votre base. C'est precisement pour cela que
+    l'application entrait en « mode demonstration » toute seule.
+
+CE QUI CHANGE POUR VOUS (c'est voulu)
+  - La connexion redevient obligatoire : sans session valide, vous arrivez
+    sur l'ecran de connexion (identifiants reels, ceux de la base).
+  - Backend arrete : message d'erreur clair, plus jamais de donnees inventees.
+  - Apres une vente : rafraichissez /sales/ (F5). La vente y figure et elle
+    est en base.
+
+PREUVES DE CETTE RECETTE (rejouee ici, pas supposee)
+  - Serveur : le test tests/test_liste_ventes_du_jour.py enregistre une vente
+    et verifie qu'elle apparait en tete de la liste, avec ses montants :
+    2 tests OK. Cote serveur, rien n'etait casse.
+  - Frontend, 3 arbres reels : (a) votre arbre avec P0 installe, (b) arbre
+    d'origine v1.3.9 (avec l'enregistrement simule), (c) arbre Windows en
+    CRLF avec BOM. Resultat : 11 corrections, 20 controles OK, 0 alerte,
+    0 erreur de syntaxe (analyseur esbuild, temoin volontairement casse
+    detecte), 2e passage sans aucune modification (idempotent).
+  - Suite backend complete : 112 tests OK (skipped=1).
+
+FICHIERS FOURNIS
+  - corriger_ventes_fantomes.py   le correcteur (rien n'est modifie sans vous)
+  - DIFF-VENTES-FANTOMES.txt      exactement ce qui change, hunk par hunk
+  - fichiers/frontend/src/...     versions corrigees des 8 fichiers (secours :
+                                  a copier uniquement si le correcteur signale
+                                  un fichier different du votre)
+  - fichiers/tests/test_liste_ventes_du_jour.py
+                                  test serveur optionnel (preuve) :
+                                  py manage.py test tests.test_liste_ventes_du_jour -v 2
+
+RETOUR ARRIERE
+  - Originaux conserves dans sauvegardes-ventes-fantomes/ :
+      sauvegardes-ventes-fantomes/app/sales/page.tsx   (l'original, avec les
+      sauvegardes-ventes-fantomes/lib/api.ts           3 ventes fictives)
+    Copier ce dossier par-dessus frontend/src/ restaure l'etat d'avant.
+
+NOTES PRECISES
+  - Ports : start-local.bat lance Django sur 8008 (et ecrit
+    frontend/.env.local), alors que BACKEND.md et LOCAL_SETUP.md disent 8000.
+    Le client API essaie desormais les deux : plus de faux « backend
+    injoignable » alors qu'il tourne.
+  - Aucune migration, aucun changement de base, aucun changement backend.
+  - Vos correctifs precedents restent intacts : le bilan vendeur du POS est
+    verifie automatiquement apres la correction ([OK] dans le rapport).

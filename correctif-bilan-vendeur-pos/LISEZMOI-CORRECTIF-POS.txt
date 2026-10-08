@@ -1,0 +1,134 @@
+================================================================================
+NEXORA - CORRECTIF : LE BILAN DE VENTE PAR VENDEUR AU POS NE FONCTIONNAIT PAS
+================================================================================
+Contenu : 1 script de correction, 2 fichiers corriges, 1 test automatique.
+Source  : code du depot GitHub nayxuspro-sketch/NEXORA (tag v1.3.9), corrige puis
+          valide ; le script reconnait vos fichiers et n'ecrit rien en cas de doute.
+
+--------------------------------------------------------------------------------
+CE QUI NE FONCTIONNAIT PAS (cause exacte, dans le code)
+--------------------------------------------------------------------------------
+1. apps/sales/pdf_seller_report.py (vue SellerSalesReportPdfView, endpoint
+   /api/v1/sales/export-seller-pdf/) :
+
+   if seller_param and seller_user:
+       sales_qs = sales_qs.filter(seller=seller_user)
+
+   Le filtre par vendeur n'etait applique QUE si la deuxieme condition etait
+   vraie. Quand le vendeur n'etait pas identifie, le bilan etait quand meme
+   produit : il contenait les ventes de TOUTE l'entreprise (ou celles d'un autre
+   vendeur). L'identification elle-meme etait approximative : un email partiel
+   (email__icontains) suffisait, un identifiant invalide etait ignore en
+   silence, et le repli final prenait « le premier utilisateur ».
+
+2. frontend/src/app/pos/page.tsx (bouton « Mon Bilan Vente PDF ») :
+   le vendeur etait saisi a la main dans un champ texte (email) ; une faute de
+   frappe ou un champ vide produisait donc un bilan errone ou complet.
+
+--------------------------------------------------------------------------------
+CE QUE FAIT LE CORRECTIF
+--------------------------------------------------------------------------------
+Backend - apps/sales/pdf_seller_report.py
+  * Identification STRICTE du vendeur : identifiant technique (UUID), email
+    exact, nom complet, puis email partiel SEULEMENT s'il ne correspond qu'a un
+    seul vendeur (sinon message explicite).
+  * Vendeur demande mais introuvable : reponse 404 claire
+    {"detail": "Aucun vendeur de cette entreprise ne correspond a ..."}.
+    Il n'est plus JAMAIS possible d'obtenir le bilan d'un autre vendeur.
+  * Le bilan est TOUJOURS limite a un seul vendeur : company + seller.
+  * Seules les ventes VALIDEES (statut COMPLETED) sont comptabilisees :
+    brouillons et ventes annulees sont exclus.
+  * Un compte de role CASHIER n'obtient que son propre bilan, meme s'il demande
+    celui d'un collegue.
+  * Aucun vendeur determinable : 400 explicite au lieu d'un bilan trompeur.
+
+Frontend - frontend/src/app/pos/page.tsx
+  * Le champ email libre devient une LISTE DEROULANTE alimentee par
+    /api/v1/users/?page_size=200 (vendeurs actifs de l'entreprise), avec repli
+    sur la saisie email si la liste est vide.
+  * Le vendeur connecte est preselectionne.
+  * L'identifiant technique du vendeur (seller_id) est envoye au serveur, y
+    compris pour le lien « Ouvrir dans un onglet » : plus d'ambiguite d'email.
+  * Texte d'aide : « Le bilan est strictement limite aux ventes validees
+    encaissees par ce vendeur sur la periode choisie. »
+
+--------------------------------------------------------------------------------
+INSTALLATION - METHODE 1 (recommandee, automatique)
+--------------------------------------------------------------------------------
+1. Copiez le dossier « solution-pos » sur votre PC (par exemple sur le Bureau).
+
+2. Double-cliquez sur :  APPLIQUER-CORRECTIF-POS.bat
+   - il trouve tout seul le projet (D:\NEXORA, C:\NEXORA, %USERPROFILE%\NEXORA*) ;
+   - il sauvegarde les 2 fichiers avant de les modifier ;
+   - il ne reecrit rien si le correctif est deja en place.
+
+   En ligne de commande (equivalent) :
+       py corriger_bilan_vendeur_pos.py --racine D:\NEXORA
+       py corriger_bilan_vendeur_pos.py --racine D:\NEXORA --verifier
+       py corriger_bilan_vendeur_pos.py --racine D:\NEXORA --dry-run
+
+   Si vos fichiers ont ete modifies depuis la version d'origine, le script
+   S'ARRETE SANS RIEN ECRIRE et affiche les lignes a corriger a la main.
+
+--------------------------------------------------------------------------------
+INSTALLATION - METHODE 2 (copie manuelle des 2 fichiers corriges)
+--------------------------------------------------------------------------------
+Copiez, en remplacant les fichiers existants :
+
+  fichiers\apps\sales\pdf_seller_report.py
+      -> D:\NEXORA\apps\sales\pdf_seller_report.py
+
+  fichiers\frontend\src\app\pos\page.tsx
+      -> D:\NEXORA\frontend\src\app\pos\page.tsx
+
+(Si vous travaillez dans C:\NEXORA, utilisez la meme arborescence dans C:\NEXORA.)
+Faites une copie de sauvegarde des deux fichiers avant de les remplacer.
+
+--------------------------------------------------------------------------------
+TEST AUTOMATIQUE (conseille : il s'execute sur la base de test Django)
+--------------------------------------------------------------------------------
+1. Copiez egalement le fichier de test :
+     fichiers\tests\test_bilan_vendeur_pos.py  ->  D:\NEXORA\tests\test_bilan_vendeur_pos.py
+
+2. A la racine du projet (dossier de manage.py) :
+     py manage.py test tests.test_bilan_vendeur_pos -v 2
+
+   Resultat attendu : OK (14 tests). Ils verifient le filtrage par vendeur, les
+   statuts exclus, le refus d'un vendeur inconnu ou d'une autre entreprise, la
+   restriction d'un caissier a son propre bilan et la generation du PDF.
+
+--------------------------------------------------------------------------------
+REDEMARRAGE ET VERIFICATION A L'ECRAN
+--------------------------------------------------------------------------------
+1. Backend (dossier de manage.py)      : py manage.py runserver
+2. Frontend (dossier « frontend »)     : npm run dev
+3. POS -> bouton « Mon Bilan Vente PDF » :
+   - vous voyez maintenant une liste deroulante des vendeurs ;
+   - choisissez un vendeur et une periode, puis Exportez : le PDF ne contient
+     que les ventes validees de CE vendeur.
+4. Controle direct possible dans un navigateur (remplacez les dates) :
+   http://127.0.0.1:8008/api/v1/sales/export-seller-pdf/?start_date=2026-09-07&end_date=2026-10-07&seller_id=IDENTIFIANT_DU_VENDEUR
+   - vendeur valide  -> PDF « Vente_Prenom_Nom_...pdf »
+   - vendeur inconnu -> {"detail": "Aucun vendeur de cette entreprise ..."} (404)
+
+--------------------------------------------------------------------------------
+EMPREINTES SHA-256 DES FICHIERS LIVRES (pour verification)
+--------------------------------------------------------------------------------
+pdf_seller_report.py    c6afef2fcdc98408f780ee7a3ca1880b7b94355480d43fcaf7562135a0f438b5
+pos/page.tsx            c4a8248b92e1eb29708cfd31ebbb221753cbd6b76dcb8023390c75116c6b9f40
+tests/test_bilan...py   c764a4d8e2f3e9d88d268f666d6ad3a8a6c50c68944cbbcdcbb49614dc48b5f8
+
+Verification sous Windows (PowerShell) :
+  Get-FileHash .\fichiers\apps\sales\pdf_seller_report.py -Algorithm SHA256
+
+--------------------------------------------------------------------------------
+A SAVOIR
+--------------------------------------------------------------------------------
+* Le correctif a ete valide par : simulation de l'ORM Django (aucun acces base),
+  controle de syntaxe Python, controle TypeScript du fichier POS, et relecture
+  des differences avec le code d'origine du depot.
+* Le script de correction ne contient aucun mot de passe ni secret.
+* Si le test affiche « repères absents », c'est que vos deux fichiers different
+  de la version du depot : envoyez la sortie du script, la correction sera
+  adaptee a vos lignes exactes.
+================================================================================

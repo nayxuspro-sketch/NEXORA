@@ -1,0 +1,105 @@
+================================================================================
+NEXORA - ANNULATION D'UNE VENTE ENCAISSEE : REMBOURSEMENT AUTOMATIQUE
+================================================================================
+Vous avez choisi l'option A. C'est fait, teste et livre.
+
+  Livre : 1 correcteur + 2 fichiers de tests (9 + 16 tests) + le service corrige
+  en reference (dossier fichiers/). Aucune migration. Aucune donnee modifiee.
+
+  Le correcteur travaille sur VOS fichiers : il ne remplace rien par la force.
+  Le dossier fichiers/ ne sert que de reference et n'ecrase rien : l'extraction
+  du ZIP a la racine du projet est donc sans danger.
+
+--------------------------------------------------------------------------------
+LA REGLE, MAINTENANT APPLIQUEE
+--------------------------------------------------------------------------------
+Annuler une vente deja encaissee REMBOURSE ce qui a ete encaisse.
+
+  1. un CONTRE-MOUVEMENT est ecrit pour chaque paiement : montant negatif, meme
+     methode, meme caisse, reference ANNUL-<reference de la vente> : la trace
+     est complete et verifiable dans l'ecran des paiements ;
+  2. les especes sont RETIREES du solde de la caisse concernee ;
+  3. la CREANCE du client est diminuee du credit accorde sur cette vente ;
+  4. le montant paye de la vente revient a ZERO et le statut devient
+     « Rembourse » (avant : l'argent restait compte, le statut restait « Paye ») ;
+  5. le STOCK des articles est rendu, comme avant.
+
+--------------------------------------------------------------------------------
+LES QUATRE GARDE-FOUS (tous verrouilles par des tests)
+--------------------------------------------------------------------------------
+1. Caisse deja fermee (session cloturee) : le solde de cette caisse n'est PAS
+   modifie — son comptage a deja ete arrete et valide — mais le
+   contre-mouvement est ecrit et porte la mention « caisse fermee : solde non
+   modifie ». L'argent rendu reste donc trace, sans casser une cloture.
+2. Un retour deja enregistre sur la vente : l'annulation est REFUSEE, avec un
+   message clair renvoyant le retour. Sans cette garde, le client serait
+   rembourse deux fois (une fois par le retour, une fois par l'annulation).
+3. Creance client jamais negative : si la creance avait deja ete soldee
+   autrement, elle est plafonnee a zero et la trace le precise.
+4. Vente non payee (aucun encaissement) : l'annulation se fait normalement,
+   sans aucun mouvement d'argent ni contre-mouvement.
+
+--------------------------------------------------------------------------------
+CE QUI A ETE VERIFIE AVANT LIVRAISON
+--------------------------------------------------------------------------------
+  - 9 tests dedies, ecrits AVANT le code : 6 en echec sur le code d'origine
+    (dont « Decimal('70.00') != Decimal('0.00') » : l'argent restait encaisse),
+    puis 9/9 verts apres correction ;
+  - les 16 tests des regles d'argent : 16/16 (l'ancien test qui CONSTATAIT
+    l'absence de remboursement est remplace par celui de la nouvelle regle,
+    exactement comme il l'annoncait) ;
+  - suite complete : 110 tests, OK (skipped=1) ;
+  - le correcteur a ete relance DEPUIS LE ZIP extrait, sur deux etats possibles
+    de votre fichier (services.py d'origine, et celui avec la correction de
+    documentation) : dans les deux cas 110 tests OK ;
+  - idempotence : un deuxieme passage affiche « DEJA OK », et le mode
+    --verifier fait le point sans rien modifier.
+
+--------------------------------------------------------------------------------
+A FAIRE (2 commandes)
+--------------------------------------------------------------------------------
+1) Dezipper ce dossier a la racine du projet (la ou se trouve manage.py), en
+   remplacant si Windows le demande, puis :
+
+       py corriger_annulation_remboursement.py
+
+   IMPORTANT, sous PowerShell : tapez bien « py » DEVANT le nom du script.
+   (Seul, le nom du script est refuse par PowerShell.)
+
+   Resultat attendu :
+       fichier : apps/sales/services.py
+       [CORRIGE] l annulation rembourse desormais l encaissement
+       tests/test_annulation_remboursement.py installe
+       tests/test_regles_argent.py : ancienne version gardee en .py.ancien
+       tests/test_regles_argent.py installe
+
+2) Verifier :
+
+       py manage.py test tests.test_annulation_remboursement -v 2   (9 OK)
+       py manage.py test tests.test_regles_argent -v 2              (16 OK)
+       py manage.py test                                            (OK)
+
+Puis, dans l'application : annulez une vente encaissee en especes.
+  - la caisse doit DIMINUER du montant rembourse ;
+  - la vente doit afficher 0 F paye, statut « Rembourse » ;
+  - le contre-mouvement ANNUL-... doit apparaitre dans les paiements de la vente.
+
+--------------------------------------------------------------------------------
+POINTS DE VIGILANCE HONNETES
+--------------------------------------------------------------------------------
+- Les clotures de caisse DEJA effectuees ne sont jamais recalculees : la garde
+  n° 1 s'en charge. Si vous annulez une vente de la journee apres avoir ferme
+  la caisse, le solde de cette caisse ne bougera pas (mais tout est trace).
+- Aucun ecran n'a besoin d'etre modifie : le bouton d'annulation existant
+  declenche la nouvelle regle. La page du POS n'a pas ete touchee.
+- Le calcul du vendeur (correctif POS v3.1) et ses marqueurs _nexora_* ne sont
+  pas touches par ce correctif.
+
+--------------------------------------------------------------------------------
+RETOUR ARRIERE
+--------------------------------------------------------------------------------
+Copiez le contenu de sauvegardes-annulation-remboursement/ par-dessus
+apps/sales/services.py, et (si besoin) remettez les fichiers de tests depuis
+les .py.ancien. Aucune migration n'ayant ete creee, il n'y a rien d'autre a
+defaire. Les contre-mouvements deja ecrits restent en base : si vous revenez en
+arriere, reannulez-les a la main depuis l'ecran des paiements.

@@ -1,0 +1,112 @@
+================================================================================
+NEXORA - LES REGLES D'ARGENT : 16 tests + 1 correction du remboursement
+================================================================================
+Aucun script a lancer. Deux fichiers a deposer dans C:\NEXORA (30 secondes),
+puis deux commandes de verification (2 minutes).
+
+--------------------------------------------------------------------------------
+POURQUOI CES TESTS
+--------------------------------------------------------------------------------
+Vos tests couvraient le stock, l'isolation entre entreprises et le bilan par
+vendeur, mais AUCUN test ne verifiait les calculs d'argent : montants de ligne,
+TVA, remises, statuts de paiement, montant rembourse, ecart de caisse. C'est
+exactement ce qu'une modification future peut casser sans que personne ne s'en
+apercoive. Les 16 tests livres verrouillent ces regles.
+
+--------------------------------------------------------------------------------
+CE QUE LES TESTS ONT TROUVE (et qui est corrige)
+--------------------------------------------------------------------------------
+DEFAVEUR CORRIGEE - le remboursement se faisait au TARIF DU JOUR.
+Reproduction, dans un projet identique au votre :
+    vente de 2 articles a 800 F  ->  le tarif passe a 900 F dans le catalogue
+    retour de 1 article          ->  rembourse 900 F au lieu des 800 F payes
+    AssertionError: Decimal('900.00') != Decimal('800.00')
+Le fichier apps/sales/views.py livre corrige ce point : le remboursement se
+calcule desormais sur la ligne de vente (le prix REELLEMENT paye), jamais sur
+le prix courant du produit. Si vous etes commercant : vous ne sur-remboursez
+plus apres une hausse de tarif ; si le tarif a baisse, le client n'est plus
+sous-rembourse.
+
+--------------------------------------------------------------------------------
+CE QUE LES TESTS GARANTISSENT ENSUITE (les 15 autres)
+--------------------------------------------------------------------------------
+Montants     2 x 800 F, remise de ligne 10 %, TVA 20 % -> HT 1440, TVA 288,
+             total 1728 ; remise globale appliquee APRES la TVA (1728 - 100 =
+             1628) ; total jamais negatif ; vente sans reglement = PENDING.
+Paiements    especes -> PAID et caisse creditee ; 500 sur 1920 -> PARTIAL puis
+             PAID ; 0 et montants negatifs refuses ; credit -> creance client
+             augmentee ET caisse intacte ; trop-percu (2000 pour 1920) accepte
+             et trace.
+Retours      remboursement au prix paye ; stock rendu ; retour superieur a la
+             quantite vendue refuse ; article non vendu refuse ; retour sur
+             vente annulee refuse.
+Cloture      ouverture 100 F, vente especes 70 F, comptage 165 F -> ecart
+             d'espece -5 F enregistre, caisse fermee.
+Annulation   constat explicite (voir la decision ci-dessous).
+
+--------------------------------------------------------------------------------
+DEUX POINTS SIGNALES, NON MODIFIES (ils demandent VOTRE decision)
+--------------------------------------------------------------------------------
+1) L'ANNULATION N'ANNULE PAS L'ENCAISSEMENT.
+   La fonction d'annulation documente "reverts all stock deductions, and
+   adjusts payments", mais elle ne touche NI aux paiements NI au solde de la
+   caisse : apres annulation d'une vente encaissee 70 F en especes, la caisse
+   affiche toujours 70 F et la vente reste "PAID". Le stock, lui, est bien
+   rendu.
+   Consequence : le solde de caisse et le montant encaisse comptent une vente
+   annulee. Deux regles possibles, a vous de choisir :
+     a) annulation = remboursement automatique (caisse debitee, paiement
+        contre-passe, statut de paiement remis a zero) ;
+     b) annulation = correction de saisie sans mouvement d'argent (dans ce cas,
+        c'est la phrase de documentation du code qu'il faut corriger).
+   Le test correspondant (AnnulationEtPaiementTests) constate le comportement
+   actuel : il sera remplace par le test de la regle que vous choisirez.
+
+2) DEFAUT DE MODELE (flottant) : plantage latent.
+   Dans apps/pos/models.py, les champs current_balance et opening_balance sont
+   declares avec default=0.00 (un flottant, pas un Decimal). Le premier
+   encaissement sur une caisse fraichement creee EN MEMOIRE echoue :
+       TypeError: unsupported operand type(s) for +=: 'float' and
+       'decimal.Decimal'
+   Meme chose pour la creance client (apps/partners). Ce n'est PAS atteignable
+   depuis l'application : l'API relit toujours la caisse et le client depuis la
+   base (valeurs Decimal). Le defaut ne frappe donc que du code interne, des
+   scripts ou des tests. Correction possible : remplacer default=0.00 par
+   default=Decimal('0.00') sur ces champs, avec une migration associee. Je ne
+   l'ai pas fait : cela touche votre schema, donc votre decision.
+
+Precision utile pour la suite : quand une caisse est ouverte par l'API, il faut
+relire l'objet avant de l'utiliser (l'instance en memoire devient perimee).
+C'est ce que font vos vues ; c'est aussi ce que font les tests livres.
+
+--------------------------------------------------------------------------------
+INSTALLATION (aucun script)
+--------------------------------------------------------------------------------
+1. Ouvrez CORRECTIF-REGLES-ARGENT.zip (double-clic, ne l'extrayez pas).
+2. Ctrl+A, glissez le tout dans C:\NEXORA, confirmez "Remplacer les fichiers".
+   Contenu : apps\sales\views.py  (il REMPLACE celui du correctif caisse/client
+   et contient les deux corrections) et tests\test_regles_argent.py (nouveau).
+
+--------------------------------------------------------------------------------
+VERIFICATION (2 minutes)
+--------------------------------------------------------------------------------
+    cd /d C:\NEXORA
+
+    py manage.py test tests.test_regles_argent -v 2
+      attendu : Ran 16 tests ... OK
+
+    py manage.py test
+      attendu : OK, aucun FAIL ni ERROR
+
+--------------------------------------------------------------------------------
+FICHIERS LIVRES (empreintes SHA-256, premiers caracteres)
+--------------------------------------------------------------------------------
+  apps/sales/views.py                10897 o  6b78ea29988d0ed0fb74...
+  tests/test_regles_argent.py        16110 o  33fa3ab574165684751e...
+
+Verifications effectuees avant livraison (Django 5.2.18) :
+  - defaut du remboursement reproduit (800 attendus, 900 rembourses) ;
+  - apres correction : tests.test_regles_argent 16/16 OK ;
+  - arbre reproduisant votre etat reel : 92 tests, OK (1 ignore) ;
+  - fichiers livres identiques octet pour octet a ceux testes.
+================================================================================

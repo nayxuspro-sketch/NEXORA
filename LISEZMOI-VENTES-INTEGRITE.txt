@@ -1,0 +1,91 @@
+================================================================================
+NEXORA - INTEGRITE DES VENTES : plus d'article ni de magasin substitues
+================================================================================
+Repond aux deux tests qui ont echoue :
+  FAIL: test_cannot_create_sale_with_other_company_store    (201 != 400)
+  FAIL: test_cannot_create_sale_with_other_company_product  (201 != 400)
+
+--------------------------------------------------------------------------------
+CE QUI SE PASSAIT DANS VOTRE FICHIER
+--------------------------------------------------------------------------------
+  if not store:
+      store = Store.objects.filter(company=company).first()
+  ...
+  if not prod:
+      prod = Product.objects.filter(company=company, is_active=True).first()
+
+Quand l'identifiant demande n'existait pas dans votre entreprise, l'application
+le REMPLACait en silence par le premier magasin / le premier produit actif du
+catalogue. Consequences reelles :
+  - les deux tests d'isolation echouaient : une vente pouvait etre creee avec le
+    magasin (ou l'article) d'une AUTRE entreprise, avec un code 201 ;
+  - en caisse, un article supprime ou renomme faisait enregistrer... un autre
+    article, sans aucun avertissement.
+
+--------------------------------------------------------------------------------
+CE QUI CHANGE (2 garde-fous, rien d'autre)
+--------------------------------------------------------------------------------
+  identifiant fourni ET introuvable dans votre entreprise  ->  refus (400)
+  identifiant non fourni                                   ->  comportement
+                                                              d'origine
+  vente normale (magasin + article de votre entreprise)    ->  201, inchange
+
+Aucun import, aucune methode, aucun autre fichier n'est modifie. Le POS envoie
+de vrais identifiants (store, register, product) : la caisse n'est pas impactee.
+
+--------------------------------------------------------------------------------
+INSTALLATION (aucun script)
+--------------------------------------------------------------------------------
+1. Ouvrez CORRECTIF-INTEGRITE-VENTES.zip (double-clic, ne l'extrayez pas).
+2. Ctrl+A, puis glissez le tout dans C:\NEXORA, et confirmez "Remplacer les
+   fichiers dans la destination".
+   (Le zip contient exactement : apps\sales\views.py et
+    tests\test_vente_normale.py)
+
+--------------------------------------------------------------------------------
+VERIFICATION (2 minutes)
+--------------------------------------------------------------------------------
+    cd /d C:\NEXORA
+
+    py manage.py test tests.test_nexora_backend.MultiTenantIsolationTests -v 2
+      attendu : Ran 4 tests ... OK      (les 2 echecs corriges)
+
+    py manage.py test tests.test_vente_normale -v 2
+      attendu : Ran 2 tests ... OK      (la caisse vend toujours)
+
+    py manage.py test
+      attendu : OK, aucun FAIL ni ERROR
+      (avant ce correctif, la meme commande donnait "FAILED (failures=2)")
+
+--------------------------------------------------------------------------------
+UN MOT SUR LES 2 TESTS "skipped"
+--------------------------------------------------------------------------------
+Vos deux tests ignores viennent de conditions internes de vos tests (donnees
+absentes dans la base de test, par exemple aucun vendeur rattache a une vente).
+Ce ne sont pas des echecs : le total doit indiquer "OK (skipped=2)".
+
+--------------------------------------------------------------------------------
+MOTIF IDENTIQUE REPERE AILLEURS (non modifie, a votre demande)
+--------------------------------------------------------------------------------
+Dans le meme fichier, la caisse et le client sont remplaces de la meme facon
+quand l'identifiant fourni n'est pas trouve (mais toujours par un element de
+VOTRE entreprise) : la vente peut donc etre rattachee a la mauvaise caisse ou au
+mauvais client, sans avertissement. Dites-moi si vous voulez que je l'etende :
+c'est deux lignes du meme type.
+
+--------------------------------------------------------------------------------
+FICHIERS LIVRES (empreintes SHA-256, premiers caracteres)
+--------------------------------------------------------------------------------
+  apps/sales/views.py               9374 o  7c4cabf77439786c8aaf...
+  tests/test_vente_normale.py       1233 o  874ce558c3ddbe11a429...
+
+Pieces jointes : LISEZMOI-VENTES-INTEGRITE.txt (ce fichier) et
+DIFF-INTEGRITE-VENTES.txt (la difference exacte avec votre fichier).
+
+Verifications effectuees avant livraison (Django 5.2.18) :
+  - vos deux tests en echec reproduits a l'identique (201 != 400) ;
+  - apres correctif : MultiTenantIsolationTests 4/4 OK ;
+  - vente normale par API : 201 (test livre) ;
+  - arbre complet reproduisant votre projet (securite P0 + filtre BI + bilan
+    vendeur POS + ce correctif) : 72 tests, OK (1 ignore).
+================================================================================

@@ -1,0 +1,19 @@
+INSPECTER LES RÉGLAGES DJANGO — NEXORA
+
+OBJECTIF
+Repérer les lignes de configuration à corriger après l’audit, sans afficher les secrets et sans modifier le projet.
+
+UTILISATION
+1. Téléchargez inspecter-settings-securite.zip.
+2. Extrayez ses trois fichiers dans D:\NEXORA, à côté de manage.py.
+3. Lancez inspecter-settings-securite.bat.
+4. Collez la sortie complète. Aucun mot de passe n’est demandé.
+
+LE SCRIPT
+- Lit manage.py et le module de réglages indiqué par DJANGO_SETTINGS_MODULE.
+- Analyse le fichier settings comme du texte Python ; il n’exécute pas Django et ne se connecte pas à PostgreSQL.
+- Indique les lignes et la forme des affectations importantes (DEBUG, ALLOWED_HOSTS, CORS, SECRET_KEY, middleware, JWT, journalisation, etc.).
+- Masque les valeurs de SECRET_KEY, DATABASES, noms d’hôtes et origines CORS.
+- Ne modifie et ne crée aucun fichier.
+
+Si la configuration importe un fichier local secondaire, certains compteurs peuvent être à zéro : la sortie nous aidera à repérer cette structure avant tout changement.

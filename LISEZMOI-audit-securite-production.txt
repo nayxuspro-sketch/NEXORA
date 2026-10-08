@@ -1,0 +1,23 @@
+AUDIT DE SÉCURITÉ PRÉPRODUCTION — NEXORA
+
+OBJECTIF
+Vérifier la configuration Django effectivement chargée et lancer les contrôles Django pour le déploiement, sans modifier le projet, la base PostgreSQL ou les migrations.
+
+INSTALLATION
+1. Téléchargez audit-securite-production.zip.
+2. Extrayez ses quatre fichiers dans D:\NEXORA, à côté de manage.py.
+3. Lancez audit-securite-production.bat.
+4. Saisissez le mot de passe applicatif du rôle nexora à l’invite masquée. Ne l’envoyez pas dans le chat.
+
+CE QUE L’AUDIT FAIT
+- Cible PostgreSQL nexora_db via le rôle nexora, sur 127.0.0.1:5432.
+- Affiche des indicateurs utiles : DEBUG, ALLOWED_HOSTS (nombre et joker seulement), CORS (nombre et autorisation globale), options HTTPS/cookies/HSTS, journalisation, clé secrète présente/longueur minimale, JWT, CONN_MAX_AGE et ATOMIC_REQUESTS.
+- Vérifie en lecture seule l’identité de la connexion à la base.
+- Lance py manage.py check --deploy pour afficher les avertissements de sécurité Django.
+- N’affiche ni mot de passe, ni SECRET_KEY, ni hôte autorisé exact, ni origine CORS exacte.
+- Ne lance pas migrate, ne modifie aucun fichier et n’écrit aucune donnée dans PostgreSQL. Le mot de passe n’est présent que dans l’environnement du processus et est restauré à la fin.
+
+APRÈS L’EXÉCUTION
+Collez la sortie complète pour préparer des corrections ciblées. Vérifiez tout de même qu’aucun secret n’apparaît avant partage. Les avertissements de sécurité sont attendus si DEBUG reste actif ou si TLS n’est pas encore configuré ; ne mettez pas HSTS ni les cookies Secure avant d’avoir validé HTTPS.
+
+L’audit ne transforme pas le serveur de développement runserver en serveur de production. La configuration de production doit être corrigée puis recontrôlée avant tout déploiement.

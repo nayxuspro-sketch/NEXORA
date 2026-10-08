@@ -1,0 +1,21 @@
+DIFFERENCE EXACTE : apps/sales/pdf_seller_report.py
+=================================================
+
+Une seule modification : la date de fin demandee n'est plus ecrasee.
+Aucune autre ligne n'est touchee (ni le calcul du vendeur, ni les montants,
+ni la mise en page).
+
+--- AVANT apps/sales/pdf_seller_report.py
++++ APRES apps/sales/pdf_seller_report.py
+@@ -168,7 +168,8 @@
+         if not end_date:
+             end_date = now + timezone.timedelta(days=1)
+-        else:
+-            # S'assurer que les ventes de la minute présente ou avec léger décalage horaire UTC sont bien incluses
+-            end_date = max(end_date, now + timezone.timedelta(hours=4))
++        # La date de fin choisie est respectee telle quelle : elle couvre deja
++        # toute la journee selectionnee (23:59:59). L'ancien code la remplacait
++        # par « maintenant + 4 h » : un rapport demande sur une periode passee
++        # contenait alors toutes les ventes enregistrees depuis.
+ 
+         if not start_date:

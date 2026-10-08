@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Téléchargement NEXORA Enterprise ERP v1.0.0</title>
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 860px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 25px;
+            margin-bottom: 30px;
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(2, 132, 199, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(2, 132, 199, 0.3);
+            padding: 4px 14px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+        h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+        p.subtitle { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+        
+        .download-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 640px) {
+            .download-grid { grid-template-columns: 1fr; }
+        }
+        .dl-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+        .dl-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        .dl-card h3 { font-size: 18px; margin-bottom: 6px; }
+        .dl-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
+        .dl-meta { font-size: 11px; color: var(--text-muted); font-family: monospace; margin-bottom: 16px; }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            transition: background 0.2s;
+            text-align: center;
+        }
+        .btn:hover { background: var(--primary-dark); }
+        .btn-alt {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+        .btn-alt:hover { background: rgba(255, 255, 255, 0.1); }
+        
+        .features-box {
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .features-box h4 { color: var(--success); font-size: 14px; margin-bottom: 10px; font-weight: 700; }
+        .features-box ul { list-style: none; font-size: 12.5px; color: #cbd5e1; }
+        .features-box li { margin-bottom: 6px; padding-left: 18px; position: relative; }
+        .features-box li::before { content: "✓"; color: var(--success); position: absolute; left: 0; font-weight: bold; }
+
+        .quick-start {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .quick-start h4 { color: var(--text-main); font-size: 13px; margin-bottom: 8px; font-weight: 700; }
+        .quick-start ol { padding-left: 18px; line-height: 1.8; }
+        .quick-start code { background: #000; padding: 2px 6px; border-radius: 4px; color: #38bdf8; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="badge">Dernière Version Officielle</span>
+            <h1>Téléchargement de NEXORA Enterprise ERP</h1>
+            <p class="subtitle">Release complète certifiée v1.2.8 avec visionneuse PDF intégrée, logo de magasin et synchronisation en temps réel</p>
+        </div>
+
+        <div class="features-box">
+            <h4>Nouveautés majeures incluses dans cette mise à jour :</h4>
+            <ul>
+                <li><strong>Affichage Visuel Immédiat des Documents PDF :</strong> Intégration d'une visionneuse interactive haute définition directement dans l'application avec affichage plein écran et téléchargement en 1 clic.</li>
+                <li><strong>Insertion du Logo du Magasin / Dépôt :</strong> Intégration dans 'Créer un Nouveau Magasin' avec prévisualisation et propagation automatique sur l'ensemble des documents PDF et tickets.</li>
+                <li><strong>Actualisation Dynamique en Temps Réel :</strong> Polling transparent toutes les 3s sur le Tableau de bord, le POS, les Stocks, les Ventes et les Rapports BI.</li>
+                <li><strong>Gestion Complète des Magasins & Suspension d'Activité :</strong> Création, gérance et gel temporaire opérationnel.</li>
+                <li><strong>Générateur de Licences Cryptographiques d'Utilisation :</strong> Émission de clés signées HMAC-SHA256 par magasin et téléchargement du certificat officiel PDF.</li>
+                <li><strong>Authentification Forcée au Démarrage :</strong> Verrouillage obligatoire de session nécessitant une connexion à chaque lancement.</li>
+                <li><strong>Clôture Fiscale Journalière de Caisse (Rapport Z) :</strong> Calcul des écarts de tiroir-caisse et impression du ticket fiscal officiel en PDF.</li>
+                <li><strong>Export PDF Personnalisé du Journal d'Audit :</strong> Génération certifiée A4 Paysage sur période de dates définie par l'utilisateur.</li>
+                <li><strong>Menu Paramètres & Droits (RBAC) :</strong> Gestion des utilisateurs, profils de postes et matrice des permissions.</li>
+            </ul>
+        </div>
+
+        <div class="download-grid">
+            <div class="dl-card">
+                <div>
+                    <h3>Archive ZIP Windows / Universelle</h3>
+                    <p>Recommandé pour Windows 10/11 et environnement autonome avec scripts de démarrage automatique.</p>
+                    <div class="dl-meta">Format : .ZIP • Version : v1.2.8 • Certifiée E2E</div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <a href="https://codeload.github.com/nayxuspro-sketch/NEXORA/zip/refs/tags/v1.2.8" target="_blank" class="btn" style="background:#0284c7; font-weight:800;">
+                        ⭐ Télécharger l'Archive Certifiée v1.2.8 (.ZIP GitHub)
+                    </a>
+                    <a href="/api/v1/download/nexora-latest.zip" download="nexora-latest.zip" class="btn btn-alt" style="font-size:12px; padding:8px 12px;">
+                        📥 Téléchargement Direct Alternatif (Serveur Local)
+                    </a>
+                </div>
+            </div>
+
+            <div class="dl-card">
+                <div>
+                    <h3>Archive TAR.GZ Linux / Serveur</h3>
+                    <p>Idéal pour déploiement sous Ubuntu / Debian / Docker en environnement d'entreprise hébergé.</p>
+                    <div class="dl-meta">Format : .TAR.GZ • Fichier : nexora-release-v1.0.0.tar.gz</div>
+                </div>
+                <a href="/nexora-release-v1.0.0.tar.gz" download="nexora-release-v1.0.0.tar.gz" class="btn btn-alt">
+                    Télécharger l'Archive TAR.GZ
+                </a>
+            </div>
+        </div>
+
+        <div class="quick-start">
+            <h4>Instructions de démarrage rapide après extraction :</h4>
+            <ol>
+                <li>Extrayez le contenu de l'archive ZIP dans le répertoire de votre choix (ex: <code>C:\NEXORA</code>).</li>
+                <li>Double-cliquez sur <code>installer-demarrage-automatique.bat</code> pour activer le lancement automatique transparent au démarrage de Windows.</li>
+                <li>Ou lancez simplement <code>start-local.bat</code> (Windows) ou <code>./start-local.sh</code> (Linux).</li>
+                <li>Ouvrez votre navigateur sur <code>http://localhost:3000</code> pour accéder directement à l'application.</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>
