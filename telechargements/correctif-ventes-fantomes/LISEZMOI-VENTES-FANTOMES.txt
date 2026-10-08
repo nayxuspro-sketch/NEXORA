@@ -49,6 +49,18 @@ COMMANDES (dans le dossier du projet, celui qui contient manage.py)
     py corriger_ventes_fantomes.py
     (autre dossier) py corriger_ventes_fantomes.py --racine D:\NEXORA
 
+AVANT DE RELANCER : UN COMPTE REEL (a verifier une fois)
+  - La connexion redevient obligatoire. Si vous n'avez pas d'identifiants
+    valides enregistres en base, creez-en un (invite Email / Prenom / Nom /
+    mot de passe) :
+        py manage.py createsuperuser
+    ou changez le mot de passe d'un compte existant :
+        py manage.py changepassword
+  - L'ancien acces « demonstration » (admin@nexora-enterprise.com /
+    Admin123456!) n'existait que dans le CODE du formulaire : il ne
+    correspond a aucun compte de votre base. C'est precisement pour cela que
+    l'application entrait en « mode demonstration » toute seule.
+
 CE QUI CHANGE POUR VOUS (c'est voulu)
   - La connexion redevient obligatoire : sans session valide, vous arrivez
     sur l'ecran de connexion (identifiants reels, ceux de la base).
