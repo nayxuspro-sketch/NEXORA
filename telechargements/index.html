@@ -26,6 +26,17 @@
   <h1>Téléchargements NEXORA</h1>
   <p class="sous-titre">Scripts et correctifs locaux pour l’application.</p>
 
+    <section id="securite-p0" style="border:2px solid #2ea043;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#0f2417,#12261a)">
+      <h2 style="margin-top:0;border:none;padding:0">🔒 CORRECTIF DE SÉCURITÉ P0 — testé : 70 tests sur 70 OK</h2>
+      <p class="sous-titre">Ferme les accès venus du réseau : liste des comptes (lecture <em>et</em> création) ouverte sans jeton, données de la première entreprise servies à tout appelant anonyme, jeton invalide ignoré en silence, rôles jamais vérifiés, CORS ouvert à tous, pages de diagnostic Django renvoyées à distance, connexion sans limite de tentatives, et enregistrement simulé côté interface quand le serveur ne répond pas.</p>
+      <p class="sous-titre"><strong style="color:#7ee787">Le poste de caisse ne change pas</strong> : appel connecté = inchangé · anonyme depuis le poste = inchangé (PDF, onglets, hors-ligne) · anonyme depuis ailleurs = refusé (401).</p>
+      <p><a href="SECURITE-P0-NEXORA.zip" style="display:inline-block;background:#238636;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ Télécharger SECURITE-P0-NEXORA.zip (33 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">aucun script à lancer : on ouvre le zip et on dépose les fichiers dans <code>C:\NEXORA</code></span></p>
+      <p class="sous-titre">Détails : <a href="securite-p0/LISEZMOI-SECURITE-P0.txt">notice d'installation</a> ·
+      <a href="securite-p0/PREUVE-TESTS-NEXORA.txt">sorties réelles des tests (avant/après)</a> ·
+      <a href="securite-p0/DIFF-SECURITE-P0.txt">différence exacte avec le code d'origine</a></p>
+    </section>
+
     <section id="evaluation" style="border:1px solid #30363d;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#161b22,#1c2128)">
     <h2 style="margin-top:0;border:none;padding:0">📊 Évaluation technique de NEXORA — 5,9/10 (59 %)</h2>
     <p class="sous-titre">Mesurée sur le code réel du dépôt (tag <code>v1.3.9</code>), pas sur la documentation.

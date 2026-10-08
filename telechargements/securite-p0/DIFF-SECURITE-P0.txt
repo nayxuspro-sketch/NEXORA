@@ -1,0 +1,626 @@
+DIFF COMPLET DU CORRECTIF DE SECURITE (P0)
+==========================================
+Comparaison entre le code d'origine (version 1.3.9 du depot) et le code corrige.
+Aucun autre fichier du projet n'est modifie. Pour appliquer, il suffit de
+remplacer les fichiers listes ci-dessus par ceux fournis dans ce paquet.
+
+Regle unique appliquee :
+  appel authentifie            -> inchange
+  appel anonyme sur le poste   -> inchange (caisse hors-ligne, liens PDF)
+  appel anonyme depuis ailleurs-> refuse (401)
+
+--- a/.env.example
++++ b/.env.example
+@@ -16,3 +16,21 @@
+ 
+ # Frontend Next.js
+ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
++
++# Securite NEXORA (valeurs par defaut entre parentheses, adaptees a un poste unique)
++# Le poste de caisse peut appeler l'API sans jeton (liens PDF, onglets) : True.
++NEXORA_CAISSE_LOCALE=True
++# Origines supplementaires autorisees a appeler l'API depuis un navigateur,
++# separees par des virgules. Les adresses locales et du reseau prive sont deja
++# acceptees (exemple : https://caisse.mondomaine.com).
++NEXORA_CORS_ORIGINES=
++# Mettre True uniquement en cas de besoin : n'importe quel site web pourrait
++# alors lire l'API depuis le navigateur du poste.
++NEXORA_CORS_TOUT_AUTORISE=False
++# Hotes acceptes lorsque DJANGO_DEBUG=False (separees par des virgules).
++NEXORA_ALLOWED_HOSTS=localhost,127.0.0.1
++# Tentatives de connexion autorisees par minute et par adresse.
++NEXORA_THROTTLE_CONNEXION=10/min
++# Encadrement des pages HTML (SAMEORIGIN). Passer a ALLOWALL seulement si une
++# page HTML doit etre affichee dans un cadre d'un autre site.
++NEXORA_X_FRAME_OPTIONS=SAMEORIGIN
+
+--- a/apps/accounts/settings_views.py
++++ b/apps/accounts/settings_views.py
+@@ -1,7 +1,7 @@
+ from rest_framework import serializers, viewsets, status
+ from rest_framework.views import APIView
+ from rest_framework.response import Response
+-from rest_framework.permissions import AllowAny
++from apps.common.permissions import AccesLocalOuAuthentifie
+ from django.contrib.auth.models import Group, Permission
+ from apps.accounts.models import User, UserRole
+ from apps.companies.models import Company
+@@ -38,7 +38,7 @@
+     """
+     CRUD management of user groups/profiles and their assigned permissions.
+     """
+-    permission_classes = [AllowAny]
++    permission_classes = [AccesLocalOuAuthentifie]
+     queryset = Group.objects.prefetch_related('permissions').all().order_by('name')
+     serializer_class = GroupSerializer
+ 
+@@ -47,7 +47,7 @@
+     """
+     Returns all system permissions grouped by domain for easy UI toggles.
+     """
+-    permission_classes = [AllowAny]
++    permission_classes = [AccesLocalOuAuthentifie]
+ 
+     def get(self, request):
+         relevant_apps = ['accounts', 'sales', 'inventory', 'purchases', 'pos', 'audit', 'companies', 'ai_assistant']
+@@ -124,7 +124,9 @@
+     serializer_class = UserManagementSerializer
+ 
+     def get_permissions(self):
+-        return [AllowAny()]
++        # Avant : AllowAny() -> n'importe quelle machine du reseau pouvait
++        # lister, creer et modifier les comptes, mots de passe compris.
++        return [AccesLocalOuAuthentifie()]
+ 
+     def perform_create(self, serializer):
+         user = self.request.user
+
+--- a/apps/accounts/views.py
++++ b/apps/accounts/views.py
+@@ -2,6 +2,7 @@
+ from rest_framework.decorators import action
+ from rest_framework.response import Response
+ from rest_framework_simplejwt.views import TokenObtainPairView
++from rest_framework.throttling import ScopedRateThrottle
+ from .models import User, UserRole
+ from .serializers import (
+     UserSerializer,
+@@ -12,7 +13,10 @@
+ 
+ 
+ class CustomTokenObtainPairView(TokenObtainPairView):
++    """Connexion : 10 tentatives par minute et par adresse (anti force brute)."""
+     serializer_class = CustomTokenObtainPairSerializer
++    throttle_classes = [ScopedRateThrottle]
++    throttle_scope = 'connexion'
+ 
+ 
+ class UserViewSet(viewsets.ModelViewSet):
+
+=== apps/common/acces.py : NOUVEAU FICHIER ===
+
+--- a/apps/common/authentication.py
++++ b/apps/common/authentication.py
+@@ -2,16 +2,27 @@
+ from rest_framework import exceptions
+ import logging
+ 
++from .acces import est_client_local
++
+ logger = logging.getLogger('nexora.auth')
+ 
++
+ class OptionalJWTAuthentication(JWTAuthentication):
++    """Authentifie l'utilisateur via JWT si un jeton valide est fourni.
++
++    Sur le POSTE DE CAISSE (appel local), un jeton invalide, corrompu ou expire
++    reste ignore comme avant : la caisse ne doit jamais rester bloquee sur une
++    erreur 401, et les boutons PDF qui n'envoient pas de jeton doivent continuer
++    de fonctionner hors-ligne.
++
++    Pour un appel venu du RESEAU ou d'Internet, un jeton invalide est desormais
++    refuse franchement (401). Avant, il etait ignore en silence et l'appelant
++    devenait anonyme : il retombait alors sur les donnees de la premiere
++    entreprise, sans jamais avoir a se connecter.
+     """
+-    Authentifie l'utilisateur via JWT si un token valide est fourni.
+-    Si le token est invalide, corrompu, expiré ou issu d'une session locale de secours,
+-    au lieu de lever une exception 401 bloquante (AuthenticationFailed),
+-    cette classe ignore gracieusement l'erreur et laisse la requête continuer.
+-    Ainsi, les formulaires d'enregistrement et la caisse ne sont JAMAIS bloqués par une erreur 401 !
+-    """
++
++    message = "Jeton d'authentification invalide ou expire. Reconnectez-vous."
++
+     def authenticate(self, request):
+         header = self.get_header(request)
+         if header is None:
+@@ -24,8 +35,10 @@
+         try:
+             validated_token = self.get_validated_token(raw_token)
+             return self.get_user(validated_token), validated_token
+-        except Exception as e:
+-            # Token invalide, faux ou expiré : ne pas lever d'erreur 401
+-            # Laisser la requête continuer en tant qu'utilisateur local/anonyme
+-            logger.info(f"Token JWT non valide ignoré avec succès: {e}")
+-            return None
++        except Exception as erreur:
++            if est_client_local(request):
++                # Poste de caisse : on preserve le fonctionnement hors-ligne.
++                logger.info("Jeton JWT non valide ignore (poste de caisse local) : %s", erreur)
++                return None
++            logger.warning("Jeton JWT non valide refuse (appel distant) : %s", erreur)
++            raise exceptions.AuthenticationFailed(self.message)
+
+--- a/apps/common/middleware.py
++++ b/apps/common/middleware.py
+@@ -1,5 +1,13 @@
++import logging
++
++from django.conf import settings
++from django.http import JsonResponse
+ from django.middleware.clickjacking import XFrameOptionsMiddleware
+ 
++from .acces import est_client_local
++
++logger = logging.getLogger('nexora.securite')
++
+ 
+ class FrameOptionsMiddleware(XFrameOptionsMiddleware):
+     """
+@@ -23,3 +31,119 @@
+             return response
+ 
+         return super().process_response(request, response)
++
++
++class DebugLocalSeulementMiddleware:
++    """En DEBUG, les pages de diagnostic Django restent sur le poste.
++
++    En mode DEBUG, Django affiche des pages tres bavardes (trace complete,
++    extraits de configuration, liste des routes) pour les erreurs 404 et 500.
++    Depuis le poste, c'est utile : c'est ce qui permet de copier une trace en cas
++    de probleme. Depuis une autre machine, c'est une fuite d'information.
++
++    Cette couche remplace donc ces pages par une erreur neutre UNIQUEMENT quand
++    la requete ne vient pas du poste. Le detail complet reste ecrit dans la
++    console du serveur.
++    """
++
++    def __init__(self, get_response):
++        self.get_response = get_response
++
++    def _masquer(self, request):
++        return bool(getattr(settings, 'DEBUG', False)) and not est_client_local(request)
++
++    @staticmethod
++    def _erreur_neutre(statut):
++        if statut == 404:
++            charge = {
++                'status': 'error',
++                'code': 'not_found',
++                'message': "Ressource introuvable.",
++                'details': None,
++            }
++        else:
++            charge = {
++                'status': 'error',
++                'code': 'server_error',
++                'message': "Une erreur interne s'est produite sur le serveur NEXORA.",
++                'details': None,
++            }
++        return JsonResponse(charge, status=statut)
++
++    def __call__(self, request):
++        if not self._masquer(request):
++            return self.get_response(request)
++
++        try:
++            response = self.get_response(request)
++        except Exception:
++            logger.exception("Exception sur un appel distant : page de diagnostic masquee.")
++            return self._erreur_neutre(500)
++
++        if response.status_code in (404, 500) and 'text/html' in response.get('Content-Type', ''):
++            logger.info("Page de diagnostic Django masquee pour un appel distant (%s).", response.status_code)
++            return self._erreur_neutre(response.status_code)
++
++        return response
++
++
++class GardeReseauMiddleware:
++    """Une seule regle pour toute l'API : un appel anonyme venu du reseau est refuse.
++
++    La regle est volontairement posee ici, en un seul endroit, plutot que dans
++    chaque vue : les exports PDF, les licences et les telechargements declaraient
++    `AllowAny` (le lien direct n'envoie pas de jeton), et un appelant distant
++    pouvait donc lire ces documents. Verifier ici couvre TOUTES les routes
++    `/api/v1/`, y compris celles qui seront ajoutees plus tard.
++
++    Trois cas passes :
++    - utilisateur reconnu (session ouverte, ou jeton JWT valide) ;
++    - requete venant du poste de caisse lui-meme (mode hors-ligne) ;
++    - routes de connexion et de sante, necessairement accessibles sans jeton.
++    """
++
++    # Routes accessibles sans jeton : connexion, rafraichissement, sante.
++    CHEMINS_PUBLICS = ('/api/v1/auth/token/', '/api/v1/health/')
++
++    message = ("Authentification requise : les appels sans jeton ne sont acceptes "
++               "que depuis le poste de caisse lui-meme.")
++
++    def __init__(self, get_response):
++        self.get_response = get_response
++
++    def __call__(self, request):
++        if not self._concerne(request):
++            return self.get_response(request)
++        if est_client_local(request) or self._appelant_reconnu(request):
++            return self.get_response(request)
++
++        logger.warning(
++            "Appel anonyme refuse depuis %s : %s", request.META.get('REMOTE_ADDR'), request.path,
++        )
++        return JsonResponse({
++            'status': 'error',
++            'code': 'not_authenticated',
++            'message': self.message,
++            'details': None,
++        }, status=401)
++
++    @classmethod
++    def _concerne(cls, request):
++        chemin = request.path
++        if not chemin.startswith('/api/v1/'):
++            return False
++        return not chemin.startswith(cls.CHEMINS_PUBLICS)
++
++    @staticmethod
++    def _appelant_reconnu(request):
++        """Session Django ouverte, ou jeton JWT valide presente dans l'en-tete."""
++        utilisateur = getattr(request, 'user', None)
++        if utilisateur is not None and utilisateur.is_authenticated:
++            return True
++
++        from .authentication import OptionalJWTAuthentication
++        try:
++            authentification = OptionalJWTAuthentication().authenticate(request)
++        except Exception:
++            return False
++        return authentification is not None
+
+--- a/apps/common/permissions.py
++++ b/apps/common/permissions.py
+@@ -1,27 +1,73 @@
+ from rest_framework import permissions
+ 
++from .acces import caisse_locale_active, est_client_local
++
++
++def _appel_anonyme_refuse(request):
++    """Vrai si l'appel est anonyme ET ne vient pas du poste de caisse."""
++    return not (caisse_locale_active() and est_client_local(request))
++
+ 
+ class IsAuthenticatedAndInTenant(permissions.BasePermission):
+     """
+-    Ensures user is authenticated and is bound to a valid active company/tenant.
+-    Provides graceful seamless access for local offline and single-tenant POS mode.
++    Exige un utilisateur reconnu, SAUF depuis le poste de caisse lui-meme.
++
++    - utilisateur authentifie : comportement inchange (le filtrage par entreprise
++      est assure par les querysets de TenantModelViewSet) ;
++    - appel anonyme depuis le poste : autorise (mode caisse locale hors-ligne,
++      ouverture des PDF et des onglets sans jeton) ;
++    - appel anonyme venu du reseau ou d'Internet : refuse.
++
++    Auparavant cette classe renvoyait True dans tous les cas : n'importe quelle
++    machine du reseau lisait donc les donnees de la premiere entreprise.
+     """
++
++    message = ("Authentification requise : les appels sans jeton ne sont acceptes "
++               "que depuis le poste de caisse lui-meme.")
++
+     def has_permission(self, request, view):
+-        if not (request.user and request.user.is_authenticated):
+-            # En mode local / développement, autoriser l'accès transparent pour la caisse
+-            return True
+-        if request.user.is_superuser:
++        utilisateur = getattr(request, 'user', None)
++        if utilisateur is not None and utilisateur.is_authenticated:
+             return True
+-        return True
++        return not _appel_anonyme_refuse(request)
+ 
+     def has_object_permission(self, request, view, obj):
+-        return True
++        utilisateur = getattr(request, 'user', None)
++        if utilisateur is None or not utilisateur.is_authenticated:
++            return not _appel_anonyme_refuse(request)
++        entreprise = getattr(utilisateur, 'company', None)
++        if entreprise is None:
++            return True
++        # Aucun objet d'une autre entreprise ne doit etre accessible par identifiant.
++        return getattr(obj, 'company_id', None) in (None, entreprise.id)
+ 
+ 
+-class RolePermission(permissions.BasePermission):
++class AccesLocalOuAuthentifie(IsAuthenticatedAndInTenant):
++    """Nom explicite pour les vues de donnees et de PDF qui etaient en AllowAny.
++
++    Meme regle, mais l'intention est lisible sur place : le poste peut ouvrir un
++    PDF ou un onglet sans jeton, un appel distant doit s'authentifier.
+     """
+-    Role-based access control.
+-    Views can define `required_roles = ['ADMIN', 'MANAGER', ...]`
++
++
++class RolePermission(permissions.BasePermission):
++    """Applique reellement les roles declares sur la vue (`required_roles`).
++
++    Auparavant cette classe renvoyait True dans tous les cas : les roles annonces
++    (par exemple ADMIN / MANAGER / AUDITOR sur le journal d'audit) n'etaient pas
++    verifies. Les appels anonymes venant du poste de caisse restent autorises.
+     """
++
++    message = "Votre role ne permet pas cette operation."
++
+     def has_permission(self, request, view):
+-        return True
++        utilisateur = getattr(request, 'user', None)
++        if utilisateur is None or not utilisateur.is_authenticated:
++            return not _appel_anonyme_refuse(request)
++
++        roles = getattr(view, 'required_roles', None)
++        if not roles:
++            return True
++        if getattr(utilisateur, 'is_superuser', False):
++            return True
++        return getattr(utilisateur, 'role', None) in roles
+
+--- a/apps/common/viewsets.py
++++ b/apps/common/viewsets.py
+@@ -1,6 +1,13 @@
++import logging
++
+ from rest_framework import viewsets
++from rest_framework.exceptions import PermissionDenied
++
++from .acces import caisse_locale_active, est_client_local
+ from .permissions import IsAuthenticatedAndInTenant
+ 
++logger = logging.getLogger('nexora.tenants')
++
+ 
+ class TenantModelViewSet(viewsets.ModelViewSet):
+     """
+@@ -8,18 +15,48 @@
+     - Restricts querysets strictly to the active company.
+     - Automatically injects user's company upon record creation.
+     - Prevents cross-tenant data leaks.
++
++    L'entreprise retenue provient de l'utilisateur authentifie. Pour un appel
++    anonyme, elle n'est deduite de la base QUE si la requete vient du poste de
++    caisse lui-meme : auparavant, n'importe quel appelant anonyme lisait - et
++    pouvait meme creer - les donnees de la premiere entreprise.
+     """
++
+     permission_classes = [IsAuthenticatedAndInTenant]
+ 
+     def get_company(self):
+-        user = self.request.user
+-        if user and user.is_authenticated and getattr(user, 'company_id', None):
+-            return user.company
++        request = self.request
++        utilisateur = getattr(request, 'user', None)
++
++        # 1) Appel authentifie : l'entreprise de l'utilisateur fait foi (inchange).
++        if utilisateur is not None and utilisateur.is_authenticated:
++            entreprise = getattr(utilisateur, 'company', None)
++            if entreprise is not None:
++                return entreprise
++            logger.warning(
++                "Utilisateur authentifie sans entreprise (id=%s) : repli sur la "
++                "premiere entreprise.", getattr(utilisateur, 'id', None),
++            )
++            return self._premiere_entreprise()
++
++        # 2) Appel anonyme : uniquement depuis le poste de caisse local.
++        if not (caisse_locale_active() and est_client_local(request)):
++            raise PermissionDenied(
++                "Acces refuse : les appels sans jeton ne sont acceptes que depuis "
++                "le poste de caisse lui-meme."
++            )
++        return self._premiere_entreprise()
++
++    @staticmethod
++    def _premiere_entreprise():
+         from apps.companies.models import Company
+-        company = Company.objects.first()
+-        if not company:
+-            company = Company.objects.create(name="NEXORA BURKINA COMMERCIAL GROUP", currency="XOF")
+-        return company
++        entreprise = Company.objects.first()
++        if entreprise is None:
++            entreprise = Company.objects.create(
++                name="NEXORA BURKINA COMMERCIAL GROUP", currency="XOF",
++            )
++            logger.warning("Aucune entreprise en base : creation d'une entreprise par defaut.")
++        return entreprise
+ 
+     def get_queryset(self):
+         qs = super().get_queryset()
+@@ -29,5 +66,4 @@
+         return qs
+ 
+     def perform_create(self, serializer):
+-        company = self.get_company()
+-        serializer.save(company=company)
++        serializer.save(company=self.get_company())
+
+--- a/config/settings.py
++++ b/config/settings.py
+@@ -1,14 +1,60 @@
+ import os
+ from pathlib import Path
+ from datetime import timedelta
++from django.core.exceptions import ImproperlyConfigured
+ 
+ BASE_DIR = Path(__file__).resolve().parent.parent
+ 
+-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'nexora-secret-key-change-in-production-random-hash-919293')
++
++def _nexora_charger_env_local():
++    """Charge BASE_DIR/.env s'il existe (sans dependance externe).
++
++    Permet de regler l'application par un simple fichier texte a cote de
++    manage.py, sans script ni variable d'environnement systeme. Les variables
++    deja definies dans l'environnement gardent la priorite.
++    """
++    fichier = BASE_DIR / '.env'
++    if not fichier.exists():
++        return
++    try:
++        for ligne in fichier.read_text(encoding='utf-8').splitlines():
++            ligne = ligne.strip()
++            if not ligne or ligne.startswith('#') or '=' not in ligne:
++                continue
++            cle, valeur = ligne.split('=', 1)
++            cle = cle.strip()
++            valeur = valeur.strip().strip('"').strip("'")
++            if cle and cle not in os.environ:
++                os.environ[cle] = valeur
++    except OSError:
++        pass
++
++
++_nexora_charger_env_local()
++
++CLE_SECRETE_PAR_DEFAUT = 'nexora-secret-key-change-in-production-random-hash-919293'
++
++SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', CLE_SECRETE_PAR_DEFAUT)
+ 
+ DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+ 
+-ALLOWED_HOSTS = ['*']
++if DEBUG:
++    # Poste de caisse / developpement : rien ne change, l'application reste
++    # joignable par son nom ou son adresse IP locales.
++    ALLOWED_HOSTS = ['*']
++else:
++    # Mode production : seuls les noms declares sont acceptes.
++    ALLOWED_HOSTS = [
++        hote.strip() for hote in os.environ.get(
++            'NEXORA_ALLOWED_HOSTS', 'localhost,127.0.0.1,[::1]'
++        ).split(',') if hote.strip()
++    ]
++
++    if SECRET_KEY == CLE_SECRETE_PAR_DEFAUT:
++        raise ImproperlyConfigured(
++            "DJANGO_SECRET_KEY doit etre defini lorsque DJANGO_DEBUG=False "
++            "(la cle livree dans le code source est publique)."
++        )
+ 
+ # Application definition
+ INSTALLED_APPS = [
+@@ -43,12 +89,19 @@
+ ]
+ 
+ MIDDLEWARE = [
++    # Masque les pages de diagnostic Django (404/500 bavardes) pour tout appel
++    # qui ne vient pas du poste de caisse. Sur le poste, rien ne change.
++    'apps.common.middleware.DebugLocalSeulementMiddleware',
+     'django.middleware.security.SecurityMiddleware',
+     'corsheaders.middleware.CorsMiddleware',
+     'django.contrib.sessions.middleware.SessionMiddleware',
+     'django.middleware.common.CommonMiddleware',
+     'django.middleware.csrf.CsrfViewMiddleware',
+     'django.contrib.auth.middleware.AuthenticationMiddleware',
++    # Garde unique du reseau : tout appel anonyme a /api/v1/ venu d'une autre
++    # machine est refuse (placee apres AuthenticationMiddleware pour connaitre
++    # l'utilisateur eventuellement deja connecte par session).
++    'apps.common.middleware.GardeReseauMiddleware',
+     'django.contrib.messages.middleware.MessageMiddleware',
+     'apps.common.middleware.FrameOptionsMiddleware',
+     'apps.audit.middleware.SecurityAuditLoggingMiddleware',
+@@ -140,6 +193,10 @@
+         'rest_framework.filters.OrderingFilter',
+     ),
+     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
++    'DEFAULT_THROTTLE_RATES': {
++        # Limite les tentatives de connexion (10 par minute et par adresse).
++        'connexion': os.environ.get('NEXORA_THROTTLE_CONNEXION', '10/min'),
++    },
+     'EXCEPTION_HANDLER': 'apps.common.exceptions.custom_exception_handler',
+ }
+ 
+@@ -162,10 +219,35 @@
+ }
+ 
+ # CORS configuration
+-CORS_ALLOW_ALL_ORIGINS = True
++# Avant, TOUTE origine etait acceptee : une page web ouverte dans le meme
++# navigateur pouvait lire l'API (ventes, clients, produits) via 127.0.0.1.
++# Desormais, seules les origines locales et de reseau prive sont acceptees,
++# et NEXORA_CORS_ORIGINES permet d'ajouter une origine precise si besoin.
++CORS_ALLOW_ALL_ORIGINS = os.environ.get('NEXORA_CORS_TOUT_AUTORISE', 'False') == 'True'
+ CORS_ALLOW_CREDENTIALS = True
++CORS_ALLOWED_ORIGINS = [
++    origine.strip() for origine in os.environ.get('NEXORA_CORS_ORIGINES', '').split(',')
++    if origine.strip()
++]
++CORS_ALLOWED_ORIGIN_REGEXES = [
++    r'^http://localhost(:\d+)?$',
++    r'^http://127\.0\.0\.1(:\d+)?$',
++    r'^http://\[::1\](:\d+)?$',
++    r'^http://10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$',
++    r'^http://192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$',
++    r'^http://172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}(:\d+)?$',
++]
+ CORS_EXPOSE_HEADERS = ['Content-Disposition', 'Content-Length', 'Content-Type']
+ 
+-# Frame options : allow iframe previews and PDF viewing
+-X_FRAME_OPTIONS = 'ALLOWALL'
++# Charge utile des PDF : les liens directs ouvrent le document dans un onglet
++# ou un apercu integre sans jeton. On conserve donc l'exemption pour les PDF
++# (voir FrameOptionsMiddleware) tout en refusant l'inclusion des pages HTML.
++X_FRAME_OPTIONS = os.environ.get('NEXORA_X_FRAME_OPTIONS', 'SAMEORIGIN')
++
++# Mode caisse locale : appels sans jeton acceptes depuis le poste uniquement.
++NEXORA_CAISSE_LOCALE = os.environ.get('NEXORA_CAISSE_LOCALE', 'True')
++
++# En-tetes de durcissement sans effet de bord (ne cassent aucun usage local).
++SECURE_CONTENT_TYPE_NOSNIFF = True
++SECURE_REFERRER_POLICY = 'same-origin'
+ 
+
+--- a/frontend/src/lib/api.ts
++++ b/frontend/src/lib/api.ts
+@@ -75,21 +75,10 @@
+     }
+   }
+ 
+-  // Si le backend Django n'est pas lancé localement, simuler la réussite de l'enregistrement en mémoire locale
+-  // pour que l'utilisateur puisse travailler sans aucune coupure
+-  if (options.method === 'POST') {
+-    try {
+-      const bodyData = options.body ? JSON.parse(options.body as string) : {};
+-      const simulatedCreated = {
+-        id: `sim-${Date.now()}`,
+-        ...bodyData,
+-        created_at: new Date().toISOString(),
+-        is_active: true
+-      };
+-      return simulatedCreated as T;
+-    } catch {}
+-  }
+-
++  // Avant : si le backend ne repondait pas, un enregistrement etait simule en
++  // memoire et l'ecran affichait un succes. En caisse, cela revenait a croire
++  // une vente enregistree alors qu'elle n'existait nulle part. Une panne doit
++  // se voir, pas etre masquee.
+   throw new ApiError(
+     'Le serveur backend (port 8008) n\'est pas joignable. Veuillez démarrer le backend avec start-local.bat',
+     'backend_offline',
+
+=== tests/test_securite_p0.py : NOUVEAU FICHIER ===
