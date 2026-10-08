@@ -65,11 +65,13 @@
       globale des requêtes.</li>
       <li><b>Tests &amp; fiabilité : 4,0 → 6,8.</b> <b>96 tests</b> exécutés sur <code>C:\NEXORA</code>, tous verts
       (2 ignorés) : 21 sécurité, 16 règles d'argent, 14 bilan vendeur, 4 isolation multi-entreprise, 4 caisse/client,
-      2 intégrité des ventes, plus les 31 d'origine et les vôtres — et <b>97 tests verts</b> dans l'arbre de recette,
-      dont les 5 nouveaux sur les montants décimaux (101 après installation de ce correctif). Hors périmètre : intégration continue, couverture mesurée.</li>
+      2 intégrité des ventes, plus les 31 d'origine et les vôtres — et <b>101 tests verts</b> dans l'arbre de recette
+      (dont les 5 sur les montants décimaux et les 4 sur l'état de vente du vendeur :
+      <b>105 après installation de ces correctifs</b>). Hors périmètre : intégration continue, couverture mesurée.</li>
       <li><b>Qualité backend : 7,0 → 7,5</b> — plus d'article, de magasin, de caisse ni de client substitué en silence dans une vente, et un <b>remboursement de retour</b> qui se calcule désormais au <b>prix réellement payé</b> (il utilisait le tarif du jour : une hausse de tarif faisait sur-rembourser le client).</li>
       <li><b>Deux points signalés</b> : l'annulation d'une vente déjà encaissée ne reverse ni le paiement ni le solde de caisse — la documentation du code a été corrigée pour dire la vérité, et la règle de remboursement automatique reste une décision du commerçant ; et les <b>33 défauts «&nbsp;flottant&nbsp;»</b> des champs de montant (<code>0.00</code> au lieu de <code>Decimal</code>) sont <b>corrigés</b> : aucun changement de schéma ni de comportement, vérifié sur une base avec données (31 flottants → 0, données identiques).</li>
-      <b>Frontend : 6,5 → 6,8</b> — plus d'enregistrement simulé quand le serveur ne répond pas.</li>
+      <li><b>Rapport vendeur du POS : période corrigée.</b> La date de fin demandée était écrasée par «&nbsp;maintenant + 4 h&nbsp;» : un état de vente d'une période passée contenait donc les ventes enregistrées depuis (reproduit, puis corrigé — 4 tests dédiés, 3 lignes retirées, aucune autre ligne touchée).</li>
+      <li><b>Frontend : 6,5 → 6,8</b> — plus d'enregistrement simulé quand le serveur ne répond pas.</li>
       <li><b>Note globale : 5,9 → 7,2/10 (72 %).</b> Prochain palier réaliste : <b>8,5/10</b>.</li>
     </ul>
   </div>
