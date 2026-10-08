@@ -1,0 +1,41 @@
+DIFFERENCE EXACTE AVEC VOTRE FICHIER apps/sales/views.py
+======================================================
+Votre fichier (colle dans le chat) contre le fichier corrige livre ici.
+Seules deux verifications strictes sont ajoutees : un identifiant fourni mais
+introuvable dans VOTRE entreprise n'est plus remplace par le premier element du
+catalogue. Rien d'autre ne bouge.
+
+--- AVANT  apps/sales/views.py
++++ APRES  apps/sales/views.py
+@@ -43,7 +43,14 @@
+             store = Store.objects.filter(id=store_uuid, company=company).first()
+         elif store_val:
+             store = Store.objects.filter(company=company, code__iexact=str(store_val).strip()).first()
++        if not store and store_val:
++            # Un magasin a ete demande mais n'existe pas dans cette entreprise :
++            # on refuse. Avant, l'application vendait silencieusement sur le
++            # premier magasin de l'entreprise, ce qui laissait valider une vente
++            # portant le magasin d'une autre entreprise.
++            return Response({'error': 'Magasin introuvable dans votre entreprise'}, status=status.HTTP_400_BAD_REQUEST)
+         if not store:
++            # Aucun magasin precise : comportement d'origine (premier magasin).
+             store = Store.objects.filter(company=company).first()
+         if not store:
+             return Response({'error': 'Aucun magasin configuré dans votre entreprise'}, status=status.HTTP_400_BAD_REQUEST)
+@@ -81,8 +88,15 @@
+             elif prod_val:
+                 prod = Product.objects.filter(company=company, sku__iexact=str(prod_val).strip()).first() or \
+                        Product.objects.filter(company=company, name__icontains=str(prod_val).strip()).first()
++            if not prod and prod_val:
++                # Un produit a ete demande mais n'existe pas dans cette
++                # entreprise : on refuse. Avant, l'application vendait
++                # silencieusement le premier produit actif du catalogue : la
++                # vente pouvait enregistrer un autre article, ou l'article
++                # d'une autre entreprise.
++                return Response({'error': f"Produit {prod_val} introuvable dans votre entreprise"}, status=status.HTTP_400_BAD_REQUEST)
+             if not prod:
+-                # Fallback to first available active product
++                # Aucun produit precise : comportement d'origine (premier produit actif).
+                 prod = Product.objects.filter(company=company, is_active=True).first()
+             if not prod:
+                 return Response({'error': f"Produit {prod_val} introuvable"}, status=status.HTTP_400_BAD_REQUEST)

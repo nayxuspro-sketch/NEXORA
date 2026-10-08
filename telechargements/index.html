@@ -26,6 +26,16 @@
   <h1>Téléchargements NEXORA</h1>
   <p class="sous-titre">Scripts et correctifs locaux pour l’application.</p>
 
+    <section id="ventes-integrite" style="border:2px solid #d29922;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#2a1f0d,#241b0b)">
+      <h2 style="margin-top:0;border:none;padding:0">🔧 INTÉGRITÉ DES VENTES — les 2 tests en échec sont corrigés</h2>
+      <p class="sous-titre">Cause trouvée dans <em>votre</em> <code>apps/sales/views.py</code> : magasin ou article introuvable dans votre entreprise ⇒ l'application remplaçait <strong>en silence</strong> par le premier du catalogue (une vente pouvait porter le magasin ou l'article d'une <strong>autre entreprise</strong>, d'où les <code>201 != 400</code>).</p>
+      <p class="sous-titre"><strong style="color:#f0c674">Correctif : 2 garde-fous</strong> — identifiant fourni et introuvable ⇒ refus (400) ; identifiant non fourni ⇒ comportement d'origine ; vente normale ⇒ 201 inchangé. Vérifié : <em>vos 2 échecs reproduits à l'identique, puis 4/4 OK</em>, vente normale OK, arbre complet (sécurité + BI + POS + ce correctif) = <strong style="color:#7ee787">72 tests, OK</strong>.</p>
+      <p><a href="CORRECTIF-INTEGRITE-VENTES.zip" style="display:inline-block;background:#9e6a03;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-INTEGRITE-VENTES.zip (9 Ko)</a>
+      <span class="sous-titre" style="margin-left:10px">2 fichiers à déposer dans <code>C:\NEXORA</code> (aucun script)</span></p>
+      <p class="sous-titre">Détails : <a href="correctif-integrite-ventes/LISEZMOI-VENTES-INTEGRITE.txt">notice + vérifications</a> ·
+      <a href="correctif-integrite-ventes/DIFF-INTEGRITE-VENTES.txt">différence exacte avec votre fichier</a></p>
+    </section>
+
     <section id="securite-p0" style="border:2px solid #2ea043;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#0f2417,#12261a)">
       <h2 style="margin-top:0;border:none;padding:0">🔒 CORRECTIF DE SÉCURITÉ P0 — testé : 70 tests sur 70 OK</h2>
       <p class="sous-titre">Ferme les accès venus du réseau : liste des comptes (lecture <em>et</em> création) ouverte sans jeton, données de la première entreprise servies à tout appelant anonyme, jeton invalide ignoré en silence, rôles jamais vérifiés, CORS ouvert à tous, pages de diagnostic Django renvoyées à distance, connexion sans limite de tentatives, et enregistrement simulé côté interface quand le serveur ne répond pas.</p>
