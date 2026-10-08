@@ -1,0 +1,43 @@
+DIFFERENCE EXACTE AVEC LE FICHIER QUE VOUS AVEZ DEJA INSTALLE
+==========================================================
+Deux verifications strictes sont ajoutees pour la CAISSE et le CLIENT, sur le
+modele exact des deux deja en place pour le MAGASIN et l'ARTICLE (meme regle,
+meme forme de message, meme code 400). Rien d'autre ne bouge.
+
+Regle appliquee :
+    identifiant fourni, absent de VOTRE entreprise  ->  refus (400)
+    identifiant non fourni                          ->  comportement d'origine
+    vente normale (caisse et client de l'entreprise) ->  201 inchange
+
+--- AVANT  apps/sales/views.py (ce que vous avez)
++++ APRES  apps/sales/views.py (livre ici)
+@@ -63,7 +63,14 @@
+             register = CashRegister.objects.filter(id=reg_uuid, company=company).first()
+         elif reg_val:
+             register = CashRegister.objects.filter(company=company, code__iexact=str(reg_val).strip()).first()
++        if not register and reg_val:
++            # Une caisse a ete demandee mais n'existe pas dans cette entreprise :
++            # on refuse. Avant, la vente etait silencieusement rattachee a la
++            # premiere caisse du catalogue : la cloture et le rapport Z de cette
++            # caisse (et ceux de la caisse reellement choisie) devenaient faux.
++            return Response({'error': 'Caisse introuvable dans votre entreprise'}, status=status.HTTP_400_BAD_REQUEST)
+         if not register:
++            # Aucune caisse precise : comportement d'origine (premiere caisse).
+             register = CashRegister.objects.filter(company=company).first()
+ 
+         # Validate customer if provided
+@@ -74,7 +81,14 @@
+             customer = Partner.objects.filter(id=cust_uuid, company=company).first()
+         elif cust_val:
+             customer = Partner.objects.filter(company=company, name__icontains=str(cust_val).strip()).first()
++        if not customer and cust_val:
++            # Un client a ete demande mais n'existe pas dans cette entreprise :
++            # on refuse. Avant, la vente etait silencieusement imputee au
++            # premier client du catalogue : son historique, ses creances et son
++            # chiffre d'affaires devenaient faux.
++            return Response({'error': 'Client introuvable dans votre entreprise'}, status=status.HTTP_400_BAD_REQUEST)
+         if not customer:
++            # Aucun client precise (vente comptoir) : comportement d'origine.
+             customer = Partner.objects.filter(company=company, partner_type='CUSTOMER').first()
+ 
+         # Prepare items data with product instances
