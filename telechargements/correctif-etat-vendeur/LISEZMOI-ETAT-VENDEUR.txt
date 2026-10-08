@@ -23,6 +23,8 @@ CE QUE FAIT LE CORRECTIF v2
   autant de pages que necessaire, avec l'entete repetee.
 - Distingue chaque produit par son identifiant en base, meme si plusieurs
   produits ont le meme nom ; toutes les references SKU restent separees.
+- Elargit la colonne SKU a 105 points et utilise une typographie dediee de 7 pt
+  (interligne 9) pour conserver les references longues lisibles dans le PDF.
 - Affiche les indicateurs deja calcules : encaissements, taxes, remises et
   quantites vendues ; conserve les ventes detaillees du vendeur selectionne.
 - N'arrondit plus les quantites fractionnaires a l'unite ; ne coupe plus le
@@ -58,16 +60,19 @@ validees (COMPLETED) du vendeur choisi, dans la periode choisie. Les ventes
 annulees/brouillons et les ventes sans vendeur en base sont volontairement
 exclues d'un bilan individuel.
 
-PREUVES DE RECETTE EFFECTUEES ICI
+RECETTE SUR LA SOURCE COMPLETE FOURNIE
 -----------------------------------------------------------------------
-- Reproduction sur le correctif POS v3 distribue : 8 produits en entree,
-  ancien rendu = 6, deux SKU absents.
-- Correcteur v2 rejoue depuis un ZIP v3 extrait : ancien bloc de date corrige,
-  plafond retire, POS mis a jour ; deuxieme passage = aucun octet modifie.
-- Helpers reels du backend executes sur 8 produits, dont deux de meme nom :
-  8 produits distincts, 10 unites exactes, cout total verifie, quantite 1.25
-  preservee.
-- Syntaxe backend Python et POS TypeScript/JSX (esbuild) verifiees.
+- Le correctif a ete applique a une copie fraiche de la branche source-complete
+  (la source active fournie depuis C:\NEXORA), et non au tag ancien v1.3.9.
+- Le test PDF cible verifie la liste exhaustive, dont les huit SKU complets ;
+  colonne SKU de 105 points et style 7 pt/9 pt. Il passe sans affaiblir les
+  assertions sur le texte extrait du PDF.
+- Le correcteur a ete rejoue sur une copie deja corrigee : aucun changement,
+  donc application idempotente.
+- Suite Django complete : 118 tests reussis, 1 ignore, aucun echec.
+- Compilation de production Next.js (`npm run build`) reussie sur la copie
+  integree, avec les gardes TypeScript de caisse incluses dans l'archive
+  complete.
 
-Je n'ai pas acces a votre base C:\NEXORA depuis cet espace : le test Django
-final doit donc etre lance sur votre projet reel avant la vente de controle.
+Ces controles utilisent une base de test temporaire. Ils ne remplacent pas une
+recette sur la base de production ni une vente de controle apres migration.

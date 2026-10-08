@@ -24,7 +24,15 @@
 <body>
 <main>
   <h1>Téléchargements NEXORA</h1>
-  <p class="sous-titre">Scripts et correctifs locaux pour l’application.</p>
+  <p class="sous-titre">Application complète corrigée, correctifs ciblés et documentation d’installation.</p>
+
+<section id="source-complete" style="border:2px solid #2ea043;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#0b2416,#081c10)">
+      <h2 style="margin-top:0;border:none;padding:0;color:#7ee787">📦 Application NEXORA complète — code source corrigé</h2>
+      <p class="sous-titre">Archive issue de la source complète fournie depuis <code>C:\NEXORA</code> (branche <code>source-complete</code>), avec le bilan PDF vendeur v2 intégré et les gardes TypeScript nécessaires au build. Backend Django, interface Next.js, migrations, tests et guides d’installation inclus.</p>
+      <p><a href="NEXORA-COMPLET-SOURCE-2026-10-08.zip" style="display:inline-block;background:#238636;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ Télécharger l’archive source complète (ZIP)</a>
+      <span class="sous-titre" style="margin-left:10px"><a href="../INSTALLATION-COMPLETE-NEXORA.md">Guide d’installation Windows</a></span></p>
+      <p class="sous-titre">Archive sans base de données, sauvegarde, identifiant ni secret d’exploitation, fichier `.env`, dépendances téléchargées ni fichiers de diagnostic. Validation sur la copie complète : <strong style="color:#7ee787">118 tests Django réussis, 1 ignoré</strong> et <code>npm run build</code> réussi. Aucun de ces contrôles ne valide votre base de production.</p>
+    </section>
 
     <section id="caisses-pos" style="border:2px solid #db6d28;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#2a1508,#231106)">
       <h2 style="margin-top:0;border:none;padding:0;color:#ffa657">🧾 « MAGASIN INTROUVABLE DANS VOTRE ENTREPRISE » EN CAISSE — cause double, corrigée</h2>
@@ -55,10 +63,10 @@
     <section id="etat-vendeur" style="border:2px solid #db6d28;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#2a1508,#231106)">
       <h2 style="margin-top:0;border:none;padding:0;color:#ffa657">📄 « MON BILAN VENTE PDF » — rapport complet du vendeur connecté (v2)</h2>
       <p class="sous-titre"><strong>Cause exacte trouvée dans la vue PDF :</strong> le tableau de produits utilisait <code>sorted_prods[:6]</code> — au-delà de six articles, ils <strong>n'étaient jamais imprimés</strong>. Reproduction locale : 8 produits vendus → seulement 6 lignes rendues, SKU 01 et 02 absents. Autre perte : deux produits distincts portant le même nom étaient fusionnés, les quantités fractionnaires arrondies à l'unité, le nom du client coupé à 26 caractères ; encaissements, taxes, remises et unités étaient calculés mais <strong>jamais affichés</strong>.</p>
-      <p class="sous-titre"><strong>Correctif v2 :</strong> liste exhaustive des produits (table paginée, en-tête répété), chaque référence distinguée par son ID même si le nom est identique ; affichage des 4 indicateurs oubliés ; quantités décimales préservées et nom client complet. Le POS envoie explicitement l'ID du vendeur connecté par défaut ; le lien PDF brut sans jeton, qui pouvait perdre le contexte de session/entreprise, est retiré. Le correctif conserve le filtre entreprise + vendeur + ventes validées et respecte la période choisie.</p>
+      <p class="sous-titre"><strong>Correctif v2 :</strong> liste exhaustive des produits (table paginée, en-tête répété), chaque référence distinguée par son ID même si le nom est identique ; affichage des 4 indicateurs oubliés ; quantités décimales préservées et nom client complet. Le POS envoie explicitement l'ID du vendeur connecté par défaut ; le lien PDF brut sans jeton, qui pouvait perdre le contexte de session/entreprise, est retiré. Le correctif conserve le filtre entreprise + vendeur + ventes validées et respecte la période choisie. La colonne SKU fait 105 points, avec un style dédié de 7 pt (interligne 9) pour garder les références longues lisibles.</p>
       <p><a href="CORRECTIF-ETAT-VENDEUR.zip" style="display:inline-block;background:#db6d28;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">⬇️ CORRECTIF-ETAT-VENDEUR.zip v2</a>
       <span class="sous-titre" style="margin-left:10px">dans la racine du projet : <code>py corriger_etat_vendeur_pdf.py</code> · puis <code>py manage.py test tests.test_etat_vendeur_pdf -v 2</code> (6 tests) · <a href="correctif-etat-vendeur/LISEZMOI-ETAT-VENDEUR.txt">notice</a> · <a href="correctif-etat-vendeur/DIFF-ETAT-VENDEUR.txt">différence exacte</a></span></p>
-      <p class="sous-titre"><strong>Vérifié ici :</strong> correcteur appliqué à une copie du ZIP POS v3, syntaxe backend et POS compilées (esbuild), rejeu sans modifier un octet ; helpers réels testés sur 8 produits distincts, deux noms identiques et quantité 1,25. <strong>Je n'ai pas accès à votre base locale</strong> : le test Django ciblé doit encore être lancé dans votre vrai <code>C:\NEXORA</code> avant validation d'une vente réelle.</p>
+      <p class="sous-titre"><strong>Vérifié sur la source complète fournie (pas sur le tag v1.3.9) :</strong> test PDF ciblé réussi, SKU complets conservés à l’extraction ; correcteur appliqué sur une copie fraîche puis relancé sans changement (idempotent) ; suite Django : <strong style="color:#7ee787">118 tests réussis, 1 ignoré</strong> ; build de production Next.js réussi. Tests sur base temporaire : recette de production et vente de contrôle restent à faire sur votre poste après installation.</p>
     </section>
     <section id="regles-argent" style="border:2px solid #8957e5;border-radius:14px;padding:18px 22px;margin:0 0 26px;background:linear-gradient(135deg,#1c1330,#1a1029)">
       <h2 style="margin-top:0;border:none;padding:0">💰 RÈGLES D'ARGENT — 16 tests + un remboursement corrigé</h2>

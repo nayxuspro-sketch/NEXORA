@@ -1,0 +1,1590 @@
+'use client';
+
+import * as React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Modal } from '@/components/ui/modal';
+import { BarcodeScannerModal } from '@/components/ui/barcode-scanner-modal';
+import { useToast } from '@/components/ui/toast';
+import { useAuth } from '@/lib/auth';
+import { formatCurrency } from '@/lib/utils';
+import { downloadPdfFile } from '@/lib/pdf-export';
+import { apiRequest } from '@/lib/api';
+import { Product, CashRegister, Partner, Store, PaginatedResponse } from '@/types';
+import {
+  Search,
+  ShoppingCart,
+  Trash2,
+  Plus,
+  Minus,
+  CreditCard,
+  Banknote,
+  Smartphone,
+  CheckCircle,
+  CheckCircle2,
+  Lock,
+  FileText,
+  Download,
+  RotateCcw,
+  Store as StoreIcon,
+  Barcode,
+  Camera,
+  Percent,
+  Printer,
+  Sparkles,
+  UserCheck,
+  QrCode,
+  Tag,
+  ArrowRight,
+  Receipt
+} from 'lucide-react';
+
+interface CartItem {
+  product: Product;
+  quantity: number;
+  discountRate: number; // custom line discount %
+}
+
+export default function PosPage() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const [search, setSearch] = React.useState('');
+  const [cart, setCart] = React.useState<CartItem[]>([]);
+  const [globalDiscount, setGlobalDiscount] = React.useState<number>(0);
+  const [selectedCustomer, setSelectedCustomer] = React.useState<Partner | null>(null);
+
+  // Traitement d'un code-barres scanné par caméra
+  const handleBarcodeScanned = (code: string) => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+
+    // Rechercher le produit correspondant dans les données chargées
+    const matched = productsData?.results?.find(
+      (p) =>
+        (p.barcode && p.barcode.trim() === trimmed) ||
+        (p.sku && p.sku.toLowerCase() === trimmed.toLowerCase())
+    );
+
+    if (matched) {
+      addToCart(matched);
+      toast({
+        type: 'success',
+        title: 'Article scanné',
+        message: `${matched.name} ajouté au panier d'encaissement.`,
+      });
+    } else {
+      // Filtrer la barre de recherche avec le code scanné
+      setSearch(trimmed);
+      toast({
+        type: 'warning',
+        title: 'Article non reconnu directement',
+        message: `Code "${trimmed}" scanné. Recherche automatique activée.`,
+      });
+    }
+  };
+
+  // State for optional Tax (TVA) on POS receipt
+  const [applyTax, setApplyTax] = React.useState(true);
+
+  // Modals
+  const { user: authUser } = useAuth();
+
+  // --- CORRECTIF v2 : liste des vendeurs du bilan (insertion automatique) ---
+  const { data: utilisateursResponse } = useQuery<any>({
+    queryKey: ['pos-vendeurs-bilan'],
+    queryFn: () => apiRequest('/users/?page_size=200'),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const vendeurs = React.useMemo(() => {
+    const brut: any[] = Array.isArray(utilisateursResponse)
+      ? utilisateursResponse
+      : (utilisateursResponse?.results || []);
+    // L'endpoint /users/ n'est pas filtré par entreprise : on ne garde que la nôtre
+    const monEntreprise = (authUser as any)?.company_id || (authUser as any)?.company?.id || '';
+    return brut
+      .filter((u) => u && u.id && u.is_active !== false)
+      .filter((u) => !monEntreprise || !u.company || u.company === monEntreprise)
+      .map((u) => ({
+        id: String(u.id),
+        email: u.email || '',
+        label: [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email || String(u.id),
+        role: u.role || '',
+      }));
+  }, [utilisateursResponse, authUser]);
+
+  // Par défaut : le vendeur connecté (identifiant technique = filtre fiable)
+  React.useEffect(() => {
+    if (authUser) {
+      setSellerPdfPeriod((prev: any) => ({
+        ...prev,
+        seller_id: prev.seller_id || (authUser as any).id || '',
+        seller_email: prev.seller_email || (authUser as any).email || '',
+      }));
+    }
+  }, [authUser]);
+
+  // Clôture Caisse & Rapport Z Modal State
+  const [isCloseRegisterModalOpen, setIsCloseRegisterModalOpen] = React.useState(false);
+  const [closingCashAmount, setClosingCashAmount] = React.useState('');
+  const [isClosingRegister, setIsClosingRegister] = React.useState(false);
+
+  const handleCloseRegisterZ = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const register = activeRegister;
+    if (!register || register.status !== 'OPEN') {
+      toast({
+        type: 'error',
+        title: 'Aucune caisse ouverte',
+        message: 'Ouvrez une session de caisse avant de lancer la clôture.',
+      });
+      return;
+    }
+    setIsClosingRegister(true);
+    try {
+      const countedAmount = closingCashAmount ? parseFloat(closingCashAmount) : parseFloat(register.current_balance);
+
+      // 1. Appeler l'API de clôture backend de la caisse
+      try {
+        await apiRequest(`/registers/${register.id}/close_session/`, {
+          method: 'POST',
+          body: JSON.stringify({ closing_balance: countedAmount }),
+        });
+      } catch (backendErr) {
+        console.warn('Fermeture session backend locale:', backendErr);
+      }
+
+      // 2. Télécharger automatiquement le Rapport Z officiel certifié
+      const queryParams = new URLSearchParams({
+        register_id: register.id,
+        closing_balance: countedAmount.toString(),
+      });
+      await downloadPdfFile(
+        `/api/v1/pos/export-z-report/?${queryParams.toString()}`,
+        `Rapport_Z_Cloture_Caisse_${new Date().toISOString().split('T')[0]}.pdf`
+      );
+
+      toast({
+        type: 'success',
+        title: 'Caisse Clôturée avec Succès',
+        message: 'Le Rapport Z officiel a été généré et les compteurs de session ont été archivés.',
+      });
+
+      setIsCloseRegisterModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['registers'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-report'] });
+    } catch (err: any) {
+      toast({
+        type: 'error',
+        title: 'Erreur lors de la clôture',
+        message: err.message || 'Impossible de finaliser la clôture.',
+      });
+    } finally {
+      setIsClosingRegister(false);
+    }
+  };
+
+
+  // Seller Sales PDF Export Modal State
+  const [isSellerPdfModalOpen, setIsSellerPdfModalOpen] = React.useState(false);
+  const [sellerPdfPeriod, setSellerPdfPeriod] = React.useState({
+    seller_id: '',
+    
+    start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+    seller_email: '',
+  });
+  const [isExportingSellerPdf, setIsExportingSellerPdf] = React.useState(false);
+
+  // Set default seller email from current user
+  React.useEffect(() => {
+    if (authUser?.email) {
+      setSellerPdfPeriod((prev) => ({ ...prev, seller_email: authUser.email }));
+    }
+  }, [authUser]);
+
+  const getSellerPdfQueryParams = () => {
+    // Ne jamais laisser le parametre vendeur vide : le PDF est celui du
+    // compte connecte par defaut, sauf selection explicite d'un responsable.
+    const sellerId = sellerPdfPeriod.seller_id || String((authUser as any)?.id || '');
+    const sellerEmail = sellerPdfPeriod.seller_email || authUser?.email || '';
+    return new URLSearchParams({
+      start_date: sellerPdfPeriod.start_date,
+      end_date: sellerPdfPeriod.end_date,
+      ...(sellerId ? { seller_id: sellerId } : sellerEmail ? { seller: sellerEmail } : {}),
+    });
+  };
+
+  const handleExportSellerPdf = async () => {
+    try {
+      if (!(authUser as any)?.id) {
+        throw new Error('Compte vendeur non identifié. Reconnectez-vous puis réessayez.');
+      }
+      setIsExportingSellerPdf(true);
+      const queryParams = getSellerPdfQueryParams();
+      await downloadPdfFile(
+        `/api/v1/sales/export-seller-pdf/?${queryParams.toString()}`,
+        `Vente_Vendeur_${sellerPdfPeriod.start_date}_${sellerPdfPeriod.end_date}.pdf`
+      );
+
+      toast({
+        type: 'success',
+        title: 'Bilan Vendeur Téléchargé',
+        message: 'Votre état de vente individuel et votre analyse avec suggestions ont été générés.',
+      });
+      setIsSellerPdfModalOpen(false);
+    } catch (err: any) {
+      toast({
+        type: 'error',
+        title: 'Erreur Export PDF',
+        message: err.message || 'Impossible de générer le bilan de vente.',
+      });
+    } finally {
+      setIsExportingSellerPdf(false);
+    }
+  };
+
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = React.useState(false);
+  const [isCameraScannerOpen, setIsCameraScannerOpen] = React.useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = React.useState(false);
+  const [paymentMethod, setPaymentMethod] = React.useState<'CASH' | 'CARD' | 'MOBILE_MONEY' | 'CREDIT'>('CASH');
+  const [receivedCash, setReceivedCash] = React.useState('');
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = React.useState(false);
+  const [completedSale, setCompletedSale] = React.useState<any>(null);
+
+  // Keyboard Shortcuts (F2: focus search, F4: customer modal, F8: payment modal, F10: fast validate, ESC: close modals)
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        setIsCustomerModalOpen(true);
+      } else if (e.key === 'F8') {
+        e.preventDefault();
+        if (cart.length > 0) setPaymentModalOpen(true);
+      } else if (e.key === 'F10') {
+        e.preventDefault();
+        if (cart.length > 0 && !saleMutation.isPending) {
+          saleMutation.mutate();
+        }
+      } else if (e.key === 'Escape') {
+        setIsCustomerModalOpen(false);
+        setIsCameraScannerOpen(false);
+        setPaymentModalOpen(false);
+        setIsReceiptModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart]);
+
+  // Fetch register
+  const { data: registersData } = useQuery<PaginatedResponse<CashRegister>>({
+    queryKey: ['registers'],
+    queryFn: () => apiRequest<PaginatedResponse<CashRegister>>('/registers/'),
+    staleTime: 1000 * 60,
+      });
+
+  // Plus de caisse inventee : une caisse doit exister reellement pour vendre.
+  // (Avant, une caisse fictive « reg-01 » pointait vers un magasin fictif
+  // « store-01 » : le serveur refusait alors chaque vente avec le message
+  // « Magasin introuvable dans votre entreprise ».)
+  const activeRegister = registersData?.results?.[0] || null;
+  const caisseOuverte = !!activeRegister && activeRegister.status === 'OPEN';
+
+  // Magasins de l'entreprise : necessaires pour creer la premiere caisse.
+  const { data: storesData } = useQuery<PaginatedResponse<Store>>({
+    queryKey: ['stores'],
+    queryFn: () => apiRequest<PaginatedResponse<Store>>('/stores/'),
+    staleTime: 1000 * 60,
+  });
+
+  const [isRegisterSetupOpen, setIsRegisterSetupOpen] = React.useState(false);
+  const [registerSetupForm, setRegisterSetupForm] = React.useState({ name: '', code: '', store: '' });
+  const [isCreatingStore, setIsCreatingStore] = React.useState(false);
+  const [isCreatingRegister, setIsCreatingRegister] = React.useState(false);
+
+  const handleCreateStore = async () => {
+    setIsCreatingStore(true);
+    try {
+      const nom = window.prompt('Nom du magasin', 'Magasin principal');
+      if (!nom) return;
+      const code = window.prompt('Code du magasin', 'MAG-01');
+      if (!code) return;
+      const nouveauMagasin: any = await apiRequest('/stores/', {
+        method: 'POST',
+        body: JSON.stringify({ name: nom, code: code }),
+      });
+      queryClient.invalidateQueries({ queryKey: ['stores'] });
+      setRegisterSetupForm((precedent) => ({ ...precedent, store: nouveauMagasin?.id || '' }));
+      toast({ type: 'success', title: 'Magasin cree', message: nom + ' (' + code + ')' });
+    } catch (erreur: any) {
+      toast({
+        type: 'error',
+        title: 'Creation du magasin impossible',
+        message: erreur?.message || 'Le magasin n\'a pas ete enregistre.',
+      });
+    } finally {
+      setIsCreatingStore(false);
+    }
+  };
+
+  const handleCreateRegister = async () => {
+    if (!registerSetupForm.store) {
+      toast({ type: 'error', title: 'Magasin requis',
+              message: 'Choisissez le magasin qui abritera cette caisse.' });
+      return;
+    }
+    setIsCreatingRegister(true);
+    try {
+      const caisse: any = await apiRequest('/registers/', {
+        method: 'POST',
+        body: JSON.stringify({
+          store: registerSetupForm.store,
+          name: registerSetupForm.name || 'Caisse Comptoir Principal',
+          code: registerSetupForm.code || 'REG-01',
+        }),
+      });
+      const caisseCreee = { ...caisse, status: 'OPEN' };
+      // La caisse ouvre sa session : le fond de caisse est documente.
+      try {
+        await apiRequest(`/registers/${caisse.id}/open_session/`, {
+          method: 'POST',
+          body: JSON.stringify({ opening_balance: 0 }),
+        });
+      } catch (erreurSession: any) {
+        toast({
+          type: 'error',
+          title: 'Caisse creee, ouverture de session a refaire',
+          message: erreurSession?.message || 'Ouvrez la session de cette caisse.',
+        });
+      }
+      queryClient.setQueryData(['registers'], { results: [caisseCreee], pagination: {} });
+      await queryClient.invalidateQueries({ queryKey: ['registers'] });
+      setIsRegisterSetupOpen(false);
+      toast({
+        type: 'success',
+        title: 'Caisse prete',
+        message: caisseCreee.name + ' (' + caisseCreee.code + ') est ouverte : vous pouvez vendre.',
+      });
+    } catch (erreur: any) {
+      toast({
+        type: 'error',
+        title: 'Creation de la caisse impossible',
+        message: erreur?.message || 'La caisse n\'a pas ete enregistree.',
+      });
+    } finally {
+      setIsCreatingRegister(false);
+    }
+  };
+
+  // Ouvrir reellement la session d'une caisse fermee (l'ecran precedent
+  // appelait la fermeture : le bouton « Ouvrir la session » ne l'ouvrait pas).
+  const handleOpenRegister = async () => {
+    if (!activeRegister) return;
+    try {
+      const fond = window.prompt('Fond de caisse a l\'ouverture (en FCFA)', '0');
+      if (fond === null) return;
+      await apiRequest(`/registers/${activeRegister.id}/open_session/`, {
+        method: 'POST',
+        body: JSON.stringify({ opening_balance: Number(fond) || 0 }),
+      });
+      queryClient.setQueryData(['registers'], {
+        results: [{ ...activeRegister, status: 'OPEN' }],
+        pagination: {},
+      });
+      await queryClient.invalidateQueries({ queryKey: ['registers'] });
+      toast({
+        type: 'success',
+        title: 'Session ouverte',
+        message: activeRegister.name + ' est prete a encaisser.',
+      });
+    } catch (erreur: any) {
+      toast({
+        type: 'error',
+        title: 'Ouverture impossible',
+        message: erreur?.message || 'La session n\'a pas ete ouverte.',
+      });
+    }
+  };
+
+
+  // Fetch products
+  const { data: productsData, isLoading } = useQuery<PaginatedResponse<Product>>({
+    queryKey: ['products', search],
+    queryFn: () => apiRequest<PaginatedResponse<Product>>(`/products/?search=${encodeURIComponent(search)}`),
+    staleTime: 1000 * 60,
+  });
+
+  // Fetch customers
+  const { data: customersData } = useQuery<PaginatedResponse<Partner>>({
+    queryKey: ['customers-list'],
+    queryFn: () => apiRequest<PaginatedResponse<Partner>>('/partners/?partner_type=CUSTOMER'),
+  });
+
+  // Smart suggestions query
+  const firstProductId = cart[0]?.product?.id;
+  const { data: suggestions } = useQuery<{
+    frequently_bought_together: Product[];
+    trending_products: Product[];
+    active_promotions: any[];
+  }>({
+    queryKey: ['pos-suggestions', firstProductId],
+    queryFn: () =>
+      apiRequest(`/pos/suggestions/${firstProductId ? `?product_id=${firstProductId}` : ''}`),
+  });
+
+  // Cart operations
+  const addToCart = (product: Product, discountRate = 0) => {
+    setCart((prev) => {
+      const existing = prev.find((item) => item.product.id === product.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...prev, { product, quantity: 1, discountRate }];
+    });
+    toast({
+      type: 'success',
+      title: 'Article scanné / ajouté',
+      message: `${product.name} ajouté au panier.`,
+    });
+  };
+
+  const updateQuantity = (productId: string, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((item) => {
+          if (item.product.id === productId) {
+            const newQty = item.quantity + delta;
+            return newQty > 0 ? { ...item, quantity: newQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean) as CartItem[]
+    );
+  };
+
+  const setDirectQuantity = (productId: string, qty: number) => {
+    if (isNaN(qty) || qty <= 0) return;
+    setCart((prev) =>
+      prev.map((item) =>
+        item.product.id === productId ? { ...item, quantity: Math.max(1, qty) } : item
+      )
+    );
+  };
+
+  const updateLineDiscount = (productId: string, discount: number) => {
+    setCart((prev) =>
+      prev.map((item) =>
+        item.product.id === productId ? { ...item, discountRate: Math.max(0, Math.min(100, discount)) } : item
+      )
+    );
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    setSelectedCustomer(null);
+    setGlobalDiscount(0);
+  };
+
+  // Calculations
+  const grossSubtotal = cart.reduce((acc, item) => {
+    const price = parseFloat(item.product.selling_price) || 0;
+    const lineDiscountVal = (price * item.discountRate) / 100;
+    return acc + (price - lineDiscountVal) * item.quantity;
+  }, 0);
+
+  const totalDiscountVal = (grossSubtotal * globalDiscount) / 100;
+  const discountedSubtotal = grossSubtotal - totalDiscountVal;
+
+  const totalTVA = applyTax
+    ? cart.reduce((acc, item) => {
+        const taxRate = parseFloat(item.product.tax_rate) || 0;
+        const price = parseFloat(item.product.selling_price) || 0;
+        const lineDisc = (price * item.discountRate) / 100;
+        const baseLine = (price - lineDisc) * item.quantity;
+        return acc + (baseLine * taxRate) / 100;
+      }, 0)
+    : 0;
+
+  const totalTTC = discountedSubtotal + totalTVA;
+
+  // Barcode / Scanner simulation
+  const handleBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!search.trim()) return;
+    const found = productsData?.results?.find(
+      (p) =>
+        p.barcode?.toLowerCase() === search.trim().toLowerCase() ||
+        p.sku?.toLowerCase() === search.trim().toLowerCase()
+    );
+    if (found) {
+      addToCart(found);
+      setSearch('');
+    } else {
+      toast({
+        type: 'warning',
+        title: 'Article introuvable',
+        message: `Aucun produit correspondant au code "${search}".`,
+      });
+    }
+  };
+
+  // Sale mutation
+  const saleMutation = useMutation({
+    mutationFn: async () => {
+      const register = activeRegister;
+      if (!register || register.status !== 'OPEN') {
+        throw new Error('Aucune caisse ouverte. Ouvrez une session de caisse avant la vente.');
+      }
+      const payload = {
+        register: register.id,
+        customer: selectedCustomer?.id || null,
+        discount_amount: totalDiscountVal.toFixed(2),
+        items: cart.map((i) => ({
+          product: i.product.id,
+          quantity: i.quantity,
+          unit_price: i.product.selling_price,
+          tax_rate: applyTax ? i.product.tax_rate : '0.00',
+          discount_rate: i.discountRate,
+        })),
+        payment: {
+          amount: totalTTC.toFixed(2),
+          method: paymentMethod,
+          reference: `POS-PAY-${Date.now().toString().slice(-6)}`,
+        },
+      };
+
+      // Une panne du serveur ne doit jamais fabriquer un faux ticket : le recu
+      // ne s'affiche que pour une vente reellement enregistree en base.
+      return await apiRequest('/sales/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+    onSuccess: (data: any) => {
+      const saleDetails = {
+        items: [...cart],
+        customer_name: selectedCustomer?.name || 'Client Comptoir',
+        subtotal_amount: discountedSubtotal.toFixed(2),
+        tax_amount: totalTVA.toFixed(2),
+        total_amount: totalTTC.toFixed(2),
+        payment_method: paymentMethod,
+        date: new Date().toLocaleString('fr-FR'),
+      };
+      setCompletedSale({ ...saleDetails, saveError: true });
+      setPaymentModalOpen(false);
+      setIsReceiptModalOpen(true);
+      clearCart();
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-list'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-report'] });
+      queryClient.invalidateQueries({ queryKey: ['bi-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-levels'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-intelligence'] });
+    },
+    onError: (err: any) => {
+      toast({
+        type: 'error',
+        title: 'Échec de la transaction',
+        message: err.message || 'Stock insuffisant ou erreur caisse.',
+      });
+    },
+  });
+
+  // Sans caisse reelle (ou caisse fermee), la vente est impossible : on le dit
+  // clairement, avec les deux raccourcis qui manquaient (magasin puis caisse).
+  if (!caisseOuverte) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto space-y-4">
+          <div className="bg-card border rounded-2xl p-6 shadow-xs space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/15 text-amber-500">
+                <StoreIcon className="h-6 w-6" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-foreground">
+                  {activeRegister ? 'Caisse fermee' : 'Aucune caisse enregistree'}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {activeRegister
+                    ? 'La caisse « ' + activeRegister.name + ' » est fermee. Ouvrez sa session depuis le bouton ci-dessous pour encaisser.'
+                    : 'Les ventes ne peuvent pas etre enregistrees sans caisse : le serveur refuse une vente dont le magasin n\'existe pas. Creez le magasin, puis la caisse.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-sm space-y-1">
+              <p>
+                Magasins de votre entreprise :{' '}
+                <span className="font-semibold">{storesData?.results?.length || 0}</span>
+              </p>
+              <p>
+                Caisses de votre entreprise :{' '}
+                <span className="font-semibold">{registersData?.results?.length || 0}</span>
+                {activeRegister ? ' (fermee : fond ' + formatCurrency(activeRegister.current_balance) + ')' : ''}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCreateStore}
+                isLoading={isCreatingStore}
+              >
+                Creer un magasin
+              </Button>
+              {activeRegister ? (
+                <Button type="button" onClick={handleOpenRegister}>
+                  Ouvrir la session de cette caisse
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const premierMagasin: any = storesData?.results?.[0];
+                    setRegisterSetupForm((precedent) => ({
+                      ...precedent,
+                      store: precedent.store || premierMagasin?.id || '',
+                    }));
+                    setIsRegisterSetupOpen(true);
+                  }}
+                >
+                  Creer une caisse
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['registers'] })}
+              >
+                Recharger la liste
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <Modal
+          isOpen={isRegisterSetupOpen}
+          onClose={() => setIsRegisterSetupOpen(false)}
+          title="Nouvelle caisse"
+        >
+          <div className="space-y-3">
+            <label className="block text-sm">
+              Magasin d'affectation
+              <select
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                value={registerSetupForm.store}
+                onChange={(evenement) =>
+                  setRegisterSetupForm((precedent) => ({ ...precedent, store: evenement.target.value }))
+                }
+              >
+                <option value="">— choisir un magasin —</option>
+                {(storesData?.results || []).map((magasin) => (
+                  <option key={magasin.id} value={magasin.id}>
+                    {magasin.name} ({magasin.code})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              Nom de la caisse
+              <Input
+                className="mt-1"
+                value={registerSetupForm.name}
+                onChange={(evenement) =>
+                  setRegisterSetupForm((precedent) => ({ ...precedent, name: evenement.target.value }))
+                }
+                placeholder="Caisse Comptoir Principal"
+              />
+            </label>
+            <label className="block text-sm">
+              Code de la caisse
+              <Input
+                className="mt-1"
+                value={registerSetupForm.code}
+                onChange={(evenement) =>
+                  setRegisterSetupForm((precedent) => ({ ...precedent, code: evenement.target.value }))
+                }
+                placeholder="REG-01"
+              />
+            </label>
+            {!storesData?.results?.length && (
+              <p className="text-xs text-amber-500">
+                Aucun magasin pour l'instant : cliquez d'abord sur « Creer un magasin ».
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsRegisterSetupOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="button" onClick={handleCreateRegister} isLoading={isCreatingRegister}>
+                Creer et ouvrir la caisse
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-4">
+        {/* Top shortcut helper & Register status bar */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 bg-card border rounded-2xl p-3 sm:p-4 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary text-primary-foreground">
+              <StoreIcon className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-foreground">
+                  {activeRegister.name}
+                </h2>
+                <Badge variant="success" className="text-[10px]">OUVERTE</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Fond actuel : <span className="font-bold text-foreground">{formatCurrency(activeRegister.current_balance)}</span> • Caisse #{activeRegister.code}
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Key Badges */}
+          <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground mr-1">Raccourcis :</span>
+            <kbd className="px-2 py-0.5 rounded border bg-muted font-mono font-bold text-foreground">F2</kbd> Recherche
+            <kbd className="px-2 py-0.5 rounded border bg-muted font-mono font-bold text-foreground">F4</kbd> Client
+            <kbd className="px-2 py-0.5 rounded border bg-muted font-mono font-bold text-foreground">F8</kbd> Paiement
+            <kbd className="px-2 py-0.5 rounded border bg-muted font-mono font-bold text-foreground">F10</kbd> Validation
+            <kbd className="px-2 py-0.5 rounded border bg-muted font-mono font-bold text-foreground">ESC</kbd> Fermer
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                setClosingCashAmount(activeRegister.current_balance);
+                setIsCloseRegisterModalOpen(true);
+              }}
+              className="text-xs font-bold shadow-md bg-rose-600 hover:bg-rose-700 text-white transition-all px-3.5"
+              title="Clôture fiscale journalière inaltérable et impression du ticket Rapport Z"
+            >
+              <Lock className="h-4 w-4 mr-1.5" /> Clôturer Caisse (Z)
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSellerPdfModalOpen(true)}
+              className="text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 transition-all"
+              title="Exporter uniquement mes ventes en PDF avec analyse personnalisée et suggestions"
+            >
+              <FileText className="h-4 w-4 mr-1.5" /> Mon Bilan Vente PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCameraScannerOpen(true)}
+              className="text-xs"
+            >
+              <Camera className="h-4 w-4 mr-1.5" /> Scan Caméra
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCustomerModalOpen(true)}
+              className="text-xs"
+            >
+              <UserCheck className="h-4 w-4 mr-1.5" />
+              {selectedCustomer ? selectedCustomer.name.slice(0, 15) : 'Assigner Client'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearCart}
+              disabled={cart.length === 0}
+              className="text-xs text-muted-foreground hover:text-destructive"
+            >
+              <RotateCcw className="h-4 w-4 mr-1" /> Vider
+            </Button>
+          </div>
+        </div>
+
+        {/* Main Grid: Left Products / Right Cart & Checkout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* Left Column: Search & Product Catalog */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-4">
+            {/* Direct Barcode / Search Input */}
+            <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
+              <Input
+                ref={searchInputRef}
+                placeholder="Scanner code-barres (USB/Optique) ou taper référence SKU... [F2]"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                icon={<Barcode className="h-4 w-4" />}
+                className="bg-card h-11 text-sm shadow-xs"
+                autoFocus
+              />
+              <Button type="submit" size="default" className="h-11 px-5">
+                <Search className="h-4 w-4 mr-1.5" /> Trouver
+              </Button>
+            </form>
+
+            {/* Smart Suggestions Bar (Frequently bought / Pack offer) */}
+            {suggestions?.frequently_bought_together && suggestions.frequently_bought_together.length > 0 && (
+              <div className="p-3 rounded-xl bg-gradient-to-r from-primary/10 via-blue-500/5 to-transparent border border-primary/20 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                  <span className="text-xs font-bold text-foreground">
+                    Suggestion intelligente pour cette vente :
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto">
+                  {suggestions.frequently_bought_together.map((sug) => (
+                    <button
+                      key={sug.id}
+                      onClick={() => addToCart(sug)}
+                      className="px-2.5 py-1 rounded-lg bg-card border text-xs font-medium hover:border-primary flex items-center gap-1.5 shadow-xs transition-all"
+                    >
+                      <Plus className="h-3 w-3 text-primary" /> {sug.name} (
+                      <span className="font-bold">{formatCurrency(sug.selling_price)}</span>)
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Products Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="h-36 rounded-xl border bg-card animate-pulse" />
+                ))
+              ) : productsData?.results?.length ? (
+                productsData.results.map((prod) => (
+                  <Card
+                    key={prod.id}
+                    onClick={() => addToCart(prod)}
+                    className="cursor-pointer hover:border-primary hover:shadow-md transition-all active:scale-[0.98] select-none flex flex-col justify-between"
+                  >
+                    <CardHeader className="p-3 pb-1">
+                      <div className="flex items-start justify-between gap-1">
+                        <CardTitle className="text-sm font-bold line-clamp-1">{prod.name}</CardTitle>
+                        <Badge variant="outline" className="text-[10px] font-mono shrink-0">
+                          {prod.sku}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
+                        {prod.description}
+                      </p>
+                    </CardHeader>
+                    <CardFooter className="p-3 pt-2 flex items-center justify-between border-t border-border/40 bg-muted/15">
+                      <span className="text-base font-black text-primary">
+                        {formatCurrency(prod.selling_price)}
+                      </span>
+                      <Button size="sm" variant="secondary" className="h-7 text-xs px-2.5">
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full py-12 text-center text-muted-foreground">
+                  Aucun article trouvé.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Dynamic Cart & Checkout Panel */}
+          <div className="lg:col-span-5 xl:col-span-4">
+            <Card className="shadow-xl border-2 border-primary/20 sticky top-20">
+              <CardHeader className="p-4 border-b">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-base font-bold">Ticket de Caisse</CardTitle>
+                  </div>
+                  <Badge variant="secondary" className="font-bold">
+                    {cart.reduce((a, b) => a + b.quantity, 0)} articles
+                  </Badge>
+                </div>
+                {selectedCustomer && (
+                  <div className="mt-2 p-2 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-primary truncate">
+                      Client : {selectedCustomer.name}
+                    </span>
+                    <button
+                      onClick={() => setSelectedCustomer(null)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+              </CardHeader>
+
+              {/* Items in Cart */}
+              <CardContent className="p-3 divide-y max-h-[340px] overflow-y-auto">
+                {cart.length === 0 ? (
+                  <div className="py-12 text-center text-muted-foreground space-y-2">
+                    <ShoppingCart className="h-10 w-10 mx-auto text-muted-foreground/30" />
+                    <p className="text-xs">Panier vide. Scannez un code-barres ou sélectionnez un produit.</p>
+                  </div>
+                ) : (
+                  cart.map((item) => (
+                    <div key={item.product.id} className="py-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold truncate text-foreground">{item.product.name}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {formatCurrency(item.product.selling_price)} / {item.product.unit_symbol || 'u'}
+                          </p>
+                        </div>
+                        <span className="text-xs font-black text-right min-w-[70px]">
+                          {formatCurrency(
+                            (Number(item.product.selling_price) * (1 - item.discountRate / 100)) *
+                              item.quantity
+                          )}
+                        </span>
+                        <button
+                          onClick={() => removeFromCart(item.product.id)}
+                          className="text-muted-foreground hover:text-destructive p-1"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Controls: Quantity + Line Discount */}
+                      <div className="flex items-center justify-between text-xs pt-1">
+                        <div className="flex items-center border rounded-lg bg-background overflow-hidden shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.product.id, -1)}
+                            className="px-2 py-1 hover:bg-muted text-muted-foreground transition-colors"
+                            title="Diminuer la quantité"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={item.quantity}
+                            onChange={(e) => setDirectQuantity(item.product.id, parseInt(e.target.value) || 1)}
+                            className="w-12 h-7 text-center font-bold text-xs bg-transparent border-x border-input focus:outline-none focus:bg-muted/40"
+                            title="Taper directement la quantité désirée"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.product.id, 1)}
+                            className="px-2 py-1 hover:bg-muted text-muted-foreground transition-colors"
+                            title="Augmenter la quantité"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground">Remise % :</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={item.discountRate || ''}
+                            onChange={(e) =>
+                              updateLineDiscount(item.product.id, parseFloat(e.target.value) || 0)
+                            }
+                            placeholder="0"
+                            className="w-12 h-7 text-center border rounded-lg text-xs bg-background font-medium"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+
+              {/* Financial Summary & Action Buttons */}
+              <CardFooter className="p-4 flex flex-col gap-3 bg-muted/20 border-t">
+                {/* Tax (TVA) Toggle for the cashier */}
+                <div className="w-full flex items-center justify-between text-xs pb-1">
+                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                    <Receipt className="h-3.5 w-3.5 text-primary" /> Application TVA (18%) :
+                  </span>
+                  <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/50">
+                    <button
+                      type="button"
+                      onClick={() => setApplyTax(true)}
+                      className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                        applyTax
+                          ? 'bg-primary text-primary-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Avec TVA
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setApplyTax(false)}
+                      className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                        !applyTax
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Sans TVA (Exonéré)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Global discount selector */}
+                <div className="w-full flex items-center justify-between text-xs border-t pt-2">
+                  <span className="text-muted-foreground flex items-center gap-1 font-medium">
+                    <Percent className="h-3.5 w-3.5" /> Remise Globale Ticket :
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {[0, 5, 10].map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => setGlobalDiscount(d)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                          globalDiscount === d
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-background hover:bg-muted'
+                        }`}
+                      >
+                        {d}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="w-full space-y-1.5 text-xs text-muted-foreground border-t pt-2">
+                  <div className="flex justify-between">
+                    <span>Sous-total HT</span>
+                    <span>{formatCurrency(discountedSubtotal)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1">
+                      TVA {applyTax ? '(18% Standard)' : '(0% Exonérée)'}
+                    </span>
+                    <span className={applyTax ? '' : 'text-amber-500 font-medium'}>
+                      {applyTax ? formatCurrency(totalTVA) : '0 FCFA (Non appliquée)'}
+                    </span>
+                  </div>
+                  {globalDiscount > 0 && (
+                    <div className="flex justify-between text-emerald-600 font-semibold">
+                      <span>Remise appliquée</span>
+                      <span>-{formatCurrency(totalDiscountVal)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-base font-extrabold text-foreground pt-2 border-t">
+                    <span>Total Net à Payer</span>
+                    <span className="text-primary text-lg">{formatCurrency(totalTTC)}</span>
+                  </div>
+                </div>
+
+                <Button
+                  size="lg"
+                  className="w-full font-black shadow-lg h-13 text-base mt-1"
+                  disabled={cart.length === 0}
+                  onClick={() => setPaymentModalOpen(true)}
+                >
+                  <CreditCard className="h-5 w-5 mr-2" /> Payer [F8] ({formatCurrency(totalTTC)})
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Customer Selection Modal [F4] */}
+      <Modal
+        isOpen={isCustomerModalOpen}
+        onClose={() => setIsCustomerModalOpen(false)}
+        title="Assigner un Client au Panier"
+        maxWidth="md"
+      >
+        <div className="space-y-3 pt-2">
+          <Input placeholder="Rechercher un client..." icon={<Search className="h-4 w-4" />} />
+          <div className="divide-y border rounded-xl overflow-hidden max-h-[300px] overflow-y-auto">
+            {customersData?.results?.map((cust) => (
+              <div
+                key={cust.id}
+                onClick={() => {
+                  setSelectedCustomer(cust);
+                  setIsCustomerModalOpen(false);
+                  toast({
+                    type: 'info',
+                    title: 'Client assigné',
+                    message: `${cust.name} rattaché au ticket.`,
+                  });
+                }}
+                className="p-3 hover:bg-muted cursor-pointer flex items-center justify-between text-xs transition-colors"
+              >
+                <div>
+                  <p className="font-bold text-foreground">{cust.name}</p>
+                  <p className="text-muted-foreground">{cust.phone} • {cust.email}</p>
+                </div>
+                <div className="text-right">
+                  <Badge variant="outline">Crédit max: {formatCurrency(cust.credit_limit)}</Badge>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Solde: {formatCurrency(cust.current_balance)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Real Hardware Camera Barcode / QR Scanner */}
+      <BarcodeScannerModal
+        isOpen={isCameraScannerOpen}
+        onClose={() => setIsCameraScannerOpen(false)}
+        onScanSuccess={handleBarcodeScanned}
+      />
+
+      {/* MODAL: EXPORT PDF DES VENTES DU VENDEUR AVEC ANALYSE & SUGGESTIONS */}
+      <Modal
+        isOpen={isSellerPdfModalOpen}
+        onClose={() => setIsSellerPdfModalOpen(false)}
+        title="Exporter mon Bilan de Vente & Analyse Commerciale (PDF)"
+        maxWidth="md"
+      >
+        <div className="space-y-4 pt-2">
+          <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-foreground space-y-1">
+            <p className="font-bold flex items-center gap-1.5 text-primary">
+              <Sparkles className="h-4 w-4" /> Rapport complet du vendeur connecté :
+            </p>
+            <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground text-[11px]">
+              <li><strong>Ventes :</strong> toutes les factures validées de ce vendeur sur la période choisie.</li>
+              <li><strong>Produits :</strong> détail exhaustif, sans limite aux six premiers ; la table continue automatiquement sur plusieurs pages.</li>
+              <li><strong>Indicateurs :</strong> chiffre d'affaires, encaissé, taxes, remises, unités, marge et analyse commerciale.</li>
+            </ul>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Date de Début *
+              </label>
+              <Input
+                type="date"
+                required
+                value={sellerPdfPeriod.start_date}
+                onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, start_date: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Date de Fin *
+              </label>
+              <Input
+                type="date"
+                required
+                value={sellerPdfPeriod.end_date}
+                onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, end_date: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground block mb-1">
+              Compte Vendeur / Caissier
+            </label>
+            {vendeurs.length > 0 ? (
+              <select
+                aria-label="Choisir le vendeur du bilan"
+                value={sellerPdfPeriod.seller_id}
+                onChange={(e) => {
+                  const choisi = vendeurs.find((v) => v.id === e.target.value);
+                  setSellerPdfPeriod({
+                    ...sellerPdfPeriod,
+                    seller_id: e.target.value,
+                    seller_email: choisi?.email || '',
+                  });
+                }}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
+              >
+                <option value="">— Choisir un vendeur —</option>
+                {vendeurs.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                    {v.email && v.label !== v.email ? ` (${v.email})` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                value={sellerPdfPeriod.seller_email}
+                onChange={(e) => setSellerPdfPeriod({ ...sellerPdfPeriod, seller_email: e.target.value })}
+                placeholder="Ex: caissier@nexora-bf.com"
+              />
+            )}
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Le bilan est strictement limité aux ventes validées encaissées par ce vendeur sur la période choisie.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-4 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsSellerPdfModalOpen(false)}
+              className="w-full font-medium"
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              onClick={handleExportSellerPdf}
+              isLoading={isExportingSellerPdf}
+              className="w-full -order-1 sm:order-none sm:col-span-2"
+            >
+              <Download className="h-4 w-4 mr-1.5" /> Télécharger mon Rapport PDF complet
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Payment Modal [F8] */}
+      <Modal
+        isOpen={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        title="Règlement & Encaissement Caisse"
+        description={`Montant total à encaisser : ${formatCurrency(totalTTC)}`}
+        maxWidth="md"
+      >
+        <div className="space-y-4 pt-2">
+          {/* Method selector */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('CASH')}
+              className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition-all ${
+                paymentMethod === 'CASH'
+                  ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary'
+                  : 'hover:bg-muted text-muted-foreground'
+              }`}
+            >
+              <Banknote className="h-5 w-5" /> Espèces
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('CARD')}
+              className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition-all ${
+                paymentMethod === 'CARD'
+                  ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary'
+                  : 'hover:bg-muted text-muted-foreground'
+              }`}
+            >
+              <CreditCard className="h-5 w-5" /> Carte Bancaire
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('MOBILE_MONEY')}
+              className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition-all ${
+                paymentMethod === 'MOBILE_MONEY'
+                  ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary'
+                  : 'hover:bg-muted text-muted-foreground'
+              }`}
+            >
+              <Smartphone className="h-5 w-5" /> Mobile Money
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('CREDIT')}
+              className={`p-3 rounded-xl border flex flex-col items-center gap-1 text-xs font-bold transition-all ${
+                paymentMethod === 'CREDIT'
+                  ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary'
+                  : 'hover:bg-muted text-muted-foreground'
+              }`}
+            >
+              <Tag className="h-5 w-5" /> À Crédit
+            </button>
+          </div>
+
+          {/* Cash calculation */}
+          {paymentMethod === 'CASH' && (
+            <div className="space-y-3 p-4 rounded-xl bg-muted/40 border">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Espèces Remises par le Client (FCFA)
+                </label>
+                <Input
+                  type="number"
+                  placeholder={totalTTC.toFixed(2)}
+                  value={receivedCash}
+                  onChange={(e) => setReceivedCash(e.target.value)}
+                />
+              </div>
+
+              {Number(receivedCash) >= totalTTC && (
+                <div className="flex justify-between items-center pt-2 text-sm border-t">
+                  <span className="font-semibold text-muted-foreground">Monnaie à rendre :</span>
+                  <span className="text-lg font-black text-emerald-600">
+                    {formatCurrency(Number(receivedCash) - totalTTC)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {paymentMethod === 'CREDIT' && !selectedCustomer && (
+            <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
+              Attention : Vous devez sélectionner un client (F4) pour une vente à crédit.
+            </div>
+          )}
+
+          <Button
+            size="lg"
+            className="w-full font-black h-12 text-base shadow-md"
+            isLoading={saleMutation.isPending}
+            disabled={paymentMethod === 'CREDIT' && !selectedCustomer}
+            onClick={() => saleMutation.mutate()}
+          >
+            Valider la Transaction [F10]
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Digital Receipt & Print Modal */}
+      <Modal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        title="Reçu de Vente & Confirmation"
+        maxWidth="sm"
+      >
+        <div className="space-y-4 pt-1">
+          {/* Printable Ticket Shape with dedicated print id */}
+          <div
+            id="pos-receipt-print-area"
+            className="p-4 rounded-xl border bg-card font-mono text-xs space-y-3 shadow-inner"
+          >
+            <div className="text-center border-b pb-2">
+              {activeRegister?.store_logo && (
+                <div className="flex justify-center mb-2">
+                  <img
+                    src={activeRegister.store_logo}
+                    alt="Logo Magasin"
+                    className="h-10 max-w-[120px] object-contain"
+                  />
+                </div>
+              )}
+              <h3 className="font-bold text-sm tracking-widest text-foreground">
+                {activeRegister?.store_name || 'NEXORA RETAIL'}
+              </h3>
+              <p className="text-[10px] text-muted-foreground">{activeRegister?.name}</p>
+              <p className="text-[10px] text-muted-foreground">{completedSale?.date}</p>
+              <p className="font-bold text-primary mt-1">Ticket #{completedSale?.reference}</p>
+            </div>
+
+            <div className="space-y-1 divide-y divide-dashed">
+              {completedSale?.items?.map((it: CartItem, idx: number) => (
+                <div key={idx} className="flex justify-between pt-1">
+                  <span>{it.quantity}x {it.product.name.slice(0, 18)}</span>
+                  <span>
+                    {formatCurrency(Number(it.product.selling_price) * it.quantity)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t pt-2 space-y-1 text-right">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Total HT :</span>
+                <span>{formatCurrency(completedSale?.subtotal_amount || 0)}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>{Number(completedSale?.tax_amount || 0) > 0 ? 'TVA (18%) :' : 'TVA (Exonérée) :'}</span>
+                <span>{formatCurrency(completedSale?.tax_amount || 0)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-sm text-foreground pt-1 border-t">
+                <span>TOTAL TTC :</span>
+                <span>{formatCurrency(completedSale?.total_amount || 0)}</span>
+              </div>
+              <div className="flex justify-between text-[11px] text-muted-foreground pt-1">
+                <span>Mode :</span>
+                <span>{completedSale?.payment_method}</span>
+              </div>
+            </div>
+
+            <div className="text-center pt-3 border-t border-dashed text-[10px] text-muted-foreground">
+              Merci pour votre confiance !<br />
+              Reçu numérique horodaté et certifié.
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 print:hidden">
+            <Button
+              variant="outline"
+              className="flex-1 font-bold text-xs"
+              onClick={() => {
+                const printContent = document.getElementById('pos-receipt-print-area');
+                if (printContent) {
+                  const printWindow = window.open('', '_blank', 'width=380,height=600');
+                  if (printWindow) {
+                    printWindow.document.write(`
+                      <!DOCTYPE html>
+                      <html>
+                        <head>
+                          <title>Ticket de Caisse #${completedSale?.reference || ''}</title>
+                          <style>
+                            @page { size: 80mm auto; margin: 0; }
+                            body {
+                              font-family: monospace;
+                              font-size: 11px;
+                              width: 76mm;
+                              margin: 0 auto;
+                              padding: 6px;
+                              color: #000;
+                              background: #fff;
+                            }
+                            .text-center { text-align: center; }
+                            .text-right { text-align: right; }
+                            .font-bold { font-weight: bold; }
+                            .border-b { border-bottom: 1px dashed #999; padding-bottom: 6px; margin-bottom: 6px; }
+                            .border-t { border-top: 1px dashed #999; padding-top: 6px; margin-top: 6px; }
+                            .flex { display: flex; justify-content: space-between; }
+                            img { max-height: 45px; max-width: 120px; object-fit: contain; margin-bottom: 4px; }
+                          </style>
+                        </head>
+                        <body>
+                          ${printContent.innerHTML}
+                          <script>
+                            window.onload = function() {
+                              window.print();
+                              window.onafterprint = function() { window.close(); };
+                            };
+                          </script>
+                        </body>
+                      </html>
+                    `);
+                    printWindow.document.close();
+                  } else {
+                    window.print();
+                  }
+                } else {
+                  window.print();
+                }
+              }}
+            >
+              <Printer className="h-4 w-4 mr-1.5" /> Imprimer Ticket
+            </Button>
+            <Button
+              className="flex-1 font-bold text-xs"
+              onClick={() => setIsReceiptModalOpen(false)}
+            >
+              Nouvelle Vente [ESC]
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL: CLÔTURE FISCALE DE CAISSE ET ÉMISSION DU RAPPORT Z */}
+      <Modal
+        isOpen={isCloseRegisterModalOpen}
+        onClose={() => setIsCloseRegisterModalOpen(false)}
+        title="Clôture de Caisse Journalière — Rapport Z"
+        maxWidth="md"
+      >
+        <form onSubmit={handleCloseRegisterZ} className="space-y-4 pt-1">
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+            <div className="flex items-center gap-2 font-bold text-rose-400 mb-1">
+              <Lock className="h-4 w-4" /> Procédure de Clôture Définitive (Rapport Z)
+            </div>
+            La clôture fiscale archive les ventes de la session de manière inaltérable, récapitule la TVA collectée et calcule l'écart de tiroir-caisse.
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-card border text-xs">
+            <div>
+              <span className="text-muted-foreground block">Caisse Active :</span>
+              <span className="font-bold text-foreground">{activeRegister.name}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block">Code Caisse :</span>
+              <span className="font-mono font-bold text-foreground">#{activeRegister.code}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block">Fond initial d'ouverture :</span>
+              <span className="font-semibold text-foreground">125 000 FCFA</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block">Solde théorique en caisse :</span>
+              <span className="font-bold text-emerald-500">{formatCurrency(activeRegister.current_balance)}</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-foreground block mb-1.5">
+              Espèces physiques réellement comptées dans le tiroir-caisse (FCFA) *
+            </label>
+            <div className="relative">
+              <Input
+                type="number"
+                step="0.01"
+                required
+                value={closingCashAmount}
+                onChange={(e) => setClosingCashAmount(e.target.value)}
+                placeholder="Montant total des billets et pièces comptés..."
+                className="pl-8 text-base font-bold font-mono"
+              />
+              <Banknote className="h-4 w-4 text-muted-foreground absolute left-2.5 top-3.5 pointer-events-none" />
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Comptez vos billets et pièces. Tout écart (excédent ou manquant) sera consigné sur le rapport Z officiel.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border text-xs">
+            <span className="font-medium text-muted-foreground">Document édité :</span>
+            <span className="font-bold text-foreground flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 text-primary" /> Ticket Officiel Rapport Z (PDF A4)
+            </span>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsCloseRegisterModalOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              variant="destructive"
+              isLoading={isClosingRegister}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+            >
+              <CheckCircle2 className="h-4 w-4 mr-1.5" /> Valider et Clôturer la Caisse
+            </Button>
+          </div>
+        </form>
+      </Modal>
+    </DashboardLayout>
+
+  );
+}

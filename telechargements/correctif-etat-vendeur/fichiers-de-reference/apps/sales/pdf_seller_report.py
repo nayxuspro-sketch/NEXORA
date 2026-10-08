@@ -625,6 +625,12 @@ class SellerSalesReportPdfView(APIView):
             Paragraph("<b>Part (%)</b>", table_header_style),
         ]
 
+        sku_cell_style = ParagraphStyle(
+            'SellerSku',
+            parent=cell_style,
+            fontSize=7,
+            leading=9,
+        )
         p_table_data = [p_table_headers]
         for p_data in sorted_prods:
             p_name = escape(str(p_data['name']))
@@ -632,7 +638,7 @@ class SellerSalesReportPdfView(APIView):
             share = (p_data['revenue'] / total_revenue * Decimal('100')).quantize(Decimal('0.1')) if total_revenue > 0 else Decimal('0.0')
             p_table_data.append([
                 Paragraph(p_name, cell_style),
-                Paragraph(p_sku, cell_style),
+                Paragraph(p_sku, sku_cell_style),
                 Paragraph(_nexora_formater_quantite(p_data['qty']), cell_style),
                 Paragraph(f"{p_data['revenue']:,.0f} FCFA".replace(',', ' '), cell_bold),
                 Paragraph(f"{p_data['profit']:,.0f} FCFA".replace(',', ' '), cell_bold),
@@ -646,7 +652,7 @@ class SellerSalesReportPdfView(APIView):
                 Paragraph("", cell_style), Paragraph("", cell_style), Paragraph("", cell_style),
             ])
 
-        p_table = Table(p_table_data, colWidths=[180, 80, 70, 85, 80, 43], repeatRows=1, splitByRow=1)
+        p_table = Table(p_table_data, colWidths=[155, 105, 70, 85, 80, 43], repeatRows=1, splitByRow=1)
         p_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
             ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
