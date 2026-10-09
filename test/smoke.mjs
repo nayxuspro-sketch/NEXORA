@@ -45,7 +45,8 @@ check('progression affichée', /\d+%/.test($('#sidebar-progress-value').textCont
 check('lexique rendu', $$('#glossary-terms .glossary-term').length === 48, String($$('#glossary-terms .glossary-term').length));
 check('compteur lexique', $('#glossary-count').textContent.includes('48'), $('#glossary-count').textContent);
 check('compteur atelier', $('#lab-function-count').textContent.includes('18'), $('#lab-function-count').textContent);
-check('date du jour', /SEPTEMBRE 2026/.test($('#dashboard-date').textContent), $('#dashboard-date').textContent.slice(0, 40));
+const todayFr = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date()).toUpperCase();
+check('date du jour', $('#dashboard-date').textContent.includes(todayFr), $('#dashboard-date').textContent.slice(0, 40));
 check('notes vides au départ', $$('#saved-notes .saved-note').length >= 1);
 
 // Propreté du DOM : aucun identifiant dupliqué
